@@ -7,7 +7,7 @@ use vulkano::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
         QueueCreateInfo, QueueFlags,
     },
-    image::{view::ImageView, Image},
+    image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateFlags, InstanceCreateInfo},
     pipeline::graphics::viewport::Viewport,
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
@@ -64,28 +64,58 @@ impl State {
             },
         )
         .expect("failed to create instance");
+        let surface = Surface::from_window(instance.clone(), window.clone()).unwrap();
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
         };
-        let surface = Surface::from_window(instance.clone(), window).unwrap();
+
         let (physical_device, queue_family_index) = instance
             .enumerate_physical_devices()
             .unwrap()
-            .filter(|p| p.supported_extensions().contains(&device_extensions))
+            .filter(|p| {
+                // Some devices may not support the extensions or features that your application, or
+                // report properties and limits that are not sufficient for your application. These
+                // should be filtered out here.
+                p.supported_extensions().contains(&device_extensions)
+            })
             .filter_map(|p| {
+                // For each physical device, we try to find a suitable queue family that will execute
+                // our draw commands.
+                //
+                // Devices can provide multiple queues to run commands in parallel (for example a draw
+                // queue and a compute queue), similar to CPU threads. This is something you have to
+                // have to manage manually in Vulkan. Queues of the same type belong to the same queue
+                // family.
+                //
+                // Here, we look for a single queue family that is suitable for our purposes. In a
+                // real-world application, you may want to use a separate dedicated transfer queue to
+                // handle data transfers in parallel with graphics operations. You may also need a
+                // separate queue for compute operations, if your application uses those.
                 p.queue_family_properties()
                     .iter()
                     .enumerate()
                     .position(|(i, q)| {
-                        // pick first queue_familiy_index that handles graphics and can draw on the surface created by winit
-                        q.queue_flags.contains(QueueFlags::GRAPHICS)
+                        // We select a queue family that supports graphics operations. When drawing to
+                        // a window surface, as we do in this example, we also need to check that
+                        // queues in this queue family are capable of presenting images to the surface.
+                        q.queue_flags.intersects(QueueFlags::GRAPHICS)
                             && p.surface_support(i as u32, &surface).unwrap_or(false)
                     })
+                    // The code here searches for the first queue family that is suitable. If none is
+                    // found, `None` is returned to `filter_map`, which disqualifies this physical
+                    // device.
                     .map(|i| (p, i as u32))
             })
+            // All the physical devices that pass the filters above are suitable for the application.
+            // However, not every device is equal, some are preferred over others. Now, we assign each
+            // physical device a score, and pick the device with the lowest ("best") score.
+            //
+            // In this example, we simply select the best-scoring device to use in the application.
+            // In a real-world setting, you may want to use the best-scoring device only as a "default"
+            // or "recommended" device, and let the user choose the device themself.
             .min_by_key(|(p, _)| {
-                // lower score for preferred device types
+                // We assign a lower score to device types that are likely to be faster/better.
                 match p.properties().device_type {
                     PhysicalDeviceType::DiscreteGpu => 0,
                     PhysicalDeviceType::IntegratedGpu => 1,
@@ -95,56 +125,95 @@ impl State {
                     _ => 5,
                 }
             })
-            .expect("No suitable physical device found")
-            .clone();
+            .expect("no suitable physical device found");
+
+        info!(
+            "Using device: {} (type: {:?})",
+            physical_device.properties().device_name,
+            physical_device.properties().device_type,
+        );
+
         let (device, mut queues) = Device::new(
+            // Which physical device to connect to.
             physical_device,
             DeviceCreateInfo {
-                // here we pass the desired queue family to use by index
+                // A list of optional features and extensions that our program needs to work correctly.
+                // Some parts of the Vulkan specs are optional and must be enabled manually at device
+                // creation. In this example the only thing we are going to need is the `khr_swapchain`
+                // extension that allows us to draw to a window.
+                enabled_extensions: device_extensions,
+
+                // The list of queues that we are going to use. Here we only use one queue, from the
+                // previously chosen queue family.
                 queue_create_infos: vec![QueueCreateInfo {
                     queue_family_index,
                     ..Default::default()
                 }],
+
                 ..Default::default()
             },
         )
-        .expect("failed to create device");
+        .unwrap();
+
         let queue = queues.next().unwrap();
 
         let (swapchain, images) = {
-            let caps = device
+            // Querying the capabilities of the surface. When we create the swapchain we can only pass
+            // values that are allowed by the capabilities.
+            let surface_capabilities = device
                 .physical_device()
                 .surface_capabilities(&surface, Default::default())
                 .unwrap();
 
-            let usage = caps.supported_usage_flags;
-            let alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-
+            // Choosing the internal format that the images will have.
             let image_format = device
                 .physical_device()
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0]
                 .0;
 
-            let window = surface.object().unwrap().downcast_ref::<Window>().unwrap();
-            let image_extent: [u32; 2] = window.inner_size().into();
-
+            // Please take a look at the docs for the meaning of the parameters we didn't mention.
             Swapchain::new(
                 device.clone(),
                 surface.clone(),
                 SwapchainCreateInfo {
-                    min_image_count: caps.min_image_count,
+                    // Some drivers report an `min_image_count` of 1, but fullscreen mode requires at
+                    // least 2. Therefore we must ensure the count is at least 2, otherwise the program
+                    // would crash when entering fullscreen mode on those drivers.
+                    min_image_count: surface_capabilities.min_image_count.max(2),
+
                     image_format,
-                    image_extent,
-                    image_usage: usage,
-                    composite_alpha: alpha,
+
+                    // The size of the window, only used to initially setup the swapchain.
+                    //
+                    // NOTE:
+                    // On some drivers the swapchain extent is specified by
+                    // `surface_capabilities.current_extent` and the swapchain size must use this
+                    // extent. This extent is always the same as the window size.
+                    //
+                    // However, other drivers don't specify a value, i.e.
+                    // `surface_capabilities.current_extent` is `None`. These drivers will allow
+                    // anything, but the only sensible value is the window size.
+                    //
+                    // Both of these cases need the swapchain to use the window size, so we just
+                    // use that.
+                    image_extent: window.inner_size().into(),
+
+                    image_usage: ImageUsage::COLOR_ATTACHMENT,
+
+                    // The alpha mode indicates how the alpha value of the final image will behave. For
+                    // example, you can choose whether the window will be opaque or transparent.
+                    composite_alpha: surface_capabilities
+                        .supported_composite_alpha
+                        .into_iter()
+                        .next()
+                        .unwrap(),
+
                     ..Default::default()
                 },
             )
             .unwrap()
         };
-        let command_buffer_allocator =
-            StandardCommandBufferAllocator::new(device.clone(), Default::default());
         let render_pass = single_pass_renderpass!(
             device.clone(),
             attachments: {
