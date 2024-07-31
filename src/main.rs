@@ -356,7 +356,9 @@ impl State {
         }
     }
 
-    pub fn resize(&mut self, size: PhysicalSize<u32>) {}
+    pub fn resize(&mut self) {
+        self.recreate_swapchain = true;
+    }
 }
 
 fn window_size_dependent_setup(
@@ -418,7 +420,7 @@ impl ApplicationHandler for App {
                     },
                 ..
             } => event_loop.exit(),
-            WindowEvent::Resized(size) => self.state.as_mut().unwrap().resize(size),
+            WindowEvent::Resized(_) => self.state.as_mut().unwrap().resize(),
             WindowEvent::RedrawRequested => {
                 info!("redraw requested");
                 self.state
