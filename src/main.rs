@@ -2,19 +2,22 @@ use std::sync::Arc;
 
 use log::info;
 use vulkano::{
-    command_buffer::allocator::StandardCommandBufferAllocator,
+    command_buffer::{
+        allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, ClearAttachment,
+        ClearRect, CommandBufferUsage, RenderPassBeginInfo,
+    },
     device::{
         physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, Queue,
         QueueCreateInfo, QueueFlags,
     },
     image::{view::ImageView, Image, ImageUsage},
     instance::{Instance, InstanceCreateFlags, InstanceCreateInfo},
-    pipeline::graphics::viewport::Viewport,
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
-    single_pass_renderpass,
-    swapchain::{Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo},
+    swapchain::{
+        acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo,
+    },
     sync::{self, GpuFuture},
-    VulkanLibrary,
+    Validated, VulkanError, VulkanLibrary,
 };
 use winit::{
     application::ApplicationHandler,
@@ -46,7 +49,9 @@ pub struct State {
     pub previous_frame_end: Option<Box<dyn GpuFuture>>,
     pub frame_buffers: Vec<Arc<Framebuffer>>,
     pub swapchain: Arc<Swapchain>,
-    pub viewport: Viewport,
+    command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    width: u32,
+    height: u32,
 }
 
 impl State {
@@ -158,66 +163,39 @@ impl State {
         let queue = queues.next().unwrap();
 
         let (swapchain, images) = {
-            // Querying the capabilities of the surface. When we create the swapchain we can only pass
-            // values that are allowed by the capabilities.
             let surface_capabilities = device
                 .physical_device()
                 .surface_capabilities(&surface, Default::default())
                 .unwrap();
-
-            // Choosing the internal format that the images will have.
             let image_format = device
                 .physical_device()
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0]
                 .0;
 
-            // Please take a look at the docs for the meaning of the parameters we didn't mention.
             Swapchain::new(
                 device.clone(),
                 surface.clone(),
                 SwapchainCreateInfo {
-                    // Some drivers report an `min_image_count` of 1, but fullscreen mode requires at
-                    // least 2. Therefore we must ensure the count is at least 2, otherwise the program
-                    // would crash when entering fullscreen mode on those drivers.
                     min_image_count: surface_capabilities.min_image_count.max(2),
-
                     image_format,
-
-                    // The size of the window, only used to initially setup the swapchain.
-                    //
-                    // NOTE:
-                    // On some drivers the swapchain extent is specified by
-                    // `surface_capabilities.current_extent` and the swapchain size must use this
-                    // extent. This extent is always the same as the window size.
-                    //
-                    // However, other drivers don't specify a value, i.e.
-                    // `surface_capabilities.current_extent` is `None`. These drivers will allow
-                    // anything, but the only sensible value is the window size.
-                    //
-                    // Both of these cases need the swapchain to use the window size, so we just
-                    // use that.
                     image_extent: window.inner_size().into(),
-
                     image_usage: ImageUsage::COLOR_ATTACHMENT,
-
-                    // The alpha mode indicates how the alpha value of the final image will behave. For
-                    // example, you can choose whether the window will be opaque or transparent.
                     composite_alpha: surface_capabilities
                         .supported_composite_alpha
                         .into_iter()
                         .next()
                         .unwrap(),
-
                     ..Default::default()
                 },
             )
             .unwrap()
         };
-        let render_pass = single_pass_renderpass!(
-            device.clone(),
+
+        // Please take a look at the docs for the meaning of the parameters we didn't mention.
+
+        let render_pass = vulkano::single_pass_renderpass!(device.clone(),
             attachments: {
-                // `foo` is a custom name we give to the first and only attachment.
                 color: {
                     format: swapchain.image_format(),
                     samples: 1,
@@ -226,20 +204,20 @@ impl State {
                 },
             },
             pass: {
-                color: [color],       // Repeat the attachment name here.
+                color: [color],
                 depth_stencil: {},
             },
         )
         .unwrap();
-        let mut viewport = Viewport {
-            offset: [0.0, 0.0],
-            extent: [0.0, 0.0],
-            depth_range: (0.0..=1.0),
-        };
+        let command_buffer_allocator = Arc::new(StandardCommandBufferAllocator::new(
+            device.clone(),
+            Default::default(),
+        ));
+        let width = swapchain.image_extent()[0];
+        let height = swapchain.image_extent()[1];
 
-        let frame_buffers =
-            window_size_dependent_setup(&images, render_pass.clone(), &mut viewport);
-        let previous_frame_end = Some(Box::new(sync::now(device.clone())) as Box<dyn GpuFuture>);
+        let frame_buffers = window_size_dependent_setup(&images, render_pass.clone());
+        let previous_frame_end = Some(sync::now(device.clone()).boxed());
         Self {
             surface,
             device,
@@ -249,35 +227,132 @@ impl State {
             previous_frame_end,
             frame_buffers,
             swapchain,
-            viewport,
+            command_buffer_allocator,
+            width,
+            height,
         }
     }
 
-    pub fn render(&mut self) {
-        if self.recreate_swapchain {
-            let window = self
-                .surface
-                .object()
-                .unwrap()
-                .downcast_ref::<Window>()
-                .unwrap();
-            let image_extent: [u32; 2] = window.inner_size().into();
+    pub fn render(&mut self, window: Arc<Window>) {
+        let image_extent: [u32; 2] = window.inner_size().into();
 
-            let (new_swapchain, new_images) = match self.swapchain.recreate(SwapchainCreateInfo {
-                image_extent,
-                ..self.swapchain.create_info()
-            }) {
-                Ok(r) => r,
-                Err(e) => panic!("Failed to recreate swapchain: {:?}", e),
-            };
+        if image_extent.contains(&0) {
+            return;
+        }
+
+        self.previous_frame_end.as_mut().unwrap().cleanup_finished();
+
+        if self.recreate_swapchain {
+            let (new_swapchain, new_images) = self
+                .swapchain
+                .recreate(SwapchainCreateInfo {
+                    image_extent,
+                    ..self.swapchain.create_info()
+                })
+                .expect("failed to recreate swapchain");
 
             self.swapchain = new_swapchain;
-            self.frame_buffers = window_size_dependent_setup(
-                &new_images,
-                self.render_pass.clone(),
-                &mut self.viewport,
-            );
+            self.width = self.swapchain.image_extent()[0];
+            self.height = self.swapchain.image_extent()[1];
+            self.frame_buffers = window_size_dependent_setup(&new_images, self.render_pass.clone());
             self.recreate_swapchain = false;
+        }
+
+        let (image_index, suboptimal, acquire_future) =
+            match acquire_next_image(self.swapchain.clone(), None).map_err(Validated::unwrap) {
+                Ok(r) => r,
+                Err(VulkanError::OutOfDate) => {
+                    self.recreate_swapchain = true;
+                    return;
+                }
+                Err(e) => panic!("failed to acquire next image: {e}"),
+            };
+
+        if suboptimal {
+            self.recreate_swapchain = true;
+        }
+
+        let mut builder = AutoCommandBufferBuilder::primary(
+            &self.command_buffer_allocator,
+            self.queue.queue_family_index(),
+            CommandBufferUsage::OneTimeSubmit,
+        )
+        .unwrap();
+        builder
+            .begin_render_pass(
+                RenderPassBeginInfo {
+                    clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
+                    ..RenderPassBeginInfo::framebuffer(
+                        self.frame_buffers[image_index as usize].clone(),
+                    )
+                },
+                Default::default(),
+            )
+            .unwrap()
+            // Clear attachments with clear values and rects information. All the rects
+            // will be cleared by the same value. Note that the ClearRect offsets and
+            // extents are not affected by the viewport, they are directly applied to the
+            // rendering image.
+            .clear_attachments(
+                [ClearAttachment::Color {
+                    color_attachment: 0,
+                    clear_value: [1.0, 0.0, 0.0, 1.0].into(),
+                }]
+                .into_iter()
+                .collect(),
+                [
+                    // Fixed offset and extent.
+                    ClearRect {
+                        offset: [0, 0],
+                        extent: [100, 100],
+                        array_layers: 0..1,
+                    },
+                    // Fixed offset, relative extent.
+                    ClearRect {
+                        offset: [100, 150],
+                        extent: [self.width / 4, self.height / 4],
+                        array_layers: 0..1,
+                    },
+                    // Relative offset and extent.
+                    ClearRect {
+                        offset: [self.width / 2, self.height / 2],
+                        extent: [self.width / 3, self.height / 5],
+                        array_layers: 0..1,
+                    },
+                ]
+                .into_iter()
+                .collect(),
+            )
+            .unwrap()
+            .end_render_pass(Default::default())
+            .unwrap();
+        let command_buffer = builder.build().unwrap();
+
+        let future = self
+            .previous_frame_end
+            .take()
+            .unwrap()
+            .join(acquire_future)
+            .then_execute(self.queue.clone(), command_buffer)
+            .unwrap()
+            .then_swapchain_present(
+                self.queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_index),
+            )
+            .then_signal_fence_and_flush();
+
+        match future.map_err(Validated::unwrap) {
+            Ok(future) => {
+                self.previous_frame_end = Some(future.boxed());
+            }
+            Err(VulkanError::OutOfDate) => {
+                self.recreate_swapchain = true;
+                self.previous_frame_end = Some(sync::now(self.device.clone()).boxed());
+            }
+            Err(e) => {
+                println!("failed to flush future: {e}");
+                self.previous_frame_end = Some(sync::now(self.device.clone()).boxed());
+            }
         }
     }
 
@@ -287,11 +362,7 @@ impl State {
 fn window_size_dependent_setup(
     images: &[Arc<Image>],
     render_pass: Arc<RenderPass>,
-    viewport: &mut Viewport,
 ) -> Vec<Arc<Framebuffer>> {
-    let dimensions = images[0].extent();
-    viewport.extent = [dimensions[0] as f32, dimensions[1] as f32];
-
     images
         .iter()
         .map(|image| {
@@ -350,7 +421,10 @@ impl ApplicationHandler for App {
             WindowEvent::Resized(size) => self.state.as_mut().unwrap().resize(size),
             WindowEvent::RedrawRequested => {
                 info!("redraw requested");
-                self.state.as_mut().unwrap().render();
+                self.state
+                    .as_mut()
+                    .unwrap()
+                    .render(self.window.as_ref().unwrap().clone());
                 self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}

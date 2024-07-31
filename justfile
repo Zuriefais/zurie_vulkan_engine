@@ -5,3 +5,6 @@ run:
 
 editor:
     hyprctl dispatch exec [workspace 5] zeditor $PWD
+
+fix:
+    cargo clippy --fix --allow-dirty
