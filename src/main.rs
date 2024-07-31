@@ -22,7 +22,6 @@ use vulkano::{
 };
 use winit::{
     application::ApplicationHandler,
-    dpi::PhysicalSize,
     event::{ElementState, KeyEvent, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
@@ -304,22 +303,14 @@ impl State {
                 .into_iter()
                 .collect(),
                 [
-                    // Fixed offset and extent.
                     ClearRect {
                         offset: [0, 0],
                         extent: [100, 100],
                         array_layers: 0..1,
                     },
-                    // Fixed offset, relative extent.
                     ClearRect {
-                        offset: [100, 150],
-                        extent: [self.width / 4, self.height / 4],
-                        array_layers: 0..1,
-                    },
-                    // Relative offset and extent.
-                    ClearRect {
-                        offset: [self.width / 2, self.height / 2],
-                        extent: [self.width / 3, self.height / 5],
+                        offset: [100, 100],
+                        extent: [100, 100],
                         array_layers: 0..1,
                     },
                 ]
