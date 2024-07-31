@@ -1,9 +1,9 @@
-#Game engine made on vulcan
+# Game engine made on vulcan
 
-##Dependencies
+## Dependencies
 
 > cargo, cargo-zigbuild, mangohud, vulcan
 
-##Run
+## Run
 
 >`just`
