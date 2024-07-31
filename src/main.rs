@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use ecolor::hex_color;
 use log::info;
 use vulkano::{
     command_buffer::{
@@ -281,7 +282,9 @@ impl State {
         builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
+                    clear_values: vec![Some(
+                        hex_color!("#986A65").to_normalized_gamma_f32().into(),
+                    )],
                     ..RenderPassBeginInfo::framebuffer(
                         self.frame_buffers[image_index as usize].clone(),
                     )
@@ -296,7 +299,7 @@ impl State {
             .clear_attachments(
                 [ClearAttachment::Color {
                     color_attachment: 0,
-                    clear_value: [1.0, 0.0, 0.0, 1.0].into(),
+                    clear_value: hex_color!("#D6CDC3").to_normalized_gamma_f32().into(),
                 }]
                 .into_iter()
                 .collect(),
@@ -422,7 +425,6 @@ impl ApplicationHandler for App {
             } => event_loop.exit(),
             WindowEvent::Resized(_) => self.state.as_mut().unwrap().resize(),
             WindowEvent::RedrawRequested => {
-                info!("redraw requested");
                 self.state
                     .as_mut()
                     .unwrap()
@@ -433,5 +435,3 @@ impl ApplicationHandler for App {
         }
     }
 }
-
-const CLEAR_VALUE: [f32; 4] = [0.0, 0.68, 1.0, 1.0];

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ecolor = {version = "0.28.1", features = ["color-hex"]}
 env_logger = "0.11.5"
 glam = "0.28.0"
 log = "0.4.22"
