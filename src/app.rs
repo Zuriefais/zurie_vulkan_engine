@@ -28,7 +28,7 @@ impl ApplicationHandler for App {
             );
             self.window = Some(window.clone());
 
-            let state = pollster::block_on(State::new(window.clone()));
+            let state = pollster::block_on(State::new(window.clone(), event_loop));
             self.state = Some(state);
         }
     }

@@ -1,4 +1,8 @@
 use ecolor::hex_color;
+use egui_winit_vulkano::{
+    egui::{self, ScrollArea, TextEdit, TextStyle},
+    Gui, GuiConfig,
+};
 use log::info;
 use std::sync::Arc;
 use vulkano::{
@@ -21,7 +25,7 @@ use vulkano::{
             multisample::MultisampleState,
             rasterization::RasterizationState,
             vertex_input::VertexDefinition,
-            viewport::{self, Viewport, ViewportState},
+            viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
@@ -29,12 +33,15 @@ use vulkano::{
     },
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     swapchain::{
-        acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo,
+        self, acquire_next_image, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo,
     },
     sync::{self, GpuFuture},
     Validated, VulkanError, VulkanLibrary,
 };
-use winit::window::Window;
+use winit::{
+    event_loop::{self, ActiveEventLoop},
+    window::Window,
+};
 
 pub struct State {
     device: Arc<Device>,
@@ -50,10 +57,13 @@ pub struct State {
     pipeline: Arc<GraphicsPipeline>,
     viewport: Viewport,
     vertex_buffer: vulkano::buffer::Subbuffer<[MyVertex]>,
+    gui: Gui,
+    final_views: Vec<Arc<ImageView>>,
+    image_index: usize,
 }
 
 impl State {
-    pub async fn new(window: Arc<Window>) -> State {
+    pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
         let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
         let required_extensions = Surface::required_extensions(&window);
         let instance = Instance::new(
@@ -338,6 +348,18 @@ impl State {
         let frame_buffers =
             window_size_dependent_setup(&images, render_pass.clone(), &mut viewport);
         let previous_frame_end = Some(sync::now(device.clone()).boxed());
+        let gui = Gui::new(
+            event_loop,
+            surface,
+            queue.clone(),
+            swapchain.image_format(),
+            GuiConfig::default(),
+        );
+
+        let final_views = images
+            .into_iter()
+            .map(|image| ImageView::new_default(image).unwrap())
+            .collect::<Vec<_>>();
         Self {
             device,
             queue,
@@ -352,10 +374,18 @@ impl State {
             pipeline,
             viewport,
             vertex_buffer,
+            gui,
+            final_views,
+            image_index: 0,
         }
     }
 
+    pub fn swapchain_image_view(&self) -> Arc<ImageView> {
+        self.final_views[self.image_index as usize].clone()
+    }
+
     pub fn render(&mut self, window: Arc<Window>) {
+        self.gui();
         let image_extent: [u32; 2] = window.inner_size().into();
 
         if image_extent.contains(&0) {
@@ -462,14 +492,18 @@ impl State {
             .unwrap()
             .join(acquire_future)
             .then_execute(self.queue.clone(), command_buffer)
-            .unwrap()
+            .unwrap();
+
+        let after_future = self
+            .gui
+            .draw_on_image(future, self.swapchain_image_view())
             .then_swapchain_present(
                 self.queue.clone(),
                 SwapchainPresentInfo::swapchain_image_index(self.swapchain.clone(), image_index),
             )
             .then_signal_fence_and_flush();
 
-        match future.map_err(Validated::unwrap) {
+        match after_future.map_err(Validated::unwrap) {
             Ok(future) => {
                 self.previous_frame_end = Some(future.boxed());
             }
@@ -481,6 +515,22 @@ impl State {
                 println!("failed to flush future: {e}");
                 self.previous_frame_end = Some(sync::now(self.device.clone()).boxed());
             }
+        }
+    }
+
+    pub fn gui(&mut self) {
+        self.gui.immediate_ui(|gui| {
+            let ctx = gui.context();
+            egui::CentralPanel::default().show(&ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add(egui::widgets::Label::new("Hi there!"));
+                    sized_text(ui, "Rich Text", 32.0);
+                });
+                ui.separator();
+            });
+        });
+        fn sized_text(ui: &mut egui::Ui, text: impl Into<String>, size: f32) {
+            ui.label(egui::RichText::new(text).size(size));
         }
     }
 
@@ -535,7 +585,7 @@ mod fs {
             layout(location = 0) out vec4 f_color;
 
             void main() {
-                f_color = vec4(1.0, 0.0, 0.0, 1.0);
+                f_color = vec4(1.0, 0.63, 0.21, 1.0);
             }
         "
     }
