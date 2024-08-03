@@ -1,6 +1,6 @@
 use ecolor::hex_color;
 use log::info;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage},
     command_buffer::{
@@ -170,6 +170,11 @@ impl State {
                 .surface_formats(&surface, Default::default())
                 .unwrap()[0]
                 .0;
+            let present_mode = if env::var("DisableVsync").is_ok() {
+                vulkano::swapchain::PresentMode::Mailbox
+            } else {
+                vulkano::swapchain::PresentMode::Fifo
+            };
 
             Swapchain::new(
                 device.clone(),
@@ -179,6 +184,7 @@ impl State {
                     image_format,
                     image_extent: window.inner_size().into(),
                     image_usage: ImageUsage::COLOR_ATTACHMENT,
+                    present_mode,
                     composite_alpha: surface_capabilities
                         .supported_composite_alpha
                         .into_iter()
