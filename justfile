@@ -10,6 +10,9 @@ run:
     cargo zigbuild --release
     RUST_LOG=info ./target/release/vulcan_engine.exe
 
+build_windows:
+    cargo xwin build --release --target x86_64-pc-windows-msvc
+
 [unix]
 editor:
     hyprctl dispatch exec [workspace 5] zeditor $PWD

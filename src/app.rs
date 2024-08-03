@@ -6,7 +6,8 @@ use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
     event_loop::ActiveEventLoop,
     keyboard::{KeyCode, PhysicalKey},
-    window::Window,
+    platform::x11::WindowAttributesExtX11,
+    window::{Window, WindowAttributes},
 };
 
 use crate::state::State;
@@ -21,11 +22,9 @@ impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         info!("Creating window");
         if self.window.is_none() {
-            let window = Arc::new(
-                event_loop
-                    .create_window(Window::default_attributes())
-                    .unwrap(),
-            );
+            let window_attributes =
+                Window::default_attributes().with_title("Vulcan engine by Zuriefais");
+            let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
             self.window = Some(window.clone());
 
             let state = pollster::block_on(State::new(window.clone()));
