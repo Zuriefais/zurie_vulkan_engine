@@ -6,8 +6,7 @@ use winit::{
     event::{ElementState, KeyEvent, WindowEvent},
     event_loop::ActiveEventLoop,
     keyboard::{KeyCode, PhysicalKey},
-    platform::x11::WindowAttributesExtX11,
-    window::{Window, WindowAttributes},
+    window::Window,
 };
 
 use crate::state::State;

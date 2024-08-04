@@ -1,4 +1,9 @@
 pub mod app;
+pub mod compute_render;
+pub mod pixels_draw;
+pub mod render;
+pub mod render_pass;
+pub mod shaders;
 pub mod state;
 
 use app::App;
