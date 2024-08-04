@@ -1,6 +1,5 @@
 use crate::render::Renderer;
 use glam::IVec2;
-use rdrand::RdRand;
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -131,7 +130,7 @@ impl RenderComputePipeline {
         .unwrap();
         let life_color = [1.0, 0.0, 0.0, 1.0];
 
-        let dead_color = [0.0, 1.0, 0.0, 1.0];
+        let dead_color = [0.0, 0.0, 0.0, 0.0];
 
         self.dispatch(&mut builder, life_color, dead_color, 0);
         self.dispatch(&mut builder, life_color, dead_color, 1);
@@ -253,7 +252,7 @@ mod compute_life_cs {
                 if (life_out[index] == 1) {
                     imageStore(img, pos, push_constants.life_color);
                 } else {
-                    imageStore(img, pos, push_constants.dead_color);
+                    // imageStore(img, pos, push_constants.dead_color);
                 }
             }
 

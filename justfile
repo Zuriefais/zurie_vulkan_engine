@@ -2,13 +2,13 @@
 run:
     cargo fmt
     cargo zigbuild --release
-    mangohud RUST_LOG=info ./target/release/vulcan_engine
+    mangohud RUST_LOG=info ./target/release/vulkan_engine
 
 [windows]
 run:
     cargo fmt
     cargo zigbuild --release
-    RUST_LOG=info ./target/release/vulcan_engine.exe
+    RUST_LOG=info ./target/release/vulkan_engine.exe
 
 build_windows:
     cargo xwin build --release --target x86_64-pc-windows-msvc
