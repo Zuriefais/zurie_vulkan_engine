@@ -45,10 +45,7 @@ impl State {
         info!("{:?}", self.render_pipeline.compute.life_in);
 
         // Compute.
-        let after_compute =
-            self.render_pipeline
-                .compute
-                .compute(before_pipeline_future, ALIVE_COLOR, DEAD_COLOR);
+        let after_compute = self.render_pipeline.compute.compute(before_pipeline_future);
 
         // Render.
         let color_image = self.render_pipeline.compute.color_image();

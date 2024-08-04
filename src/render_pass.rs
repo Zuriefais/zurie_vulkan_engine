@@ -80,7 +80,7 @@ impl RenderPassPlaceOverFrame {
         command_buffer_builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some([1.0; 4].into())],
+                    clear_values: vec![Some([0.0; 4].into())],
                     ..RenderPassBeginInfo::framebuffer(framebuffer)
                 },
                 SubpassBeginInfo {
@@ -98,11 +98,9 @@ impl RenderPassPlaceOverFrame {
 
         // Build the command buffer.
         let command_buffer = command_buffer_builder.build().unwrap();
-        info!("before crash!");
         let after_future = before_future
             .then_execute(self.gfx_queue.clone(), command_buffer)
             .unwrap();
-        info!("after crash..");
         after_future.boxed()
     }
 }

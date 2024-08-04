@@ -34,7 +34,6 @@ pub struct RenderComputePipeline {
 }
 
 fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Subbuffer<[u32]> {
-    let rand = RdRand::new().unwrap();
     Buffer::from_iter(
         memory_allocator,
         BufferCreateInfo {
@@ -46,7 +45,7 @@ fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> 
                 | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             ..Default::default()
         },
-        (0..(size[0] * size[1])).map(|_| rand.try_next_u32().unwrap()),
+        (0..(size[0] * size[1])).map(|_| fastrand::bool() as u32),
     )
     .unwrap()
 }
@@ -123,31 +122,16 @@ impl RenderComputePipeline {
         life_in[index] = 1;
     }
 
-    pub fn compute(
-        &mut self,
-        before_future: Box<dyn GpuFuture>,
-        life_color: [u8; 3],
-        dead_color: [u8; 3],
-    ) -> Box<dyn GpuFuture> {
+    pub fn compute(&mut self, before_future: Box<dyn GpuFuture>) -> Box<dyn GpuFuture> {
         let mut builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.as_ref(),
             self.compute_queue.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-        let life_color = [
-            life_color[0] as f32,
-            life_color[1] as f32,
-            life_color[2] as f32,
-            1.0,
-        ];
+        let life_color = [1.0, 0.0, 0.0, 1.0];
 
-        let dead_color = [
-            dead_color[0] as f32,
-            dead_color[1] as f32,
-            dead_color[2] as f32,
-            1.0,
-        ];
+        let dead_color = [0.0, 1.0, 0.0, 1.0];
 
         self.dispatch(&mut builder, life_color, dead_color, 0);
         self.dispatch(&mut builder, life_color, dead_color, 1);
