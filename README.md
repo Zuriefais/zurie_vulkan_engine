@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-> cargo, cargo-zigbuild, mangohud, vulcan
+> cargo, cargo-zigbuild, mangohud, vulkan
 
 ## Run
 
