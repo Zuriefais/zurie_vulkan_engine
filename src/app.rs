@@ -26,7 +26,7 @@ impl ApplicationHandler for App {
             let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
             self.window = Some(window.clone());
 
-            let state = pollster::block_on(State::new(window.clone()));
+            let state = pollster::block_on(State::new(window.clone(), event_loop));
             self.state = Some(state);
         }
     }
@@ -50,13 +50,10 @@ impl ApplicationHandler for App {
             } => event_loop.exit(),
             WindowEvent::Resized(_) => self.state.as_mut().unwrap().resize(),
             WindowEvent::RedrawRequested => {
-                self.state
-                    .as_mut()
-                    .unwrap()
-                    .render(self.window.as_ref().unwrap().clone());
+                self.state.as_mut().unwrap().render();
                 self.window.as_ref().unwrap().request_redraw();
             }
-            _ => {}
+            event => self.state.as_mut().unwrap().event(event),
         }
     }
 }

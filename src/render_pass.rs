@@ -1,5 +1,5 @@
 use crate::{pixels_draw::PixelsDrawPipeline, render::Renderer};
-use log::info;
+use ecolor::hex_color;
 use std::sync::Arc;
 use vulkano::{
     command_buffer::{
@@ -80,7 +80,9 @@ impl RenderPassPlaceOverFrame {
         command_buffer_builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some([0.0; 4].into())],
+                    clear_values: vec![Some(
+                        hex_color!("#986A65").to_normalized_gamma_f32().into(),
+                    )],
                     ..RenderPassBeginInfo::framebuffer(framebuffer)
                 },
                 SubpassBeginInfo {

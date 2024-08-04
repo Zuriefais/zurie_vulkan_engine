@@ -1,9 +1,13 @@
 use std::sync::Arc;
 
-use ecolor::hex_color;
-
+use egui_winit_vulkano::{egui, Gui, GuiConfig};
 use log::info;
-use winit::window::Window;
+use winit::{
+    event::WindowEvent,
+    event_loop::{self, ActiveEventLoop},
+    platform::x11::ActiveEventLoopExtX11,
+    window::Window,
+};
 
 pub struct RenderPipeline {
     pub compute: RenderComputePipeline,
@@ -22,19 +26,41 @@ impl RenderPipeline {
 pub struct State {
     render_pipeline: RenderPipeline,
     renderer: Renderer,
+    gui: Gui,
 }
 
 impl State {
-    pub async fn new(window: Arc<Window>) -> State {
+    pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
         let renderer = Renderer::new(window);
         let render_pipeline = RenderPipeline::new(&renderer);
+        let gui = Gui::new(
+            event_loop,
+            renderer.surface(),
+            renderer.gfx_queue(),
+            renderer.output_format,
+            GuiConfig {
+                allow_srgb_render_target: true,
+                is_overlay: true,
+                samples: vulkano::image::SampleCount::Sample1,
+            },
+        );
         State {
             renderer,
             render_pipeline,
+            gui,
         }
     }
 
-    pub fn render(&mut self, window: Arc<Window>) {
+    pub fn render(&mut self) {
+        self.gui.immediate_ui(|gui| {
+            let ctx = gui.context();
+            egui::Window::new("Test window").show(&ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add(egui::widgets::Label::new("Hi there!"));
+                    ui.button("Click me else you die")
+                });
+            });
+        });
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -51,17 +77,23 @@ impl State {
         let color_image = self.render_pipeline.compute.color_image();
         let target_image = self.renderer.swapchain_image_view();
 
-        let after_render =
-            self.render_pipeline
-                .place_over_frame
-                .render(after_compute, color_image, target_image);
+        let after_render = self.render_pipeline.place_over_frame.render(
+            after_compute,
+            color_image,
+            target_image.clone(),
+        );
+        let after_gui = self.gui.draw_on_image(after_render, target_image);
 
         // Finish the frame. Wait for the future so resources are not in use when we render.
-        self.renderer.present(after_render, true);
+        self.renderer.present(after_gui, true);
     }
 
     pub fn resize(&mut self) {
         self.renderer.resize();
+    }
+
+    pub fn event(&mut self, ev: WindowEvent) {
+        self.gui.update(&ev);
     }
 }
 
@@ -105,6 +137,3 @@ struct MyVertex {
     #[format(R32G32B32_SFLOAT)]
     position: [f32; 3],
 }
-
-static DEAD_COLOR: [u8; 3] = color_hex::color_from_hex!("#0D2132");
-static ALIVE_COLOR: [u8; 3] = color_hex::color_from_hex!("#D7572A");
