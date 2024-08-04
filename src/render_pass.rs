@@ -1,13 +1,5 @@
-// Copyright (c) 2022 The vulkano developers
-// Licensed under the Apache License, Version 2.0
-// <LICENSE-APACHE or
-// https://www.apache.org/licenses/LICENSE-2.0> or the MIT
-// license <LICENSE-MIT or https://opensource.org/licenses/MIT>,
-// at your option. All files in the project carrying such
-// notice may not be copied, modified, or distributed except
-// according to those terms.
-
 use crate::{pixels_draw::PixelsDrawPipeline, render::Renderer};
+use log::info;
 use std::sync::Arc;
 use vulkano::{
     command_buffer::{
@@ -91,6 +83,7 @@ impl RenderPassPlaceOverFrame {
         .unwrap();
 
         // Begin the render pass.
+        info!("before crash! 1");
         command_buffer_builder
             .begin_render_pass(
                 RenderPassBeginInfo {
@@ -103,26 +96,31 @@ impl RenderPassPlaceOverFrame {
                 },
             )
             .unwrap();
+        info!("before crash! 2");
 
         // Create a secondary command buffer from the texture pipeline & send draw commands.
         let cb = self.pixels_draw_pipeline.draw(img_dims, image_view);
+        info!("before crash! 3");
 
         // Execute above commands (subpass).
         command_buffer_builder.execute_commands(cb).unwrap();
+        info!("before crash! 3");
 
         // End the render pass.
         command_buffer_builder
             .end_render_pass(Default::default())
             .unwrap();
+        info!("before crash! 4");
 
         // Build the command buffer.
         let command_buffer = command_buffer_builder.build().unwrap();
-
+        info!("before crash! 5");
         // Execute primary command buffer.
-        let after_future = before_future
-            .then_execute(self.gfx_queue.clone(), command_buffer)
-            .unwrap();
-
-        after_future.boxed()
+        // let after_future = before_future
+        //     .then_execute(self.gfx_queue.clone(), command_buffer)
+        //     .unwrap();
+        info!("before crash! 5");
+        info!("after crash..");
+        before_future.boxed()
     }
 }
