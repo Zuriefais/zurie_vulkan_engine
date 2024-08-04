@@ -1,5 +1,6 @@
 use crate::render::Renderer;
 use glam::IVec2;
+use rdrand::RdRand;
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -27,12 +28,13 @@ pub struct RenderComputePipeline {
     compute_life_pipeline: Arc<ComputePipeline>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
-    life_in: Subbuffer<[u32]>,
-    life_out: Subbuffer<[u32]>,
+    pub life_in: Subbuffer<[u32]>,
+    pub life_out: Subbuffer<[u32]>,
     image: Arc<ImageView>,
 }
 
 fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Subbuffer<[u32]> {
+    let rand = RdRand::new().unwrap();
     Buffer::from_iter(
         memory_allocator,
         BufferCreateInfo {
@@ -44,7 +46,7 @@ fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> 
                 | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             ..Default::default()
         },
-        (0..(size[0] * size[1])).map(|_| 0),
+        (0..(size[0] * size[1])).map(|_| rand.try_next_u32().unwrap()),
     )
     .unwrap()
 }

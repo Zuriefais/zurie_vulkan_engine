@@ -63,8 +63,6 @@ impl RenderPassPlaceOverFrame {
     {
         // Get the dimensions.
         let img_dims: [u32; 2] = target.image().extent()[0..2].try_into().unwrap();
-
-        // Create the framebuffer.
         let framebuffer = Framebuffer::new(
             self.render_pass.clone(),
             FramebufferCreateInfo {
@@ -73,21 +71,16 @@ impl RenderPassPlaceOverFrame {
             },
         )
         .unwrap();
-
-        // Create a primary command buffer builder.
         let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.as_ref(),
             self.gfx_queue.queue_family_index(),
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-
-        // Begin the render pass.
-        info!("before crash! 1");
         command_buffer_builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some([0.0; 4].into())],
+                    clear_values: vec![Some([1.0; 4].into())],
                     ..RenderPassBeginInfo::framebuffer(framebuffer)
                 },
                 SubpassBeginInfo {
@@ -96,31 +89,20 @@ impl RenderPassPlaceOverFrame {
                 },
             )
             .unwrap();
-        info!("before crash! 2");
-
-        // Create a secondary command buffer from the texture pipeline & send draw commands.
         let cb = self.pixels_draw_pipeline.draw(img_dims, image_view);
-        info!("before crash! 3");
 
-        // Execute above commands (subpass).
         command_buffer_builder.execute_commands(cb).unwrap();
-        info!("before crash! 3");
-
-        // End the render pass.
         command_buffer_builder
             .end_render_pass(Default::default())
             .unwrap();
-        info!("before crash! 4");
 
         // Build the command buffer.
         let command_buffer = command_buffer_builder.build().unwrap();
-        info!("before crash! 5");
-        // Execute primary command buffer.
-        // let after_future = before_future
-        //     .then_execute(self.gfx_queue.clone(), command_buffer)
-        //     .unwrap();
-        info!("before crash! 5");
+        info!("before crash!");
+        let after_future = before_future
+            .then_execute(self.gfx_queue.clone(), command_buffer)
+            .unwrap();
         info!("after crash..");
-        before_future.boxed()
+        after_future.boxed()
     }
 }

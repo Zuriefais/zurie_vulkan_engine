@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use ecolor::hex_color;
 
+use log::info;
 use winit::window::Window;
 
 pub struct RenderPipeline {
@@ -41,6 +42,7 @@ impl State {
             }
             Ok(future) => future,
         };
+        info!("{:?}", self.render_pipeline.compute.life_in);
 
         // Compute.
         let after_compute =

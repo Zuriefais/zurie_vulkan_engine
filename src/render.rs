@@ -156,7 +156,7 @@ impl Renderer {
                 q.queue_flags.intersects(QueueFlags::COMPUTE) && *i != queue_family_graphics
             })
             .map(|(i, _)| i);
-        let is_separate_compute_queue = queue_family_compute.is_some();
+        let is_separate_compute_queue = false;
 
         let queue_create_infos = if let Some(queue_family_compute) = queue_family_compute {
             vec![
