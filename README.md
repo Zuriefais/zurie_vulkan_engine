@@ -1,4 +1,4 @@
-# Game engine made on vulcan
+# Game engine made on vulkan
 
 ## Dependencies
 
