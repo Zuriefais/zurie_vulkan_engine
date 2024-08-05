@@ -253,6 +253,6 @@ mod vs {
 mod fs {
     vulkano_shaders::shader! {
         ty: "fragment",
-        path: "shaders/pixels_draw/fr.glsl"
+        path: "shaders/pixels_draw/fs.glsl"
     }
 }

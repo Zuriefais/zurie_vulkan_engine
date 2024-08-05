@@ -81,7 +81,7 @@ impl RenderPassPlaceOverFrame {
             .begin_render_pass(
                 RenderPassBeginInfo {
                     clear_values: vec![Some(
-                        hex_color!("#986A65").to_normalized_gamma_f32().into(),
+                        hex_color!("#282828").to_normalized_gamma_f32().into(),
                     )],
                     ..RenderPassBeginInfo::framebuffer(framebuffer)
                 },
