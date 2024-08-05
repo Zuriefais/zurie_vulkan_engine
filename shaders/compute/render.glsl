@@ -30,27 +30,10 @@ void compute_life() {
     ivec2 down_left = pos + ivec2(-1, -1);
     ivec2 left = pos + ivec2(-1, 0);
 
-    int alive_count = 0;
-    if (life_in[get_index(up_left)] == 1) { alive_count += 1; }
-    if (life_in[get_index(up)] == 1) { alive_count += 1; }
-    if (life_in[get_index(up_right)] == 1) { alive_count += 1; }
-    if (life_in[get_index(right)] == 1) { alive_count += 1; }
-    if (life_in[get_index(down_right)] == 1) { alive_count += 1; }
-    if (life_in[get_index(down)] == 1) { alive_count += 1; }
-    if (life_in[get_index(down_left)] == 1) { alive_count += 1; }
-    if (life_in[get_index(left)] == 1) { alive_count += 1; }
 
     // Dead becomes alive.
-    if (life_in[index] == 0 && alive_count == 3) {
+    if (life_in[get_index(up)] == 0) {
         life_out[index] = 1;
-    }
-    // Becomes dead.
-    else if (life_in[index] == 1 && alive_count < 2 || alive_count > 3) {
-        life_out[index] = 0;
-    }
-    // Else do nothing.
-    else {
-        life_out[index] = life_in[index];
     }
 }
 

@@ -121,7 +121,14 @@ impl RenderComputePipeline {
         life_in[index] = 1;
     }
 
-    pub fn compute(&mut self, before_future: Box<dyn GpuFuture>) -> Box<dyn GpuFuture> {
+    pub fn compute(
+        &mut self,
+        before_future: Box<dyn GpuFuture>,
+        simulate: &bool,
+    ) -> Box<dyn GpuFuture> {
+        if !simulate {
+            return before_future;
+        }
         let mut builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.as_ref(),
             self.compute_queue.queue_family_index(),

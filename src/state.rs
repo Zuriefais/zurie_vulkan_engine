@@ -22,6 +22,7 @@ pub struct State {
     render_pipeline: RenderPipeline,
     renderer: Renderer,
     gui: Gui,
+    simulate: bool,
 }
 
 impl State {
@@ -49,18 +50,20 @@ impl State {
             renderer,
             render_pipeline,
             gui,
+            simulate: true,
         }
     }
 
     pub fn render(&mut self) {
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
-            egui::Window::new("Test window").show(&ctx, |ui| {
+            egui::Window::new("Debug window").show(&ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.add(egui::widgets::Label::new("Hi there!"));
                     if ui.button("Click me else you die").clicked() {
                         info!("it's joke")
                     }
+                    ui.checkbox(&mut self.simulate, "Simulate")
                 });
             });
         });
@@ -73,7 +76,10 @@ impl State {
         };
 
         // Compute.
-        let after_compute = self.render_pipeline.compute.compute(before_pipeline_future);
+        let after_compute = self
+            .render_pipeline
+            .compute
+            .compute(before_pipeline_future, &self.simulate);
 
         // Render.
         let color_image = self.render_pipeline.compute.color_image();
