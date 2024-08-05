@@ -2,12 +2,7 @@ use std::sync::Arc;
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
 use log::info;
-use winit::{
-    event::WindowEvent,
-    event_loop::{self, ActiveEventLoop},
-    platform::x11::ActiveEventLoopExtX11,
-    window::Window,
-};
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
     pub compute: RenderComputePipeline,
@@ -44,6 +39,12 @@ impl State {
                 samples: vulkano::image::SampleCount::Sample1,
             },
         );
+        // let shader = wgsl_to_shader_module(
+        //     "test.wgsl".to_string(),
+        //     renderer.device.clone(),
+        //     "main".to_string(),
+        //     naga::ShaderStage::Compute,
+        // );
         State {
             renderer,
             render_pipeline,
@@ -57,7 +58,9 @@ impl State {
             egui::Window::new("Test window").show(&ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.add(egui::widgets::Label::new("Hi there!"));
-                    ui.button("Click me else you die")
+                    if ui.button("Click me else you die").clicked() {
+                        info!("it's joke")
+                    }
                 });
             });
         });
@@ -68,7 +71,6 @@ impl State {
             }
             Ok(future) => future,
         };
-        info!("{:?}", self.render_pipeline.compute.life_in);
 
         // Compute.
         let after_compute = self.render_pipeline.compute.compute(before_pipeline_future);
@@ -125,15 +127,7 @@ mod fs {
     }
 }
 
-use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex};
-
 use crate::{
     compute_render::RenderComputePipeline, render::Renderer, render_pass::RenderPassPlaceOverFrame,
+    shaders::wgsl_to_shader_module,
 };
-
-#[derive(BufferContents, Vertex)]
-#[repr(C)]
-struct MyVertex {
-    #[format(R32G32B32_SFLOAT)]
-    position: [f32; 3],
-}
