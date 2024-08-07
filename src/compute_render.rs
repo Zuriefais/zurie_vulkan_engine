@@ -24,12 +24,17 @@ use vulkano::{
 
 pub struct RenderComputePipeline {
     compute_queue: Arc<Queue>,
-    compute_life_pipeline: Arc<ComputePipeline>,
+    compute_grid_pipeline: Arc<ComputePipeline>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
-    pub life_in: Subbuffer<[u32]>,
-    pub life_out: Subbuffer<[u32]>,
+    pub grid_in: Subbuffer<[u32]>,
+    pub grid_out: Subbuffer<[u32]>,
     image: Arc<ImageView>,
+    memory_allocator: Arc<
+        vulkano::memory::allocator::GenericMemoryAllocator<
+            vulkano::memory::allocator::FreeListAllocator,
+        >,
+    >,
 }
 
 fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Subbuffer<[u32]> {
@@ -54,12 +59,12 @@ impl RenderComputePipeline {
         let compute_queue = app.compute_queue().clone();
         let size = app.window_size();
         let memory_allocator = app.memory_allocator.clone();
-        let life_in = rand_grid(memory_allocator.clone(), size);
-        let life_out = rand_grid(memory_allocator.clone(), size);
+        let grid_in = rand_grid(memory_allocator.clone(), size);
+        let grid_out = rand_grid(memory_allocator.clone(), size);
 
-        let compute_life_pipeline = {
+        let compute_grid_pipeline = {
             let device = app.compute_queue.device();
-            let cs = compute_life_cs::load(device.clone())
+            let cs = compute_grid_cs::load(device.clone())
                 .unwrap()
                 .entry_point("main")
                 .unwrap();
@@ -80,7 +85,22 @@ impl RenderComputePipeline {
             .unwrap()
         };
 
-        let image = ImageView::new_default(
+        let image = RenderComputePipeline::new_image(memory_allocator.clone(), size);
+
+        RenderComputePipeline {
+            compute_queue,
+            compute_grid_pipeline,
+            command_buffer_allocator: app.command_buffer_allocator.clone(),
+            descriptor_set_allocator: app.descriptor_set_allocator.clone(),
+            grid_in,
+            grid_out,
+            image,
+            memory_allocator,
+        }
+    }
+
+    fn new_image(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Arc<ImageView> {
+        ImageView::new_default(
             Image::new(
                 memory_allocator.clone(),
                 ImageCreateInfo {
@@ -94,31 +114,21 @@ impl RenderComputePipeline {
             )
             .unwrap(),
         )
-        .unwrap();
-
-        RenderComputePipeline {
-            compute_queue,
-            compute_life_pipeline,
-            command_buffer_allocator: app.command_buffer_allocator.clone(),
-            descriptor_set_allocator: app.descriptor_set_allocator.clone(),
-            life_in,
-            life_out,
-            image,
-        }
+        .unwrap()
     }
 
     pub fn color_image(&self) -> Arc<ImageView> {
         self.image.clone()
     }
 
-    pub fn draw_life(&self, pos: IVec2) {
-        let mut life_in = self.life_in.write().unwrap();
+    pub fn draw_grid(&self, pos: IVec2) {
+        let mut grid_in = self.grid_in.write().unwrap();
         let extent = self.image.image().extent();
         if pos.y < 0 || pos.y >= extent[1] as i32 || pos.x < 0 || pos.x >= extent[0] as i32 {
             return;
         }
         let index = (pos.y * extent[0] as i32 + pos.x) as usize;
-        life_in[index] = 1;
+        grid_in[index] = 1;
     }
 
     pub fn compute(
@@ -135,12 +145,10 @@ impl RenderComputePipeline {
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-        let life_color = [1.0, 0.0, 0.0, 1.0];
+        let sand_color = [1.0, 0.0, 0.0, 1.0];
 
-        let dead_color = [0.0, 0.0, 0.0, 0.0];
-
-        self.dispatch(&mut builder, life_color, dead_color, 0);
-        self.dispatch(&mut builder, life_color, dead_color, 1);
+        self.dispatch(&mut builder, sand_color, 0);
+        self.dispatch(&mut builder, sand_color, 1);
 
         let command_buffer = builder.build().unwrap();
         let finished = before_future
@@ -148,7 +156,7 @@ impl RenderComputePipeline {
             .unwrap();
         let after_pipeline = finished.then_signal_fence_and_flush().unwrap().boxed();
 
-        std::mem::swap(&mut self.life_in, &mut self.life_out);
+        std::mem::swap(&mut self.grid_in, &mut self.grid_out);
 
         after_pipeline
     }
@@ -156,32 +164,27 @@ impl RenderComputePipeline {
     fn dispatch(
         &self,
         builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-        life_color: [f32; 4],
-        dead_color: [f32; 4],
+        sand_color: [f32; 4],
         step: i32,
     ) {
         let image_extent = self.image.image().extent();
-        let pipeline_layout = self.compute_life_pipeline.layout();
+        let pipeline_layout = self.compute_grid_pipeline.layout();
         let desc_layout = pipeline_layout.set_layouts().first().unwrap();
         let set = PersistentDescriptorSet::new(
             &self.descriptor_set_allocator,
             desc_layout.clone(),
             [
                 WriteDescriptorSet::image_view(0, self.image.clone()),
-                WriteDescriptorSet::buffer(1, self.life_in.clone()),
-                WriteDescriptorSet::buffer(2, self.life_out.clone()),
+                WriteDescriptorSet::buffer(1, self.grid_in.clone()),
+                WriteDescriptorSet::buffer(2, self.grid_out.clone()),
             ],
             [],
         )
         .unwrap();
 
-        let push_constants = compute_life_cs::PushConstants {
-            life_color,
-            dead_color,
-            step,
-        };
+        let push_constants = compute_grid_cs::PushConstants { sand_color, step };
         builder
-            .bind_pipeline_compute(self.compute_life_pipeline.clone())
+            .bind_pipeline_compute(self.compute_grid_pipeline.clone())
             .unwrap()
             .bind_descriptor_sets(PipelineBindPoint::Compute, pipeline_layout.clone(), 0, set)
             .unwrap()
@@ -191,10 +194,14 @@ impl RenderComputePipeline {
             .unwrap();
     }
 
-    pub fn resize(&mut self) {}
+    pub fn resize(&mut self, size: [u32; 2]) {
+        self.image = RenderComputePipeline::new_image(self.memory_allocator.clone(), size);
+        self.grid_in = rand_grid(self.memory_allocator.clone(), size);
+        self.grid_out = rand_grid(self.memory_allocator.clone(), size);
+    }
 }
 
-mod compute_life_cs {
+mod compute_grid_cs {
     vulkano_shaders::shader! {
         ty: "compute",
         path: "shaders/compute/render.glsl"

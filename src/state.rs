@@ -23,6 +23,9 @@ pub struct State {
     renderer: Renderer,
     gui: Gui,
     simulate: bool,
+    simulate_ui: bool,
+    sim_rate: u16,
+    cur_sim: u16,
 }
 
 impl State {
@@ -51,10 +54,13 @@ impl State {
             render_pipeline,
             gui,
             simulate: true,
+            simulate_ui: true,
+            sim_rate: 20,
+            cur_sim: 20,
         }
     }
 
-    pub fn render(&mut self) {
+    fn gui(&mut self) {
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
             egui::Window::new("Debug window").show(&ctx, |ui| {
@@ -63,10 +69,15 @@ impl State {
                     if ui.button("Click me else you die").clicked() {
                         info!("it's joke")
                     }
-                    ui.checkbox(&mut self.simulate, "Simulate")
+                    ui.checkbox(&mut self.simulate_ui, "Simulate");
+                    integer_edit_field(ui, &mut self.cur_sim);
                 });
             });
         });
+    }
+
+    pub fn render(&mut self) {
+        self.gui();
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -74,6 +85,16 @@ impl State {
             }
             Ok(future) => future,
         };
+        if self.cur_sim == self.sim_rate {
+            self.simulate = true;
+            self.sim_rate = 0;
+        } else {
+            self.simulate = false;
+            self.sim_rate += 1;
+        }
+        if !self.simulate_ui {
+            self.simulate = false;
+        }
 
         // Compute.
         let after_compute = self
@@ -96,8 +117,9 @@ impl State {
         self.renderer.present(after_gui, true);
     }
 
-    pub fn resize(&mut self) {
+    pub fn resize(&mut self, size: [u32; 2]) {
         self.renderer.resize();
+        self.render_pipeline.compute.resize(size)
     }
 
     pub fn event(&mut self, ev: WindowEvent) {
@@ -108,3 +130,12 @@ impl State {
 use crate::{
     compute_render::RenderComputePipeline, render::Renderer, render_pass::RenderPassPlaceOverFrame,
 };
+
+fn integer_edit_field(ui: &mut egui::Ui, value: &mut u16) -> egui::Response {
+    let mut tmp_value = format!("{}", value);
+    let res = ui.text_edit_singleline(&mut tmp_value);
+    if let Ok(result) = tmp_value.parse() {
+        *value = result;
+    }
+    res
+}

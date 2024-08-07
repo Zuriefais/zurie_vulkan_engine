@@ -48,7 +48,11 @@ impl ApplicationHandler for App {
                     },
                 ..
             } => event_loop.exit(),
-            WindowEvent::Resized(_) => self.state.as_mut().unwrap().resize(),
+            WindowEvent::Resized(size) => self
+                .state
+                .as_mut()
+                .unwrap()
+                .resize([size.width, size.height]),
             WindowEvent::RedrawRequested => {
                 self.state.as_mut().unwrap().render();
                 self.window.as_ref().unwrap().request_redraw();
