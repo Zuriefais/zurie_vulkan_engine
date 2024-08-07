@@ -8,7 +8,6 @@
 
             layout(push_constant) uniform PushConstants {
                 vec4 sand_color;
-                int step;
             } push_constants;
 
             int get_index(ivec2 pos) {
@@ -16,7 +15,6 @@
                 return pos.y * dims.x + pos.x;
             }
 
-            // https://en.wikipedia.org/wiki/Conway%27s_Game_of_grid
             void compute_grid() {
                 ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
                 int index = get_index(pos);
@@ -65,9 +63,6 @@
             }
 
             void main() {
-                if (push_constants.step == 0) {
-                    compute_grid();
-                } else {
-                    compute_color();
-                }
+                compute_grid();
+                compute_color();
             }

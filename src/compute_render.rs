@@ -126,14 +126,15 @@ impl RenderComputePipeline {
     }
 
     pub fn draw_grid(&self, pos: IVec2) {
-        let pos = pos / SCALE_FACTOR as i32;
+        let pos = pos / 4;
         let mut grid_in = self.grid_in.write().unwrap();
         let extent = self.image.image().extent();
         if pos.y < 0 || pos.y >= extent[1] as i32 || pos.x < 0 || pos.x >= extent[0] as i32 {
             return;
         }
         info!("drawing on grid");
-        let index = (pos.y * extent[0] as i32 + pos.x) as usize;
+        let index = (pos.y * extent[0] as i32 + pos.x) as usize; // Use unscaled pos\
+        info!("trying to draw on grid: {}, {}", pos, index);
         grid_in[index] = 1;
     }
 
@@ -153,8 +154,7 @@ impl RenderComputePipeline {
         .unwrap();
         let sand_color = [0.149, 0.169, 0.094, 1.0];
 
-        self.dispatch(&mut builder, sand_color, 0);
-        self.dispatch(&mut builder, sand_color, 1);
+        self.dispatch(&mut builder, sand_color);
 
         let command_buffer = builder.build().unwrap();
         let finished = before_future
@@ -171,7 +171,6 @@ impl RenderComputePipeline {
         &self,
         builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
         sand_color: [f32; 4],
-        step: i32,
     ) {
         let image_extent = self.image.image().extent();
         let pipeline_layout = self.compute_grid_pipeline.layout();
@@ -188,7 +187,7 @@ impl RenderComputePipeline {
         )
         .unwrap();
 
-        let push_constants = compute_grid_cs::PushConstants { sand_color, step };
+        let push_constants = compute_grid_cs::PushConstants { sand_color };
         builder
             .bind_pipeline_compute(self.compute_grid_pipeline.clone())
             .unwrap()
