@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use egui_winit_vulkano::{egui, Gui, GuiConfig};
-use log::info;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
@@ -21,63 +19,34 @@ impl RenderPipeline {
 pub struct State {
     render_pipeline: RenderPipeline,
     renderer: Renderer,
-    gui: Gui,
-    simulate: bool,
-    simulate_ui: bool,
-    sim_rate: u16,
-    cur_sim: u16,
+    gui: GameGui,
+    sim_clock: SimClock,
 }
 
 impl State {
     pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
         let renderer = Renderer::new(window);
         let render_pipeline = RenderPipeline::new(&renderer);
-        let gui = Gui::new(
+        let gui = GameGui::new(
             event_loop,
             renderer.surface(),
-            renderer.gfx_queue(),
+            renderer.gfx_queue.clone(),
             renderer.output_format,
-            GuiConfig {
-                allow_srgb_render_target: true,
-                is_overlay: true,
-                samples: vulkano::image::SampleCount::Sample1,
-            },
         );
-        // let shader = wgsl_to_shader_module(
-        //     "test.wgsl".to_string(),
-        //     renderer.device.clone(),
-        //     "main".to_string(),
-        //     naga::ShaderStage::Compute,
-        // );
+        let sim_clock = SimClock::default();
         State {
             renderer,
             render_pipeline,
             gui,
-            simulate: true,
-            simulate_ui: true,
-            sim_rate: 20,
-            cur_sim: 20,
+            sim_clock,
         }
     }
 
-    fn gui(&mut self) {
-        self.gui.immediate_ui(|gui| {
-            let ctx = gui.context();
-            egui::Window::new("Debug window").show(&ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.add(egui::widgets::Label::new("Hi there!"));
-                    if ui.button("Click me else you die").clicked() {
-                        info!("it's joke")
-                    }
-                    ui.checkbox(&mut self.simulate_ui, "Simulate");
-                    integer_edit_field(ui, &mut self.cur_sim);
-                });
-            });
-        });
-    }
-
     pub fn render(&mut self) {
-        self.gui();
+        self.sim_clock.clock();
+        let sim_clock_gui_data = self.sim_clock.ui_togles();
+        self.gui
+            .draw_gui(sim_clock_gui_data.0, sim_clock_gui_data.1);
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -85,22 +54,12 @@ impl State {
             }
             Ok(future) => future,
         };
-        if self.cur_sim == self.sim_rate {
-            self.simulate = true;
-            self.sim_rate = 0;
-        } else {
-            self.simulate = false;
-            self.sim_rate += 1;
-        }
-        if !self.simulate_ui {
-            self.simulate = false;
-        }
 
         // Compute.
         let after_compute = self
             .render_pipeline
             .compute
-            .compute(before_pipeline_future, &self.simulate);
+            .compute(before_pipeline_future, &self.sim_clock.simulate());
 
         // Render.
         let color_image = self.render_pipeline.compute.color_image();
@@ -123,19 +82,52 @@ impl State {
     }
 
     pub fn event(&mut self, ev: WindowEvent) {
-        self.gui.update(&ev);
+        self.gui.event(&ev);
     }
 }
 
 use crate::{
-    compute_render::RenderComputePipeline, render::Renderer, render_pass::RenderPassPlaceOverFrame,
+    compute_render::RenderComputePipeline, gui::GameGui, render::Renderer,
+    render_pass::RenderPassPlaceOverFrame,
 };
 
-fn integer_edit_field(ui: &mut egui::Ui, value: &mut u16) -> egui::Response {
-    let mut tmp_value = format!("{}", value);
-    let res = ui.text_edit_singleline(&mut tmp_value);
-    if let Ok(result) = tmp_value.parse() {
-        *value = result;
+pub struct SimClock {
+    simulate: bool,
+    simulate_ui_togle: bool,
+    sim_rate: u16,
+    cur_sim: u16,
+}
+
+impl Default for SimClock {
+    fn default() -> Self {
+        SimClock {
+            simulate: true,
+            simulate_ui_togle: true,
+            sim_rate: 20,
+            cur_sim: 20,
+        }
     }
-    res
+}
+
+impl SimClock {
+    pub fn clock(&mut self) {
+        if self.cur_sim == self.sim_rate {
+            self.simulate = true;
+            self.sim_rate = 0;
+        } else {
+            self.simulate = false;
+            self.sim_rate += 1;
+        }
+        if !self.simulate_ui_togle {
+            self.simulate = false;
+        }
+    }
+
+    fn ui_togles(&mut self) -> (&mut bool, &mut u16) {
+        (&mut self.simulate_ui_togle, &mut self.cur_sim)
+    }
+
+    fn simulate(&mut self) -> bool {
+        self.simulate
+    }
 }
