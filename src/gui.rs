@@ -7,6 +7,11 @@ use vulkano::{
 };
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 
+use crate::{
+    compute_render::RenderComputePipeline,
+    state::{SimClock, State},
+};
+
 pub struct GameGui {
     gui: Gui,
 }
@@ -36,7 +41,8 @@ impl GameGui {
         self.gui.update(event);
     }
 
-    pub fn draw_gui(&mut self, simulate_ui_togle: &mut bool, cur_sim: &mut u16) {
+    pub fn draw_gui(&mut self, sim_clock: &mut SimClock, compute: &mut RenderComputePipeline) {
+        let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
             egui::Window::new("Debug window").show(&ctx, |ui| {
@@ -47,6 +53,10 @@ impl GameGui {
                     }
                     ui.checkbox(simulate_ui_togle, "Simulate");
                     integer_edit_field(ui, cur_sim);
+                    if ui.button("New Random Grid").clicked() {
+                        compute.new_rand_grid()
+                    }
+                    ui.label(format!("sim_rate: {}", sim_rate));
                 });
             });
         });

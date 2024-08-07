@@ -1,5 +1,7 @@
 use crate::render::Renderer;
 use glam::IVec2;
+use log::info;
+use png::{BitDepth, ColorType, Encoder};
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -35,6 +37,7 @@ pub struct RenderComputePipeline {
             vulkano::memory::allocator::FreeListAllocator,
         >,
     >,
+    size: [u32; 2],
 }
 
 fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Subbuffer<[u32]> {
@@ -96,6 +99,7 @@ impl RenderComputePipeline {
             grid_out,
             image,
             memory_allocator,
+            size,
         }
     }
 
@@ -122,11 +126,13 @@ impl RenderComputePipeline {
     }
 
     pub fn draw_grid(&self, pos: IVec2) {
+        let pos = pos / SCALE_FACTOR as i32;
         let mut grid_in = self.grid_in.write().unwrap();
         let extent = self.image.image().extent();
         if pos.y < 0 || pos.y >= extent[1] as i32 || pos.x < 0 || pos.x >= extent[0] as i32 {
             return;
         }
+        info!("drawing on grid");
         let index = (pos.y * extent[0] as i32 + pos.x) as usize;
         grid_in[index] = 1;
     }
@@ -145,7 +151,7 @@ impl RenderComputePipeline {
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-        let sand_color = [1.0, 0.0, 0.0, 1.0];
+        let sand_color = [0.149, 0.169, 0.094, 1.0];
 
         self.dispatch(&mut builder, sand_color, 0);
         self.dispatch(&mut builder, sand_color, 1);
@@ -195,9 +201,16 @@ impl RenderComputePipeline {
     }
 
     pub fn resize(&mut self, size: [u32; 2]) {
+        let size = [size[0] / SCALE_FACTOR, size[1] / SCALE_FACTOR];
         self.image = RenderComputePipeline::new_image(self.memory_allocator.clone(), size);
         self.grid_in = rand_grid(self.memory_allocator.clone(), size);
         self.grid_out = rand_grid(self.memory_allocator.clone(), size);
+        self.size = size;
+    }
+
+    pub fn new_rand_grid(&mut self) {
+        self.grid_in = rand_grid(self.memory_allocator.clone(), self.size);
+        self.grid_out = rand_grid(self.memory_allocator.clone(), self.size);
     }
 }
 
@@ -207,3 +220,5 @@ mod compute_grid_cs {
         path: "shaders/compute/render.glsl"
     }
 }
+
+const SCALE_FACTOR: u32 = 4;

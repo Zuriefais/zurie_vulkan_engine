@@ -1,6 +1,12 @@
 use std::sync::Arc;
 
-use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
+use glam::Vec2;
+use log::info;
+use winit::{
+    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    event_loop::ActiveEventLoop,
+    window::Window,
+};
 
 pub struct RenderPipeline {
     pub compute: RenderComputePipeline,
@@ -17,10 +23,12 @@ impl RenderPipeline {
 }
 
 pub struct State {
-    render_pipeline: RenderPipeline,
+    pub render_pipeline: RenderPipeline,
     renderer: Renderer,
     gui: GameGui,
-    sim_clock: SimClock,
+    pub sim_clock: SimClock,
+    mouse_pos: Vec2,
+    mouse_pressed: bool,
 }
 
 impl State {
@@ -39,14 +47,20 @@ impl State {
             render_pipeline,
             gui,
             sim_clock,
+            mouse_pos: Vec2::ZERO,
+            mouse_pressed: false,
         }
     }
 
     pub fn render(&mut self) {
+        if self.mouse_pressed {
+            self.render_pipeline
+                .compute
+                .draw_grid(self.mouse_pos.as_ivec2());
+        }
         self.sim_clock.clock();
-        let sim_clock_gui_data = self.sim_clock.ui_togles();
         self.gui
-            .draw_gui(sim_clock_gui_data.0, sim_clock_gui_data.1);
+            .draw_gui(&mut self.sim_clock, &mut self.render_pipeline.compute);
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -83,6 +97,23 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
+        match ev {
+            WindowEvent::MouseInput { state, button, .. } => match (state, button) {
+                (ElementState::Pressed, MouseButton::Left) => {
+                    self.mouse_pressed = true;
+                    info!("mouse pressed");
+                }
+                (ElementState::Released, MouseButton::Left) => {
+                    self.mouse_pressed = false;
+                    info!("mouse released");
+                }
+                _ => {}
+            },
+            WindowEvent::CursorMoved { position, .. } => {
+                self.mouse_pos = Vec2::new(position.x as f32, position.y as f32)
+            }
+            _ => {}
+        }
     }
 }
 
@@ -103,8 +134,8 @@ impl Default for SimClock {
         SimClock {
             simulate: true,
             simulate_ui_togle: true,
-            sim_rate: 20,
-            cur_sim: 20,
+            sim_rate: 1,
+            cur_sim: 1,
         }
     }
 }
@@ -123,8 +154,12 @@ impl SimClock {
         }
     }
 
-    fn ui_togles(&mut self) -> (&mut bool, &mut u16) {
-        (&mut self.simulate_ui_togle, &mut self.cur_sim)
+    pub fn ui_togles(&mut self) -> (&mut bool, &mut u16, u16) {
+        (
+            &mut self.simulate_ui_togle,
+            &mut self.cur_sim,
+            self.sim_rate,
+        )
     }
 
     fn simulate(&mut self) -> bool {
