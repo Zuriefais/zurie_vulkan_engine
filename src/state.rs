@@ -3,20 +3,20 @@ use std::sync::Arc;
 use glam::Vec2;
 use log::info;
 use winit::{
-    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
+    event::{ElementState, MouseButton, WindowEvent},
     event_loop::ActiveEventLoop,
     window::Window,
 };
 
 pub struct RenderPipeline {
-    pub compute: RenderComputePipeline,
+    pub compute: SandComputePipeline,
     pub place_over_frame: RenderPassPlaceOverFrame,
 }
 
 impl RenderPipeline {
     pub fn new(renderer: &Renderer) -> RenderPipeline {
         RenderPipeline {
-            compute: RenderComputePipeline::new(renderer),
+            compute: SandComputePipeline::new(renderer),
             place_over_frame: RenderPassPlaceOverFrame::new(renderer),
         }
     }
@@ -27,8 +27,7 @@ pub struct State {
     renderer: Renderer,
     gui: GameGui,
     pub sim_clock: SimClock,
-    mouse_pos: Vec2,
-    mouse_pressed: bool,
+    mouse: MouseState,
 }
 
 impl State {
@@ -47,20 +46,22 @@ impl State {
             render_pipeline,
             gui,
             sim_clock,
-            mouse_pos: Vec2::ZERO,
-            mouse_pressed: false,
+            mouse: MouseState::default(),
         }
     }
 
     pub fn render(&mut self) {
-        if self.mouse_pressed {
+        self.sim_clock.clock();
+        self.gui.draw_gui(
+            &mut self.sim_clock,
+            &mut self.render_pipeline.compute,
+            &mut self.mouse.hover_gui,
+        );
+        if self.mouse.pressed && !self.mouse.hover_gui {
             self.render_pipeline
                 .compute
-                .draw_grid(self.mouse_pos.as_ivec2());
+                .draw_grid(self.mouse.position.as_ivec2());
         }
-        self.sim_clock.clock();
-        self.gui
-            .draw_gui(&mut self.sim_clock, &mut self.render_pipeline.compute);
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -97,28 +98,12 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
-        match ev {
-            WindowEvent::MouseInput { state, button, .. } => match (state, button) {
-                (ElementState::Pressed, MouseButton::Left) => {
-                    self.mouse_pressed = true;
-                    info!("mouse pressed");
-                }
-                (ElementState::Released, MouseButton::Left) => {
-                    self.mouse_pressed = false;
-                    info!("mouse released");
-                }
-                _ => {}
-            },
-            WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_pos = Vec2::new(position.x as f32, position.y as f32)
-            }
-            _ => {}
-        }
+        self.mouse.event(ev);
     }
 }
 
 use crate::{
-    compute_render::RenderComputePipeline, gui::GameGui, render::Renderer,
+    compute_sand::SandComputePipeline, gui::GameGui, render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
 };
 
@@ -145,7 +130,7 @@ impl SimClock {
         if self.cur_sim == self.sim_rate {
             self.simulate = true;
             self.sim_rate = 0;
-        } else {
+        } else if self.simulate_ui_togle {
             self.simulate = false;
             self.sim_rate += 1;
         }
@@ -164,5 +149,34 @@ impl SimClock {
 
     fn simulate(&mut self) -> bool {
         self.simulate
+    }
+}
+
+#[derive(Default)]
+struct MouseState {
+    position: Vec2,
+    pressed: bool,
+    hover_gui: bool,
+}
+
+impl MouseState {
+    pub fn event(&mut self, ev: WindowEvent) {
+        match ev {
+            WindowEvent::MouseInput { state, button, .. } => match (state, button) {
+                (ElementState::Pressed, MouseButton::Left) => {
+                    self.pressed = true;
+                    info!("mouse pressed");
+                }
+                (ElementState::Released, MouseButton::Left) => {
+                    self.pressed = false;
+                    info!("mouse released");
+                }
+                _ => {}
+            },
+            WindowEvent::CursorMoved { position, .. } => {
+                self.position = Vec2::new(position.x as f32, position.y as f32)
+            }
+            _ => {}
+        }
     }
 }

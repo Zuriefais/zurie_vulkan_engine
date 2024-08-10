@@ -7,10 +7,7 @@ use vulkano::{
 };
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 
-use crate::{
-    compute_render::RenderComputePipeline,
-    state::{SimClock, State},
-};
+use crate::{compute_sand::SandComputePipeline, state::SimClock};
 
 pub struct GameGui {
     gui: Gui,
@@ -41,7 +38,12 @@ impl GameGui {
         self.gui.update(event);
     }
 
-    pub fn draw_gui(&mut self, sim_clock: &mut SimClock, compute: &mut RenderComputePipeline) {
+    pub fn draw_gui(
+        &mut self,
+        sim_clock: &mut SimClock,
+        compute: &mut SandComputePipeline,
+        is_hovered: &mut bool,
+    ) {
         let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
@@ -58,6 +60,7 @@ impl GameGui {
                     }
                     ui.label(format!("sim_rate: {}", sim_rate));
                 });
+                *is_hovered = ui.ui_contains_pointer();
             });
         });
     }
