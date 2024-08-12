@@ -75,7 +75,7 @@ impl State {
         let after_compute = self
             .render_pipeline
             .compute
-            .compute(before_pipeline_future, &self.sim_clock.simulate());
+            .compute(before_pipeline_future, self.sim_clock.simulate());
 
         // Render.
         let color_image = self.render_pipeline.compute.color_image();

@@ -62,7 +62,11 @@ fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> 
         },
         (0..(size[0] * size[1])).map(|i| {
             if let Some(value) = get_pos(i as usize, size) {
-                if value.y == 0 || value.y == size[1] as i32 - 1 {
+                if value.y == 0
+                    || value.y == size[1] as i32 - 1
+                    || value.x == 0
+                    || value.x == size[0] as i32 - 2
+                {
                     2
                 } else {
                     fastrand::u32(0..2)
@@ -157,11 +161,8 @@ impl SandComputePipeline {
     pub fn compute(
         &mut self,
         before_future: Box<dyn GpuFuture>,
-        simulate: &bool,
+        simulate: bool,
     ) -> Box<dyn GpuFuture> {
-        if !simulate {
-            return before_future;
-        }
         let mut builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.as_ref(),
             self.compute_queue.queue_family_index(),
@@ -177,6 +178,7 @@ impl SandComputePipeline {
                 [0.302, 0.267, 0.255, 1.0],
                 [0.431, 0.318, 0.251, 1.0],
             ],
+            simulate,
         );
 
         let command_buffer = builder.build().unwrap();
@@ -192,6 +194,7 @@ impl SandComputePipeline {
         &self,
         builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
         palette: [[f32; 4]; 4],
+        simulate: bool,
     ) {
         let image_extent = self.image.image().extent();
         let pipeline_layout = self.compute_grid_pipeline.layout();
@@ -206,8 +209,8 @@ impl SandComputePipeline {
             [],
         )
         .unwrap();
-
-        let push_constants = compute_grid_cs::PushConstants { palette };
+        let simulate = if simulate { 1 } else { 0 };
+        let push_constants = compute_grid_cs::PushConstants { palette, simulate };
         builder
             .bind_pipeline_compute(self.compute_grid_pipeline.clone())
             .unwrap()

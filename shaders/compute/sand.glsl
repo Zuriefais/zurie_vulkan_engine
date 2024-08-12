@@ -7,6 +7,7 @@ layout(set = 0, binding = 1) buffer GridBuffer { uint grid[]; };
 
 layout(push_constant) uniform PushConstants {
     vec4[4] palette;
+    bool simulate;
 } push_constants;
 
 int get_index(ivec2 pos) {
@@ -18,10 +19,7 @@ int get_index(ivec2 pos) {
 #define SAND 1
 #define WALL 2
 
-void main() {
-    ivec2 imgSize = imageSize(img);
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
-
+void simulate(ivec2 pixelCoord, ivec2 imgSize) {
     if (pixelCoord.x >= imgSize.x || pixelCoord.y >= imgSize.y) {
         return;
     }
@@ -41,7 +39,7 @@ void main() {
             bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
                                 grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
             bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                                 grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
+                                grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
 
             if (canFallLeft && canFallRight) {
                 if (gl_GlobalInvocationID.x % 2 == 0) {
@@ -65,6 +63,15 @@ void main() {
         grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WALL;
     } else {
         grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+    }
+}
+
+void main() {
+    ivec2 imgSize = imageSize(img);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    if (push_constants.simulate) {
+        simulate(pixelCoord, imgSize);
     }
 
     vec4 color = push_constants.palette[grid[pixelCoord.y * imgSize.x + pixelCoord.x]];
