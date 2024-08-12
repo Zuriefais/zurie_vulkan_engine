@@ -1,13 +1,7 @@
 use std::sync::Arc;
 
-use glam::Vec2;
 use input::InputState;
-use log::info;
-use winit::{
-    event::{ElementState, MouseButton, WindowEvent},
-    event_loop::ActiveEventLoop,
-    window::Window,
-};
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
     pub compute: SandComputePipeline,
@@ -59,9 +53,11 @@ impl State {
             &mut self.input.mouse.hover_gui,
         );
         if self.input.mouse.pressed && !self.input.mouse.hover_gui {
-            self.render_pipeline
-                .compute
-                .draw_grid(self.input.mouse.position.as_ivec2());
+            self.render_pipeline.compute.draw_circle(
+                self.input.mouse.position,
+                5,
+                self.renderer.window_size(),
+            );
         }
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {

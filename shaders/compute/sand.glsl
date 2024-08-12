@@ -73,6 +73,7 @@ void main() {
     if (push_constants.simulate) {
         simulate(pixelCoord, imgSize);
     }
+    barrier();
 
     vec4 color = push_constants.palette[grid[pixelCoord.y * imgSize.x + pixelCoord.x]];
     imageStore(img, pixelCoord, color);
