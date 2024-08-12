@@ -29,14 +29,14 @@ void main() {
     uint cellValue = grid[pixelCoord.y * imgSize.x + pixelCoord.x];
 
     if (cellValue == SAND) {
-        ivec2 below = pixelCoord + ivec2(0, 1);
+        ivec2 below = pixelCoord + ivec2(0, -1);
 
         if (below.y >= imgSize.y || grid[below.y * imgSize.x + below.x] == EMPTY) {
             grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
             grid[below.y * imgSize.x + below.x] = SAND;
         } else {
-            ivec2 belowLeft = pixelCoord + ivec2(-1, 1);
-            ivec2 belowRight = pixelCoord + ivec2(1, 1);
+            ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
+            ivec2 belowRight = pixelCoord + ivec2(1, -1);
 
             bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
                                 grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);

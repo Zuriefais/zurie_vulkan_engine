@@ -38,6 +38,16 @@ pub struct SandComputePipeline {
     size: [u32; 2],
 }
 
+fn get_pos(index: usize, dims: [u32; 2]) -> Option<IVec2> {
+    if index >= (dims[0] * dims[1]) as usize {
+        return None; // Handle out-of-bounds index
+    }
+
+    let y = index / dims[0] as usize;
+    let x = index % dims[0] as usize;
+    Some(IVec2::new(x as i32, y as i32))
+}
+
 fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> Subbuffer<[u32]> {
     Buffer::from_iter(
         memory_allocator,
@@ -50,7 +60,17 @@ fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> 
                 | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             ..Default::default()
         },
-        (0..(size[0] * size[1])).map(|_| fastrand::u32(0..2)),
+        (0..(size[0] * size[1])).map(|i| {
+            if let Some(value) = get_pos(i as usize, size) {
+                if value.y == 0 || value.y == size[1] as i32 - 1 {
+                    2
+                } else {
+                    fastrand::u32(0..2)
+                }
+            } else {
+                fastrand::u32(0..2)
+            }
+        }),
     )
     .unwrap()
 }
@@ -151,7 +171,12 @@ impl SandComputePipeline {
         let sand_color = [0.149, 0.169, 0.094, 1.0];
         self.dispatch(
             &mut builder,
-            [[0.0; 4], sand_color, [1.0; 4], [0.431, 0.318, 0.251, 1.0]],
+            [
+                [0.0; 4],
+                sand_color,
+                [0.302, 0.267, 0.255, 1.0],
+                [0.431, 0.318, 0.251, 1.0],
+            ],
         );
 
         let command_buffer = builder.build().unwrap();
@@ -197,11 +222,12 @@ impl SandComputePipeline {
     pub fn resize(&mut self, size: [u32; 2]) {
         let size = [size[0] / SCALE_FACTOR, size[1] / SCALE_FACTOR];
         self.image = SandComputePipeline::new_image(self.memory_allocator.clone(), size);
-        self.grid = rand_grid(self.memory_allocator.clone(), size);
         self.size = size;
+        self.new_rand_grid();
     }
 
     pub fn new_rand_grid(&mut self) {
+        info!("generating new rand grid.... Size: {:?}", self.size);
         self.grid = rand_grid(self.memory_allocator.clone(), self.size);
     }
 }

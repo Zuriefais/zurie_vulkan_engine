@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use glam::Vec2;
+use input::InputState;
 use log::info;
 use winit::{
     event::{ElementState, MouseButton, WindowEvent},
@@ -27,7 +28,7 @@ pub struct State {
     renderer: Renderer,
     gui: GameGui,
     pub sim_clock: SimClock,
-    mouse: MouseState,
+    input: InputState,
 }
 
 impl State {
@@ -46,7 +47,7 @@ impl State {
             render_pipeline,
             gui,
             sim_clock,
-            mouse: MouseState::default(),
+            input: InputState::default(),
         }
     }
 
@@ -55,12 +56,12 @@ impl State {
         self.gui.draw_gui(
             &mut self.sim_clock,
             &mut self.render_pipeline.compute,
-            &mut self.mouse.hover_gui,
+            &mut self.input.mouse.hover_gui,
         );
-        if self.mouse.pressed && !self.mouse.hover_gui {
+        if self.input.mouse.pressed && !self.input.mouse.hover_gui {
             self.render_pipeline
                 .compute
-                .draw_grid(self.mouse.position.as_ivec2());
+                .draw_grid(self.input.mouse.position.as_ivec2());
         }
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
@@ -98,7 +99,7 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
-        self.mouse.event(ev);
+        self.input.event(ev);
     }
 }
 
@@ -152,31 +153,4 @@ impl SimClock {
     }
 }
 
-#[derive(Default)]
-struct MouseState {
-    position: Vec2,
-    pressed: bool,
-    hover_gui: bool,
-}
-
-impl MouseState {
-    pub fn event(&mut self, ev: WindowEvent) {
-        match ev {
-            WindowEvent::MouseInput { state, button, .. } => match (state, button) {
-                (ElementState::Pressed, MouseButton::Left) => {
-                    self.pressed = true;
-                    info!("mouse pressed");
-                }
-                (ElementState::Released, MouseButton::Left) => {
-                    self.pressed = false;
-                    info!("mouse released");
-                }
-                _ => {}
-            },
-            WindowEvent::CursorMoved { position, .. } => {
-                self.position = Vec2::new(position.x as f32, position.y as f32)
-            }
-            _ => {}
-        }
-    }
-}
+pub mod input;

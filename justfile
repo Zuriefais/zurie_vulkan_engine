@@ -19,3 +19,6 @@ editor:
 
 fix:
     cargo clippy --fix --allow-dirty
+
+dev:
+    mangohud RUST_LOG=info CARGO_PROFILE_DEV_CODEGEN_BACKEND=cranelift cargo +nightly run -Zcodegen-backend
