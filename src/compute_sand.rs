@@ -174,8 +174,9 @@ impl SandComputePipeline {
         let extent = self.image.image().extent();
         for i in (0..3600).map(|i| i as f64 / 10.0) {
             let angle = i;
-            let x = r * (angle * PI / 180.0).cos() as i32;
-            let y = r * (angle * PI / 180.0).sin() as i32;
+            let x = (r as f64 * (angle * PI / 180.0).cos()).round() as i32;
+            let y = (r as f64 * (angle * PI / 180.0).sin()).round() as i32;
+
             let add_pos = IVec2::new(x, y);
             let pos = pos + add_pos;
             let index = (pos.y * extent[0] as i32 + pos.x) as usize;
