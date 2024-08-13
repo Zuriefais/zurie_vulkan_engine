@@ -1,9 +1,11 @@
 #version 450
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, rgba8) uniform writeonly image2D img;
-layout(set = 0, binding = 1) buffer GridBuffer { uint grid[]; };
+layout(set = 0, binding = 1) buffer GridBuffer {
+    uint grid[];
+};
 
 layout(push_constant) uniform PushConstants {
     vec4[4] palette;
@@ -37,9 +39,9 @@ void simulate(ivec2 pixelCoord, ivec2 imgSize) {
             ivec2 belowRight = pixelCoord + ivec2(1, -1);
 
             bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                                grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
+                    grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
             bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                                grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
+                    grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
 
             if (canFallLeft && canFallRight) {
                 if (gl_GlobalInvocationID.x % 2 == 0) {
