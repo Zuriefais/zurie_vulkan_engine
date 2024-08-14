@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use ecolor::hex_color;
 use input::InputState;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
@@ -24,6 +25,7 @@ pub struct State {
     pub sim_clock: SimClock,
     input: InputState,
     selected_cell_type: CellType,
+    background_color: [f32; 4],
 }
 
 impl State {
@@ -44,6 +46,7 @@ impl State {
             sim_clock,
             input: InputState::default(),
             selected_cell_type: CellType::Sand,
+            background_color: hex_color!("#8B4B4C").to_normalized_gamma_f32().into(),
         }
     }
 
@@ -55,6 +58,7 @@ impl State {
             &mut self.input.mouse.hover_gui,
             &mut self.selected_cell_type,
             self.renderer.window_size(),
+            &mut self.background_color,
         );
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw_circle(
@@ -94,6 +98,7 @@ impl State {
             after_compute,
             color_image,
             target_image.clone(),
+            self.background_color,
         );
         let after_gui = self.gui.draw_on_image(after_render, target_image);
 

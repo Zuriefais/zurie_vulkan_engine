@@ -39,6 +39,7 @@ pub struct SandComputePipeline {
     >,
     size: [u32; 2],
     pub scale_factor: u32,
+    pub pallete: [[f32; 4]; 4],
 }
 
 fn get_pos(index: usize, dims: [u32; 2]) -> Option<IVec2> {
@@ -124,6 +125,12 @@ impl SandComputePipeline {
             memory_allocator,
             size,
             scale_factor: 4,
+            pallete: [
+                [0.0; 4],
+                [0.149, 0.169, 0.094, 1.0],
+                [0.302, 0.267, 0.255, 1.0],
+                [0.431, 0.318, 0.251, 1.0],
+            ],
         }
     }
 
@@ -198,17 +205,7 @@ impl SandComputePipeline {
             CommandBufferUsage::OneTimeSubmit,
         )
         .unwrap();
-        let sand_color = [0.149, 0.169, 0.094, 1.0];
-        self.dispatch(
-            &mut builder,
-            [
-                [0.0; 4],
-                sand_color,
-                [0.302, 0.267, 0.255, 1.0],
-                [0.431, 0.318, 0.251, 1.0],
-            ],
-            simulate,
-        );
+        self.dispatch(&mut builder, self.pallete, simulate);
 
         let command_buffer = builder.build().unwrap();
         let finished = before_future

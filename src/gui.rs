@@ -49,6 +49,7 @@ impl GameGui {
         is_hovered: &mut bool,
         selected_cell_type: &mut CellType,
         size: [u32; 2],
+        background_color: &mut [f32; 4],
     ) {
         let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
@@ -78,8 +79,18 @@ impl GameGui {
                 }
                 pointer_on_selector_window = ui.ui_contains_pointer();
             });
+            let mut pointer_on_color_window = false;
+            egui::Window::new("Palette editor").show(&ctx, |ui| {
+                ui.label("Background color:");
+                ui.color_edit_button_rgba_premultiplied(background_color);
+                ui.label("Cells pallete:");
+                for color in compute.pallete.iter_mut() {
+                    ui.color_edit_button_rgba_premultiplied(color);
+                }
+                pointer_on_color_window = ui.ui_contains_pointer();
+            });
 
-            if pointer_on_debug_window || pointer_on_selector_window {
+            if pointer_on_debug_window || pointer_on_selector_window || pointer_on_color_window {
                 *is_hovered = true
             } else {
                 *is_hovered = false

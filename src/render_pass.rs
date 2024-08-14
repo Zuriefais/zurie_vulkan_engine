@@ -57,6 +57,7 @@ impl RenderPassPlaceOverFrame {
         before_future: F,
         image_view: Arc<ImageView>,
         target: Arc<ImageView>,
+        background_color: [f32; 4],
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,
@@ -80,9 +81,7 @@ impl RenderPassPlaceOverFrame {
         command_buffer_builder
             .begin_render_pass(
                 RenderPassBeginInfo {
-                    clear_values: vec![Some(
-                        hex_color!("#8B4B4C").to_normalized_gamma_f32().into(),
-                    )],
+                    clear_values: vec![Some(background_color.into())],
                     ..RenderPassBeginInfo::framebuffer(framebuffer)
                 },
                 SubpassBeginInfo {
