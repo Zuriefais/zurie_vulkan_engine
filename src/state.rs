@@ -1,22 +1,18 @@
 use std::sync::Arc;
 
-use glam::Vec2;
-use log::info;
-use winit::{
-    event::{ElementState, KeyEvent, MouseButton, WindowEvent},
-    event_loop::ActiveEventLoop,
-    window::Window,
-};
+use ecolor::hex_color;
+use input::InputState;
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
-    pub compute: RenderComputePipeline,
+    pub compute: SandComputePipeline,
     pub place_over_frame: RenderPassPlaceOverFrame,
 }
 
 impl RenderPipeline {
     pub fn new(renderer: &Renderer) -> RenderPipeline {
         RenderPipeline {
-            compute: RenderComputePipeline::new(renderer),
+            compute: SandComputePipeline::new(renderer),
             place_over_frame: RenderPassPlaceOverFrame::new(renderer),
         }
     }
@@ -27,8 +23,9 @@ pub struct State {
     renderer: Renderer,
     gui: GameGui,
     pub sim_clock: SimClock,
-    mouse_pos: Vec2,
-    mouse_pressed: bool,
+    input: InputState,
+    selected_cell_type: CellType,
+    background_color: [f32; 4],
 }
 
 impl State {
@@ -47,20 +44,38 @@ impl State {
             render_pipeline,
             gui,
             sim_clock,
-            mouse_pos: Vec2::ZERO,
-            mouse_pressed: false,
+            input: InputState::default(),
+            selected_cell_type: CellType::Sand,
+            background_color: hex_color!("#8B4B4C").to_normalized_gamma_f32().into(),
         }
     }
 
     pub fn render(&mut self) {
-        if self.mouse_pressed {
-            self.render_pipeline
-                .compute
-                .draw_grid(self.mouse_pos.as_ivec2());
-        }
         self.sim_clock.clock();
-        self.gui
-            .draw_gui(&mut self.sim_clock, &mut self.render_pipeline.compute);
+        self.gui.draw_gui(
+            &mut self.sim_clock,
+            &mut self.render_pipeline.compute,
+            &mut self.input.mouse.hover_gui,
+            &mut self.selected_cell_type,
+            self.renderer.window_size(),
+            &mut self.background_color,
+        );
+        if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
+            self.render_pipeline.compute.draw_circle(
+                self.input.mouse.position,
+                5,
+                self.renderer.window_size(),
+                self.selected_cell_type,
+            );
+        }
+        if self.input.mouse.right_pressed && !self.input.mouse.hover_gui {
+            self.render_pipeline.compute.draw_circle(
+                self.input.mouse.position,
+                5,
+                self.renderer.window_size(),
+                CellType::Empty,
+            );
+        }
         let before_pipeline_future = match self.renderer.acquire() {
             Err(e) => {
                 println!("{e}");
@@ -73,7 +88,7 @@ impl State {
         let after_compute = self
             .render_pipeline
             .compute
-            .compute(before_pipeline_future, &self.sim_clock.simulate());
+            .compute(before_pipeline_future, self.sim_clock.simulate());
 
         // Render.
         let color_image = self.render_pipeline.compute.color_image();
@@ -83,6 +98,7 @@ impl State {
             after_compute,
             color_image,
             target_image.clone(),
+            self.background_color,
         );
         let after_gui = self.gui.draw_on_image(after_render, target_image);
 
@@ -97,28 +113,14 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
-        match ev {
-            WindowEvent::MouseInput { state, button, .. } => match (state, button) {
-                (ElementState::Pressed, MouseButton::Left) => {
-                    self.mouse_pressed = true;
-                    info!("mouse pressed");
-                }
-                (ElementState::Released, MouseButton::Left) => {
-                    self.mouse_pressed = false;
-                    info!("mouse released");
-                }
-                _ => {}
-            },
-            WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_pos = Vec2::new(position.x as f32, position.y as f32)
-            }
-            _ => {}
-        }
+        self.input.event(ev);
     }
 }
 
 use crate::{
-    compute_render::RenderComputePipeline, gui::GameGui, render::Renderer,
+    compute_sand::{CellType, SandComputePipeline},
+    gui::GameGui,
+    render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
 };
 
@@ -145,7 +147,7 @@ impl SimClock {
         if self.cur_sim == self.sim_rate {
             self.simulate = true;
             self.sim_rate = 0;
-        } else {
+        } else if self.simulate_ui_togle {
             self.simulate = false;
             self.sim_rate += 1;
         }
@@ -166,3 +168,5 @@ impl SimClock {
         self.simulate
     }
 }
+
+pub mod input;

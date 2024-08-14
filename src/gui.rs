@@ -1,15 +1,16 @@
-use std::sync::Arc;
+use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
 use log::info;
+use strum::IntoEnumIterator;
 use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
 };
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 
 use crate::{
-    compute_render::RenderComputePipeline,
-    state::{SimClock, State},
+    compute_sand::{CellType, SandComputePipeline},
+    state::SimClock,
 };
 
 pub struct GameGui {
@@ -41,24 +42,59 @@ impl GameGui {
         self.gui.update(event);
     }
 
-    pub fn draw_gui(&mut self, sim_clock: &mut SimClock, compute: &mut RenderComputePipeline) {
+    pub fn draw_gui(
+        &mut self,
+        sim_clock: &mut SimClock,
+        compute: &mut SandComputePipeline,
+        is_hovered: &mut bool,
+        selected_cell_type: &mut CellType,
+        size: [u32; 2],
+        background_color: &mut [f32; 4],
+    ) {
         let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
-            egui::Window::new("Debug window").show(&ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.add(egui::widgets::Label::new("Hi there!"));
-                    if ui.button("Click me else you die").clicked() {
-                        info!("it's joke")
-                    }
-                    ui.checkbox(simulate_ui_togle, "Simulate");
-                    integer_edit_field(ui, cur_sim);
-                    if ui.button("New Random Grid").clicked() {
-                        compute.new_rand_grid()
-                    }
-                    ui.label(format!("sim_rate: {}", sim_rate));
-                });
+            let mut pointer_on_debug_window = false;
+            egui::Window::new("Grid setup").show(&ctx, |ui| {
+                ui.checkbox(simulate_ui_togle, "Simulate");
+                ui.label("Change sim speed:");
+                integer_edit_field(ui, cur_sim);
+                ui.label("Change grid scale factor:");
+                if integer_edit_field(ui, &mut compute.scale_factor).changed() {
+                    compute.resize(size)
+                }
+                if ui.button("New Random Grid").clicked() {
+                    compute.new_rand_grid()
+                }
+                ui.label(format!("sim_rate: {}", sim_rate));
+
+                pointer_on_debug_window = ui.ui_contains_pointer();
             });
+            let mut pointer_on_selector_window = false;
+            egui::Window::new("Cell Type selector").show(&ctx, |ui| {
+                for (i, cell_type) in CellType::iter().enumerate() {
+                    if i != 0 {
+                        ui.radio_value(selected_cell_type, cell_type, cell_type.to_string());
+                    }
+                }
+                pointer_on_selector_window = ui.ui_contains_pointer();
+            });
+            let mut pointer_on_color_window = false;
+            egui::Window::new("Palette editor").show(&ctx, |ui| {
+                ui.label("Background color:");
+                ui.color_edit_button_rgba_premultiplied(background_color);
+                ui.label("Cells pallete:");
+                for color in compute.pallete.iter_mut() {
+                    ui.color_edit_button_rgba_premultiplied(color);
+                }
+                pointer_on_color_window = ui.ui_contains_pointer();
+            });
+
+            if pointer_on_debug_window || pointer_on_selector_window || pointer_on_color_window {
+                *is_hovered = true
+            } else {
+                *is_hovered = false
+            }
         });
     }
 
@@ -74,7 +110,11 @@ impl GameGui {
     }
 }
 
-fn integer_edit_field(ui: &mut egui::Ui, value: &mut u16) -> egui::Response {
+fn integer_edit_field<T>(ui: &mut egui::Ui, value: &mut T) -> egui::Response
+where
+    T: Display,
+    T: FromStr,
+{
     let mut tmp_value = format!("{}", value);
     let res = ui.text_edit_singleline(&mut tmp_value);
     if let Ok(result) = tmp_value.parse() {
