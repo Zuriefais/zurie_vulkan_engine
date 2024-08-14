@@ -68,7 +68,7 @@ fn rand_grid(memory_allocator: Arc<StandardMemoryAllocator>, size: [u32; 2]) -> 
                     || value.x == 0
                     || value.x == size[0] as i32 - 2
                 {
-                    2
+                    CellType::Wall as u32
                 } else {
                     fastrand::u32(0..2)
                 }
@@ -268,3 +268,10 @@ mod compute_grid_cs {
 }
 
 const SCALE_FACTOR: u32 = 4;
+
+pub enum CellType {
+    Empty,
+    Sand,
+    Wall,
+    Water,
+}
