@@ -61,17 +61,15 @@ impl State {
             &mut self.background_color,
         );
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
-            self.render_pipeline.compute.draw_circle(
+            self.render_pipeline.compute.draw(
                 self.input.mouse.position,
-                5,
                 self.renderer.window_size(),
                 self.selected_cell_type,
             );
         }
         if self.input.mouse.right_pressed && !self.input.mouse.hover_gui {
-            self.render_pipeline.compute.draw_circle(
+            self.render_pipeline.compute.draw(
                 self.input.mouse.position,
-                5,
                 self.renderer.window_size(),
                 CellType::Empty,
             );

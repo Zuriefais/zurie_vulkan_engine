@@ -1,11 +1,12 @@
 use crate::render::Renderer;
+use egui_winit_vulkano::egui::ImeEvent;
 use glam::{IVec2, Vec2};
 use log::info;
 use std::f64::consts::PI;
 use std::sync::Arc;
 use strum_macros::{Display, EnumIter};
 use vulkano::{
-    buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
+    buffer::{Buffer, BufferCreateInfo, BufferUsage, BufferWriteGuard, Subbuffer},
     command_buffer::{
         allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, CommandBufferUsage,
         PrimaryAutoCommandBuffer,
@@ -40,6 +41,8 @@ pub struct SandComputePipeline {
     size: [u32; 2],
     pub scale_factor: u32,
     pub pallete: [[f32; 4]; 4],
+    pub brush_size: u32,
+    pub selected_brush: BrushType,
 }
 
 fn get_pos(index: usize, dims: [u32; 2]) -> Option<IVec2> {
@@ -131,6 +134,8 @@ impl SandComputePipeline {
                 [0.302, 0.267, 0.255, 1.0],
                 [0.431, 0.318, 0.251, 1.0],
             ],
+            brush_size: 5,
+            selected_brush: BrushType::CircleFull,
         }
     }
 
@@ -156,6 +161,28 @@ impl SandComputePipeline {
         self.image.clone()
     }
 
+    pub fn draw(&self, pos: Vec2, window_size: [u32; 2], material: CellType) {
+        let normalized_pos = self.normalize_mouse_pos(pos, window_size);
+        match self.selected_brush {
+            BrushType::CircleFull => self.draw_circle(normalized_pos, material),
+            BrushType::CircleHollow => {
+                let mut grid_in = self.grid.write().unwrap();
+                let extent = self.image.image().extent();
+                draw_circle_hollow(
+                    self.brush_size as f64,
+                    normalized_pos,
+                    extent,
+                    &mut grid_in,
+                    material,
+                )
+            }
+            BrushType::Cube => {
+                let extent = self.image.image().extent();
+                self.draw_cube(normalized_pos, material, extent)
+            }
+        }
+    }
+
     pub fn draw_grid(&self, pos: IVec2) {
         let pos = pos / 4;
         let mut grid_in = self.grid.write().unwrap();
@@ -169,28 +196,28 @@ impl SandComputePipeline {
         grid_in[index] = 1;
     }
 
-    pub fn draw_circle(&self, pos: Vec2, r: i32, window_size: [u32; 2], material: CellType) {
-        let mut normalized_pos = Vec2::new(
-            (pos.x / window_size[0] as f32).clamp(0.0, 1.0),
-            (pos.y / window_size[1] as f32).clamp(0.0, 1.0),
-        );
-
-        normalized_pos.y = 1.0 - normalized_pos.y;
-        let pos = IVec2::new(
-            (self.size[0] as f32 * normalized_pos.x) as i32,
-            (self.size[1] as f32 * normalized_pos.y) as i32,
-        );
+    pub fn draw_circle(&self, pos: IVec2, material: CellType) {
         let mut grid_in = self.grid.write().unwrap();
         let extent = self.image.image().extent();
-        for i in (0..3600).map(|i| i as f64 / 10.0) {
-            let angle = i;
-            let x = (r as f64 * (angle * PI / 180.0).cos()).round() as i32;
-            let y = (r as f64 * (angle * PI / 180.0).sin()).round() as i32;
 
-            let add_pos = IVec2::new(x, y);
-            let pos = pos + add_pos;
-            let index = (pos.y * extent[0] as i32 + pos.x) as usize;
-            grid_in[index] = material as u32;
+        // Iterate over radius values from 0 to brush_size
+        for radius in 0..=self.brush_size as i32 {
+            draw_circle_hollow(radius as f64, pos, extent, &mut grid_in, material);
+        }
+    }
+
+    pub fn draw_cube(&self, pos: IVec2, material: CellType, extent: [u32; 3]) {
+        let mut grid_in = self.grid.write().unwrap();
+        for x in
+            (pos.x - (self.brush_size as i32 - 1) / 2)..(pos.x + (self.brush_size as i32 - 1) / 2)
+        {
+            for y in (pos.y - (self.brush_size as i32 - 1) / 2)
+                ..(pos.y + (self.brush_size as i32 - 1) / 2)
+            {
+                let pos = IVec2::new(x, y);
+                let index = (pos.y * extent[0] as i32 + pos.x) as usize;
+                grid_in[index] = material as u32;
+            }
         }
     }
 
@@ -258,6 +285,38 @@ impl SandComputePipeline {
         info!("generating new rand grid.... Size: {:?}", self.size);
         self.grid = rand_grid(self.memory_allocator.clone(), self.size);
     }
+
+    pub fn normalize_mouse_pos(&self, pos: Vec2, window_size: [u32; 2]) -> IVec2 {
+        let mut normalized_pos = Vec2::new(
+            (pos.x / window_size[0] as f32).clamp(0.0, 1.0),
+            (pos.y / window_size[1] as f32).clamp(0.0, 1.0),
+        );
+
+        normalized_pos.y = 1.0 - normalized_pos.y;
+        IVec2::new(
+            (self.size[0] as f32 * normalized_pos.x) as i32,
+            (self.size[1] as f32 * normalized_pos.y) as i32,
+        )
+    }
+}
+
+fn draw_circle_hollow(
+    radius: f64,
+    pos: IVec2,
+    extent: [u32; 3],
+    grid_in: &mut BufferWriteGuard<[u32]>,
+    material: CellType,
+) {
+    for i in (0..3600).map(|i| i as f64 / 10.0) {
+        let angle = i;
+        let x = (radius * (angle * PI / 180.0).cos()).round() as i32;
+        let y = (radius * (angle * PI / 180.0).sin()).round() as i32;
+
+        let add_pos = IVec2::new(x, y);
+        let pos = pos + add_pos;
+        let index = (pos.y * extent[0] as i32 + pos.x) as usize;
+        grid_in[index] = material as u32;
+    }
 }
 
 mod compute_grid_cs {
@@ -273,4 +332,11 @@ pub enum CellType {
     Sand,
     Wall,
     Water,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, EnumIter, Display)]
+pub enum BrushType {
+    CircleFull,
+    CircleHollow,
+    Cube,
 }

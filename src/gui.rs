@@ -9,7 +9,7 @@ use vulkano::{
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 
 use crate::{
-    compute_sand::{CellType, SandComputePipeline},
+    compute_sand::{BrushType, CellType, SandComputePipeline},
     state::SimClock,
 };
 
@@ -90,7 +90,24 @@ impl GameGui {
                 pointer_on_color_window = ui.ui_contains_pointer();
             });
 
-            if pointer_on_debug_window || pointer_on_selector_window || pointer_on_color_window {
+            let mut pointer_on_brush_window = false;
+            egui::Window::new("Brush editor").show(&ctx, |ui| {
+                ui.add(egui::Slider::new(&mut compute.brush_size, 0..=100).text("Brush size"));
+                for brush_type in BrushType::iter() {
+                    ui.radio_value(
+                        &mut compute.selected_brush,
+                        brush_type,
+                        brush_type.to_string(),
+                    );
+                }
+                pointer_on_brush_window = ui.ui_contains_pointer();
+            });
+
+            if pointer_on_debug_window
+                || pointer_on_selector_window
+                || pointer_on_color_window
+                || pointer_on_brush_window
+            {
                 *is_hovered = true
             } else {
                 *is_hovered = false
