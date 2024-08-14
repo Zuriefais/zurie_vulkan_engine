@@ -23,6 +23,7 @@ pub struct State {
     gui: GameGui,
     pub sim_clock: SimClock,
     input: InputState,
+    selected_cell_type: CellType,
 }
 
 impl State {
@@ -42,6 +43,7 @@ impl State {
             gui,
             sim_clock,
             input: InputState::default(),
+            selected_cell_type: CellType::Sand,
         }
     }
 
@@ -51,12 +53,22 @@ impl State {
             &mut self.sim_clock,
             &mut self.render_pipeline.compute,
             &mut self.input.mouse.hover_gui,
+            &mut self.selected_cell_type,
         );
-        if self.input.mouse.pressed && !self.input.mouse.hover_gui {
+        if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw_circle(
                 self.input.mouse.position,
                 5,
                 self.renderer.window_size(),
+                self.selected_cell_type,
+            );
+        }
+        if self.input.mouse.right_pressed && !self.input.mouse.hover_gui {
+            self.render_pipeline.compute.draw_circle(
+                self.input.mouse.position,
+                5,
+                self.renderer.window_size(),
+                CellType::Empty,
             );
         }
         let before_pipeline_future = match self.renderer.acquire() {
@@ -100,7 +112,9 @@ impl State {
 }
 
 use crate::{
-    compute_sand::SandComputePipeline, gui::GameGui, render::Renderer,
+    compute_sand::{CellType, SandComputePipeline},
+    gui::GameGui,
+    render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
 };
 

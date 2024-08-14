@@ -18,3 +18,5 @@ pollster = "0.3.0"
 vulkano = {version = "0.34.1", features=["macros"]}
 vulkano-shaders = "0.34.0"
 winit = {version = "0.30.5", features = ["rwh_05", "rwh_06"]}
+strum = "*"
+strum_macros = "*"

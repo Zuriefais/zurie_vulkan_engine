@@ -20,7 +20,8 @@ pub struct KeyboardState {}
 #[derive(Default)]
 pub struct MouseState {
     pub position: Vec2,
-    pub pressed: bool,
+    pub left_pressed: bool,
+    pub right_pressed: bool,
     pub hover_gui: bool,
 }
 
@@ -29,11 +30,19 @@ impl MouseState {
         match ev {
             WindowEvent::MouseInput { state, button, .. } => match (state, button) {
                 (ElementState::Pressed, MouseButton::Left) => {
-                    self.pressed = true;
+                    self.left_pressed = true;
                     info!("mouse pressed");
                 }
                 (ElementState::Released, MouseButton::Left) => {
-                    self.pressed = false;
+                    self.left_pressed = false;
+                    info!("mouse released");
+                }
+                (ElementState::Pressed, MouseButton::Right) => {
+                    self.right_pressed = true;
+                    info!("mouse pressed");
+                }
+                (ElementState::Released, MouseButton::Right) => {
+                    self.right_pressed = false;
                     info!("mouse released");
                 }
                 _ => {}

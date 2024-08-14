@@ -2,12 +2,16 @@ use std::sync::Arc;
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
 use log::info;
+use strum::IntoEnumIterator;
 use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
 };
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 
-use crate::{compute_sand::SandComputePipeline, state::SimClock};
+use crate::{
+    compute_sand::{CellType, SandComputePipeline},
+    state::SimClock,
+};
 
 pub struct GameGui {
     gui: Gui,
@@ -43,10 +47,12 @@ impl GameGui {
         sim_clock: &mut SimClock,
         compute: &mut SandComputePipeline,
         is_hovered: &mut bool,
+        selected_cell_type: &mut CellType,
     ) {
         let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
+            let mut pointer_on_debug_window = false;
             egui::Window::new("Debug window").show(&ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.add(egui::widgets::Label::new("Hi there!"));
@@ -60,8 +66,23 @@ impl GameGui {
                     }
                     ui.label(format!("sim_rate: {}", sim_rate));
                 });
-                *is_hovered = ui.ui_contains_pointer();
+                pointer_on_debug_window = ui.ui_contains_pointer();
             });
+            let mut pointer_on_selector_window = false;
+            egui::Window::new("Cell Type selector").show(&ctx, |ui| {
+                for (i, cell_type) in CellType::iter().enumerate() {
+                    if i != 0 {
+                        ui.radio_value(selected_cell_type, cell_type, cell_type.to_string());
+                    }
+                }
+                pointer_on_selector_window = ui.ui_contains_pointer();
+            });
+
+            if pointer_on_debug_window || pointer_on_selector_window {
+                *is_hovered = true
+            } else {
+                *is_hovered = false
+            }
         });
     }
 

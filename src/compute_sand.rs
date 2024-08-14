@@ -3,6 +3,7 @@ use glam::{IVec2, Vec2};
 use log::info;
 use std::f64::consts::PI;
 use std::sync::Arc;
+use strum_macros::{Display, EnumIter};
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
@@ -159,7 +160,7 @@ impl SandComputePipeline {
         grid_in[index] = 1;
     }
 
-    pub fn draw_circle(&self, pos: Vec2, r: i32, window_size: [u32; 2]) {
+    pub fn draw_circle(&self, pos: Vec2, r: i32, window_size: [u32; 2], material: CellType) {
         let mut normalized_pos = Vec2::new(
             (pos.x / window_size[0] as f32).clamp(0.0, 1.0),
             (pos.y / window_size[1] as f32).clamp(0.0, 1.0),
@@ -180,7 +181,7 @@ impl SandComputePipeline {
             let add_pos = IVec2::new(x, y);
             let pos = pos + add_pos;
             let index = (pos.y * extent[0] as i32 + pos.x) as usize;
-            grid_in[index] = 1;
+            grid_in[index] = material as u32;
         }
     }
 
@@ -269,6 +270,7 @@ mod compute_grid_cs {
 
 const SCALE_FACTOR: u32 = 4;
 
+#[derive(Clone, Copy, PartialEq, Eq, EnumIter, Display)]
 pub enum CellType {
     Empty,
     Sand,
