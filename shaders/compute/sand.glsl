@@ -28,14 +28,17 @@ void sand(ivec2 pixelCoord, ivec2 imgSize) {
     if (below.y >= imgSize.y || grid[below.y * imgSize.x + below.x] == EMPTY) {
         grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
         grid[below.y * imgSize.x + below.x] = SAND;
+    } else if (grid[below.y * imgSize.x + below.x] == WATER) {
+        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WATER;
+        grid[below.y * imgSize.x + below.x] = SAND;
     } else {
         ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
         ivec2 belowRight = pixelCoord + ivec2(1, -1);
 
         bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
+                (grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY));
         bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
+                (grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY));
 
         if (canFallLeft && canFallRight) {
             if (gl_GlobalInvocationID.x % 2 == 0) {
@@ -58,7 +61,61 @@ void sand(ivec2 pixelCoord, ivec2 imgSize) {
 }
 
 void water(ivec2 pixelCoord, ivec2 imgSize) {
+    ivec2 below = pixelCoord + ivec2(0, -1);
 
+    if (below.y >= imgSize.y || grid[below.y * imgSize.x + below.x] == EMPTY) {
+        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+        grid[below.y * imgSize.x + below.x] = WATER;
+    } else {
+        ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
+        ivec2 belowRight = pixelCoord + ivec2(1, -1);
+
+        bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
+                grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
+        bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
+                grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
+
+        if (canFallLeft && canFallRight) {
+            if (gl_GlobalInvocationID.x % 2 == 0) {
+                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+                grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+            } else {
+                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+                grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+            }
+        } else if (canFallLeft) {
+            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+            grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+        } else if (canFallRight) {
+            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+            grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+        } else {
+            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WATER;
+        }
+        ivec2 left = pixelCoord + ivec2(-1, 0);
+        ivec2 right = pixelCoord + ivec2(1, 0);
+
+        bool canSlideLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
+                grid[left.y * imgSize.x + left.x] == EMPTY);
+        bool canSlideRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
+                grid[right.y * imgSize.x + left.x] == EMPTY);
+
+        if (canSlideLeft && canSlideRight) {
+            if (gl_GlobalInvocationID.x % 2 == 0) {
+                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+                grid[left.y * imgSize.x + left.x] = WATER;
+            } else {
+                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+                grid[right.y * imgSize.x + right.x] = WATER;
+            }
+        } else if (canSlideLeft) {
+            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+            grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+        } else if (canSlideRight) {
+            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+            grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+        }
+    }
 }
 
 void simulate(ivec2 pixelCoord, ivec2 imgSize) {

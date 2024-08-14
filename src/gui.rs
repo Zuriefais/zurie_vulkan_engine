@@ -54,18 +54,17 @@ impl GameGui {
             let ctx = gui.context();
             let mut pointer_on_debug_window = false;
             egui::Window::new("Debug window").show(&ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.add(egui::widgets::Label::new("Hi there!"));
-                    if ui.button("Click me else you die").clicked() {
-                        info!("it's joke")
-                    }
-                    ui.checkbox(simulate_ui_togle, "Simulate");
-                    integer_edit_field(ui, cur_sim);
-                    if ui.button("New Random Grid").clicked() {
-                        compute.new_rand_grid()
-                    }
-                    ui.label(format!("sim_rate: {}", sim_rate));
-                });
+                ui.add(egui::widgets::Label::new("Hi there!"));
+                if ui.button("Click me else you die").clicked() {
+                    info!("it's joke")
+                }
+                ui.checkbox(simulate_ui_togle, "Simulate");
+                integer_edit_field(ui, cur_sim);
+                if ui.button("New Random Grid").clicked() {
+                    compute.new_rand_grid()
+                }
+                ui.label(format!("sim_rate: {}", sim_rate));
+
                 pointer_on_debug_window = ui.ui_contains_pointer();
             });
             let mut pointer_on_selector_window = false;
