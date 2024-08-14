@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
 use log::info;
@@ -48,18 +48,20 @@ impl GameGui {
         compute: &mut SandComputePipeline,
         is_hovered: &mut bool,
         selected_cell_type: &mut CellType,
+        size: [u32; 2],
     ) {
         let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
             let mut pointer_on_debug_window = false;
-            egui::Window::new("Debug window").show(&ctx, |ui| {
-                ui.add(egui::widgets::Label::new("Hi there!"));
-                if ui.button("Click me else you die").clicked() {
-                    info!("it's joke")
-                }
+            egui::Window::new("Grid setup").show(&ctx, |ui| {
                 ui.checkbox(simulate_ui_togle, "Simulate");
+                ui.label("Change sim speed:");
                 integer_edit_field(ui, cur_sim);
+                ui.label("Change grid scale factor:");
+                if integer_edit_field(ui, &mut compute.scale_factor).changed() {
+                    compute.resize(size)
+                }
                 if ui.button("New Random Grid").clicked() {
                     compute.new_rand_grid()
                 }
@@ -97,7 +99,11 @@ impl GameGui {
     }
 }
 
-fn integer_edit_field(ui: &mut egui::Ui, value: &mut u16) -> egui::Response {
+fn integer_edit_field<T>(ui: &mut egui::Ui, value: &mut T) -> egui::Response
+where
+    T: Display,
+    T: FromStr,
+{
     let mut tmp_value = format!("{}", value);
     let res = ui.text_edit_singleline(&mut tmp_value);
     if let Ok(result) = tmp_value.parse() {

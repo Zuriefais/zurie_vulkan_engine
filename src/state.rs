@@ -54,6 +54,7 @@ impl State {
             &mut self.render_pipeline.compute,
             &mut self.input.mouse.hover_gui,
             &mut self.selected_cell_type,
+            self.renderer.window_size(),
         );
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw_circle(

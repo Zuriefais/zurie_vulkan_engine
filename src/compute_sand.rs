@@ -38,6 +38,7 @@ pub struct SandComputePipeline {
         >,
     >,
     size: [u32; 2],
+    pub scale_factor: u32,
 }
 
 fn get_pos(index: usize, dims: [u32; 2]) -> Option<IVec2> {
@@ -122,6 +123,7 @@ impl SandComputePipeline {
             image,
             memory_allocator,
             size,
+            scale_factor: 4,
         }
     }
 
@@ -249,7 +251,7 @@ impl SandComputePipeline {
     }
 
     pub fn resize(&mut self, size: [u32; 2]) {
-        let size = [size[0] / SCALE_FACTOR, size[1] / SCALE_FACTOR];
+        let size = [size[0] / self.scale_factor, size[1] / self.scale_factor];
         self.image = SandComputePipeline::new_image(self.memory_allocator.clone(), size);
         self.size = size;
         self.new_rand_grid();
@@ -267,8 +269,6 @@ mod compute_grid_cs {
         path: "shaders/compute/sand.glsl"
     }
 }
-
-const SCALE_FACTOR: u32 = 4;
 
 #[derive(Clone, Copy, PartialEq, Eq, EnumIter, Display)]
 pub enum CellType {
