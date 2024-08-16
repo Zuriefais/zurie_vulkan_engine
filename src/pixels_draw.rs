@@ -17,7 +17,9 @@ use vulkano::{
     memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
     pipeline::{
         graphics::{
-            color_blend::{ColorBlendAttachmentState, ColorBlendState},
+            color_blend::{
+                AttachmentBlend, BlendFactor, BlendOp, ColorBlendAttachmentState, ColorBlendState,
+            },
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
@@ -147,7 +149,17 @@ impl PixelsDrawPipeline {
                     multisample_state: Some(MultisampleState::default()),
                     color_blend_state: Some(ColorBlendState::with_attachment_states(
                         subpass.num_color_attachments(),
-                        ColorBlendAttachmentState::default(),
+                        ColorBlendAttachmentState {
+                            blend: Some(AttachmentBlend {
+                                src_color_blend_factor: BlendFactor::SrcAlpha, // Source color multiplied by its alpha
+                                dst_color_blend_factor: BlendFactor::OneMinusSrcAlpha, // Destination color multiplied by (1 - source alpha)
+                                color_blend_op: BlendOp::Add, // Add the two results together
+                                src_alpha_blend_factor: BlendFactor::One, // Use the source alpha as-is
+                                dst_alpha_blend_factor: BlendFactor::Zero, // Ignore the destination alpha
+                                alpha_blend_op: BlendOp::Add, // Add the two results (effectively just keeping the source alpha)
+                            }),
+                            ..Default::default()
+                        },
                     )),
                     dynamic_state: [DynamicState::Viewport].into_iter().collect(),
                     subpass: Some(subpass.clone().into()),

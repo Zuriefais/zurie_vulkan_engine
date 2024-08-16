@@ -46,7 +46,7 @@ impl State {
             sim_clock,
             input: InputState::default(),
             selected_cell_type: CellType::Sand,
-            background_color: hex_color!("#8B4B4C").to_normalized_gamma_f32().into(),
+            background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
         }
     }
 
@@ -154,11 +154,11 @@ impl SimClock {
         }
     }
 
-    pub fn ui_togles(&mut self) -> (&mut bool, &mut u16, u16) {
+    pub fn ui_togles(&mut self) -> (&mut bool, &mut u16, &mut u16) {
         (
             &mut self.simulate_ui_togle,
             &mut self.cur_sim,
-            self.sim_rate,
+            &mut self.sim_rate,
         )
     }
 

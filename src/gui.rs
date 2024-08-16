@@ -51,16 +51,24 @@ impl GameGui {
         size: [u32; 2],
         background_color: &mut [f32; 4],
     ) {
-        let (simulate_ui_togle, cur_sim, sim_rate) = sim_clock.ui_togles();
+        let (simulate_ui_togle, cur_sim, &mut mut sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
             let mut pointer_on_debug_window = false;
             egui::Window::new("Grid setup").show(&ctx, |ui| {
                 ui.checkbox(simulate_ui_togle, "Simulate");
-                ui.label("Change sim speed:");
-                integer_edit_field(ui, cur_sim);
-                ui.label("Change grid scale factor:");
-                if integer_edit_field(ui, &mut compute.scale_factor).changed() {
+                let sim_speed_slider =
+                    ui.add(egui::Slider::new(cur_sim, 0..=100).text("Sim speed"));
+                if sim_speed_slider.changed() {
+                    //*sim_rate = 0u16
+                }
+                if ui
+                    .add(
+                        egui::Slider::new(&mut compute.scale_factor, 0..=100)
+                            .text("Grid scale factor"),
+                    )
+                    .changed()
+                {
                     compute.resize(size)
                 }
                 if ui.button("New Random Grid").clicked() {
