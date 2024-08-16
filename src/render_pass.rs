@@ -90,7 +90,9 @@ impl RenderPassPlaceOverFrame {
                 },
             )
             .unwrap();
-        let cb = self.pixels_draw_pipeline.draw(img_dims, image_view);
+        let cb = self
+            .pixels_draw_pipeline
+            .draw(img_dims, image_view, background_color);
 
         command_buffer_builder.execute_commands(cb).unwrap();
         command_buffer_builder

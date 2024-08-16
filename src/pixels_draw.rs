@@ -14,7 +14,7 @@ use vulkano::{
         sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode},
         view::ImageView,
     },
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
     pipeline::{
         graphics::{
             color_blend::{
@@ -75,6 +75,11 @@ pub struct PixelsDrawPipeline {
     pipeline: Arc<GraphicsPipeline>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
+    memory_allocator: Arc<
+        vulkano::memory::allocator::GenericMemoryAllocator<
+            vulkano::memory::allocator::FreeListAllocator,
+        >,
+    >,
     vertices: Subbuffer<[TexturedVertex]>,
     indices: Subbuffer<[u32]>,
 }
@@ -176,12 +181,17 @@ impl PixelsDrawPipeline {
             pipeline,
             command_buffer_allocator: app.command_buffer_allocator.clone(),
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
+            memory_allocator,
             vertices: vertex_buffer,
             indices: index_buffer,
         }
     }
 
-    fn create_image_sampler_nearest(&self, image: Arc<ImageView>) -> Arc<PersistentDescriptorSet> {
+    fn create_image_sampler_nearest(
+        &self,
+        image: Arc<ImageView>,
+        background_color: [f32; 4],
+    ) -> Arc<PersistentDescriptorSet> {
         let layout = self.pipeline.layout().set_layouts().first().unwrap();
         let sampler = Sampler::new(
             self.gfx_queue.device().clone(),
@@ -195,12 +205,28 @@ impl PixelsDrawPipeline {
         )
         .unwrap();
 
+        let buffer = Buffer::from_data(
+            self.memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::UNIFORM_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            background_color,
+        )
+        .unwrap();
+
         PersistentDescriptorSet::new(
             &self.descriptor_set_allocator,
             layout.clone(),
             [
-                WriteDescriptorSet::sampler(0, sampler),
-                WriteDescriptorSet::image_view(1, image),
+                WriteDescriptorSet::buffer(0, buffer),
+                WriteDescriptorSet::sampler(1, sampler),
+                WriteDescriptorSet::image_view(2, image),
             ],
             [],
         )
@@ -212,6 +238,7 @@ impl PixelsDrawPipeline {
         &self,
         viewport_dimensions: [u32; 2],
         image: Arc<ImageView>,
+        background_color: [f32; 4],
     ) -> Arc<SecondaryAutoCommandBuffer> {
         let mut builder = AutoCommandBufferBuilder::secondary(
             self.command_buffer_allocator.as_ref(),
@@ -223,7 +250,7 @@ impl PixelsDrawPipeline {
             },
         )
         .unwrap();
-        let desc_set = self.create_image_sampler_nearest(image);
+        let desc_set = self.create_image_sampler_nearest(image, background_color);
         builder
             .set_viewport(
                 0,

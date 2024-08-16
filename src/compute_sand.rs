@@ -216,7 +216,7 @@ impl SandComputePipeline {
             {
                 let pos = IVec2::new(x, y);
                 let index = (pos.y * extent[0] as i32 + pos.x) as usize;
-                grid_in[index] = material as u32;
+                draw_pixel(&mut grid_in, index, material)
             }
         }
     }
@@ -315,7 +315,13 @@ fn draw_circle_hollow(
         let add_pos = IVec2::new(x, y);
         let pos = pos + add_pos;
         let index = (pos.y * extent[0] as i32 + pos.x) as usize;
-        grid_in[index] = material as u32;
+        draw_pixel(grid_in, index, material)
+    }
+}
+
+pub fn draw_pixel(grid: &mut BufferWriteGuard<[u32]>, i: usize, cell_type: CellType) {
+    if i < grid.len() {
+        grid[i] = cell_type as u32;
     }
 }
 
