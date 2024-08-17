@@ -25,37 +25,31 @@ int get_index(ivec2 pos) {
 void sand(ivec2 pixelCoord, ivec2 imgSize) {
     ivec2 below = pixelCoord + ivec2(0, -1);
 
-    if (below.y >= imgSize.y || grid[below.y * imgSize.x + below.x] == EMPTY) {
-        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-        grid[below.y * imgSize.x + below.x] = SAND;
-    } else if (grid[below.y * imgSize.x + below.x] == WATER) {
-        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WATER;
-        grid[below.y * imgSize.x + below.x] = SAND;
+    if (below.y >= imgSize.y || atomicExchange(grid[below.y * imgSize.x + below.x], SAND) == EMPTY) {
+        atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
+    } else if (atomicExchange(grid[below.y * imgSize.x + below.x], SAND) == WATER) {
+        atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], WATER);
     } else {
         ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
         ivec2 belowRight = pixelCoord + ivec2(1, -1);
 
         bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                (grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY));
+                (atomicExchange(grid[belowLeft.y * imgSize.x + belowLeft.x], SAND) == EMPTY));
         bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                (grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY));
+                (atomicExchange(grid[belowRight.y * imgSize.x + belowRight.x], SAND) == EMPTY));
 
         if (canFallLeft && canFallRight) {
             if (gl_GlobalInvocationID.x % 2 == 0) {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[belowLeft.y * imgSize.x + belowLeft.x] = SAND;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             } else {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[belowRight.y * imgSize.x + belowRight.x] = SAND;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             }
         } else if (canFallLeft) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowLeft.y * imgSize.x + belowLeft.x] = SAND;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         } else if (canFallRight) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowRight.y * imgSize.x + belowRight.x] = SAND;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         } else {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = SAND;
+            // Sand stays in place
         }
     }
 }
@@ -63,57 +57,48 @@ void sand(ivec2 pixelCoord, ivec2 imgSize) {
 void water(ivec2 pixelCoord, ivec2 imgSize) {
     ivec2 below = pixelCoord + ivec2(0, -1);
 
-    if (below.y >= imgSize.y || grid[below.y * imgSize.x + below.x] == EMPTY) {
-        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-        grid[below.y * imgSize.x + below.x] = WATER;
+    if (below.y >= imgSize.y || atomicExchange(grid[below.y * imgSize.x + below.x], WATER) == EMPTY) {
+        atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
     } else {
         ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
         ivec2 belowRight = pixelCoord + ivec2(1, -1);
 
         bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                grid[belowLeft.y * imgSize.x + belowLeft.x] == EMPTY);
+                (atomicExchange(grid[belowLeft.y * imgSize.x + belowLeft.x], WATER) == EMPTY));
         bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                grid[belowRight.y * imgSize.x + belowRight.x] == EMPTY);
+                (atomicExchange(grid[belowRight.y * imgSize.x + belowRight.x], WATER) == EMPTY));
 
         if (canFallLeft && canFallRight) {
             if (gl_GlobalInvocationID.x % 2 == 0) {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             } else {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             }
         } else if (canFallLeft) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         } else if (canFallRight) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         } else {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WATER;
+            // Water stays in place
         }
         ivec2 left = pixelCoord + ivec2(-1, 0);
         ivec2 right = pixelCoord + ivec2(1, 0);
 
         bool canSlideLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                grid[left.y * imgSize.x + left.x] == EMPTY);
+                atomicExchange(grid[left.y * imgSize.x + left.x], WATER) == EMPTY);
         bool canSlideRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                grid[right.y * imgSize.x + left.x] == EMPTY);
+                atomicExchange(grid[right.y * imgSize.x + right.x], WATER) == EMPTY);
 
         if (canSlideLeft && canSlideRight) {
             if (gl_GlobalInvocationID.x % 2 == 0) {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[left.y * imgSize.x + left.x] = WATER;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             } else {
-                grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-                grid[right.y * imgSize.x + right.x] = WATER;
+                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
             }
         } else if (canSlideLeft) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowLeft.y * imgSize.x + belowLeft.x] = WATER;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         } else if (canSlideRight) {
-            grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
-            grid[belowRight.y * imgSize.x + belowRight.x] = WATER;
+            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
         }
     }
 }
@@ -130,10 +115,10 @@ void simulate(ivec2 pixelCoord, ivec2 imgSize) {
     } else if (cellValue == WATER) {
         water(pixelCoord, imgSize);
     } else if (cellValue == WALL) {
-        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = WALL;
+        // Wall stays in place
     }
     else {
-        grid[pixelCoord.y * imgSize.x + pixelCoord.x] = EMPTY;
+        // Empty cell stays empty
     }
 }
 
