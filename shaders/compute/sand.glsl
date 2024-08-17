@@ -22,34 +22,16 @@ int get_index(ivec2 pos) {
 #define WALL 2
 #define WATER 3
 
-void sand(ivec2 pixelCoord, ivec2 imgSize) {
-    ivec2 below = pixelCoord + ivec2(0, -1);
-
-    if (below.y >= imgSize.y || atomicExchange(grid[below.y * imgSize.x + below.x], SAND) == EMPTY) {
-        atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
-    } else if (atomicExchange(grid[below.y * imgSize.x + below.x], SAND) == WATER) {
-        atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], WATER);
-    } else {
-        ivec2 belowLeft = pixelCoord + ivec2(-1, -1);
-        ivec2 belowRight = pixelCoord + ivec2(1, -1);
-
-        bool canFallLeft = (belowLeft.x >= 0 && belowLeft.y < imgSize.y &&
-                (atomicExchange(grid[belowLeft.y * imgSize.x + belowLeft.x], SAND) == EMPTY));
-        bool canFallRight = (belowRight.x < imgSize.x && belowRight.y < imgSize.y &&
-                (atomicExchange(grid[belowRight.y * imgSize.x + belowRight.x], SAND) == EMPTY));
-
-        if (canFallLeft && canFallRight) {
-            if (gl_GlobalInvocationID.x % 2 == 0) {
-                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
-            } else {
-                atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
-            }
-        } else if (canFallLeft) {
-            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
-        } else if (canFallRight) {
-            atomicExchange(grid[pixelCoord.y * imgSize.x + pixelCoord.x], EMPTY);
-        } else {
-            // Sand stays in place
+void sand(ivec2 pos, ivec2 imgSize) {
+    uint cellIndex = get_index(pos);
+    uint cellValue = grid[cellIndex];
+    if (cellValue == SAND) {
+        ivec2 downPos = pos + ivec2(0, -1);
+        int downIndex = get_index(downPos);
+        uint downCellValue = grid[downIndex];
+        if (downCellValue == EMPTY) {
+            atomicExchange(grid[cellIndex], EMPTY);
+            atomicExchange(grid[downIndex], SAND);
         }
     }
 }
