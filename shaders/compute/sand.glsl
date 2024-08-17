@@ -30,6 +30,31 @@ void swapValuesAtomic(uint index1, uint index2) {
     atomicExchange(grid[index2], temp);
 }
 
+bool rand_bool(){
+    // Generate a pseudo-random float between 0.0 and 1.0
+    float r = fract(sin(dot(gl_GlobalInvocationID.xy, vec2(12.9898,78.233))) * 43758.5453);
+
+    // Return true if the random value is less than 0.5, otherwise false
+    return r < 0.5;
+}
+
+bool move_pos1_or_pos2(uint cellIndex, uint li, uint ri, bool l, bool r) {
+    if (r && l) {
+        if (rand_bool()) {
+            swapValuesAtomic(cellIndex, li);
+        } else {
+            swapValuesAtomic(cellIndex, ri);
+        }
+    } else if (r) {
+        swapValuesAtomic(cellIndex, ri);
+        return true;
+    } else if (l) {
+        swapValuesAtomic(cellIndex, li);
+        return true;
+    }
+    return false;
+}
+
 void sand(ivec2 pos, ivec2 imgSize) {
     uint cellIndex = get_index(pos);
 
@@ -46,17 +71,7 @@ void sand(ivec2 pos, ivec2 imgSize) {
     bool canMoveDownRight = grid[downRightIndex] == EMPTY || grid[downRightIndex] == WATER;
     bool canMoveDownLeft = grid[downLeftIndex] == EMPTY || grid[downLeftIndex] == WATER;
 
-    if (canMoveDownLeft && canMoveDownRight) {
-        if (pos.x % 2 == 0) {
-
-        } else {
-
-        }
-    } else if (canMoveDownLeft) {
-        swapValuesAtomic(cellIndex, downLeftIndex);
-    } else if (canMoveDownRight) {
-        swapValuesAtomic(cellIndex, downRightIndex);
-    }
+    move_pos1_or_pos2(cellIndex, downLeftIndex, downRightIndex, canMoveDownLeft, canMoveDownRight);
 }
 
 void water(ivec2 pos, ivec2 imgSize) {
@@ -75,17 +90,7 @@ void water(ivec2 pos, ivec2 imgSize) {
     bool canMoveDownRight = grid[downRightIndex] == EMPTY;
     bool canMoveDownLeft = grid[downLeftIndex] == EMPTY;
 
-    if (canMoveDownLeft && canMoveDownRight) {
-        if (pos.x % 2 == 0) {
-
-        } else {
-
-        }
-    } else if (canMoveDownLeft) {
-        swapValuesAtomic(cellIndex, downLeftIndex);
-        return;
-    } else if (canMoveDownRight) {
-        swapValuesAtomic(cellIndex, downRightIndex);
+    if (move_pos1_or_pos2(cellIndex, downLeftIndex, downRightIndex, canMoveDownLeft, canMoveDownRight)) {
         return;
     }
 
@@ -94,19 +99,7 @@ void water(ivec2 pos, ivec2 imgSize) {
     bool canMoveRight = grid[rightIndex] == EMPTY;
     bool canMoveLeft = grid[leftIndex] == EMPTY;
 
-    if (canMoveDownLeft && canMoveDownRight) {
-        if (pos.x % 2 == 0) {
-
-        } else {
-
-        }
-    } else if (canMoveDownLeft) {
-        swapValuesAtomic(cellIndex, downLeftIndex);
-        return;
-    } else if (canMoveDownRight) {
-        swapValuesAtomic(cellIndex, downRightIndex);
-        return;
-    }
+    move_pos1_or_pos2(cellIndex, leftIndex, rightIndex, canMoveLeft, canMoveRight);
 }
 
 void simulate(ivec2 pixelCoord, ivec2 imgSize) {
@@ -120,11 +113,6 @@ void simulate(ivec2 pixelCoord, ivec2 imgSize) {
         sand(pixelCoord, imgSize);
     } else if (cellValue == WATER) {
         water(pixelCoord, imgSize);
-    } else if (cellValue == WALL) {
-        // Wall stays in place
-    }
-    else {
-        // Empty cell stays empty
     }
 }
 
