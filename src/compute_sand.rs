@@ -40,7 +40,7 @@ pub struct SandComputePipeline {
     >,
     size: [u32; 2],
     pub scale_factor: u32,
-    pub pallete: [[f32; 4]; 4],
+    pub pallete: [[f32; 4]; 5],
     pub brush_size: u32,
     pub selected_brush: BrushType,
 }
@@ -133,6 +133,7 @@ impl SandComputePipeline {
                 [0.149, 0.169, 0.094, 1.0],
                 [0.302, 0.267, 0.255, 1.0],
                 [0.431, 0.318, 0.251, 1.0],
+                [0.192, 0.157, 0.157, 1.0],
             ],
             brush_size: 5,
             selected_brush: BrushType::CircleFull,
@@ -245,7 +246,7 @@ impl SandComputePipeline {
     fn dispatch(
         &self,
         builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-        palette: [[f32; 4]; 4],
+        palette: [[f32; 4]; 5],
         simulate: bool,
     ) {
         let image_extent = self.image.image().extent();
@@ -338,6 +339,7 @@ pub enum CellType {
     Sand,
     Wall,
     Water,
+    Tap,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, EnumIter, Display)]

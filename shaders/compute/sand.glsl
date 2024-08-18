@@ -8,7 +8,7 @@ layout(set = 0, binding = 1) buffer GridBuffer {
 };
 
 layout(push_constant) uniform PushConstants {
-    vec4[4] palette;
+    vec4[5] palette;
     bool simulate;
 } push_constants;
 
@@ -21,6 +21,7 @@ int get_index(ivec2 pos) {
 #define SAND 1
 #define WALL 2
 #define WATER 3
+#define TAP 4
 
 void swapValuesAtomic(uint index1, uint index2) {
     if (index1 >= grid.length() || index2 >= grid.length()) {
@@ -68,8 +69,8 @@ void sand(ivec2 pos, ivec2 imgSize) {
 
     int downLeftIndex = get_index(pos + ivec2(-1, -1));
     int downRightIndex = get_index(pos + ivec2(1, -1));
-    bool canMoveDownRight = grid[downRightIndex] == EMPTY || grid[downRightIndex] == WATER;
-    bool canMoveDownLeft = grid[downLeftIndex] == EMPTY || grid[downLeftIndex] == WATER;
+    bool canMoveDownRight = grid[downRightIndex] == EMPTY;
+    bool canMoveDownLeft = grid[downLeftIndex] == EMPTY;
 
     move_pos1_or_pos2(cellIndex, downLeftIndex, downRightIndex, canMoveDownLeft, canMoveDownRight);
 }
@@ -102,6 +103,16 @@ void water(ivec2 pos, ivec2 imgSize) {
     move_pos1_or_pos2(cellIndex, leftIndex, rightIndex, canMoveLeft, canMoveRight);
 }
 
+void tap(ivec2 pos, ivec2 imgSize) {
+    uint cellIndex = get_index(pos);
+    ivec2 downPos = pos + ivec2(0, -1);
+    int downIndex = get_index(downPos);
+    uint downCellValue = grid[downIndex];
+    if (downCellValue == EMPTY) {
+        atomicExchange(grid[downIndex], SAND);
+    }
+}
+
 void simulate(ivec2 pixelCoord, ivec2 imgSize) {
     if (pixelCoord.x >= imgSize.x || pixelCoord.y >= imgSize.y) {
         return;
@@ -113,6 +124,8 @@ void simulate(ivec2 pixelCoord, ivec2 imgSize) {
         sand(pixelCoord, imgSize);
     } else if (cellValue == WATER) {
         water(pixelCoord, imgSize);
+    } else if (cellValue == TAP) {
+        tap(pixelCoord, imgSize);
     }
 }
 
