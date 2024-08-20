@@ -1,4 +1,5 @@
 use crate::render::Renderer;
+use fs::UBO;
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -14,7 +15,7 @@ use vulkano::{
         sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode},
         view::ImageView,
     },
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
     pipeline::{
         graphics::{
             color_blend::{
@@ -191,6 +192,7 @@ impl PixelsDrawPipeline {
         &self,
         image: Arc<ImageView>,
         background_color: [f32; 4],
+        camera: vs::Camera,
     ) -> Arc<PersistentDescriptorSet> {
         let layout = self.pipeline.layout().set_layouts().first().unwrap();
         let sampler = Sampler::new(
@@ -205,7 +207,7 @@ impl PixelsDrawPipeline {
         )
         .unwrap();
 
-        let buffer = Buffer::from_data(
+        let camera_buffer = Buffer::from_data(
             self.memory_allocator.clone(),
             BufferCreateInfo {
                 usage: BufferUsage::UNIFORM_BUFFER,
@@ -216,7 +218,22 @@ impl PixelsDrawPipeline {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            background_color,
+            camera,
+        )
+        .unwrap();
+
+        let ubo_buffer = Buffer::from_data(
+            self.memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::UNIFORM_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            UBO { background_color },
         )
         .unwrap();
 
@@ -224,9 +241,10 @@ impl PixelsDrawPipeline {
             &self.descriptor_set_allocator,
             layout.clone(),
             [
-                WriteDescriptorSet::buffer(0, buffer),
-                WriteDescriptorSet::sampler(1, sampler),
-                WriteDescriptorSet::image_view(2, image),
+                WriteDescriptorSet::buffer(0, camera_buffer), // Camera uniform at binding 0
+                WriteDescriptorSet::buffer(1, ubo_buffer),    // UBO at binding 1
+                WriteDescriptorSet::sampler(2, sampler),      // Sampler at binding 2
+                WriteDescriptorSet::image_view(3, image),     // Image view at binding 3
             ],
             [],
         )
@@ -239,6 +257,7 @@ impl PixelsDrawPipeline {
         viewport_dimensions: [u32; 2],
         image: Arc<ImageView>,
         background_color: [f32; 4],
+        camera: vs::Camera,
     ) -> Arc<SecondaryAutoCommandBuffer> {
         let mut builder = AutoCommandBufferBuilder::secondary(
             self.command_buffer_allocator.as_ref(),
@@ -250,7 +269,7 @@ impl PixelsDrawPipeline {
             },
         )
         .unwrap();
-        let desc_set = self.create_image_sampler_nearest(image, background_color);
+        let desc_set = self.create_image_sampler_nearest(image, background_color, camera);
         builder
             .set_viewport(
                 0,
@@ -282,7 +301,7 @@ impl PixelsDrawPipeline {
     }
 }
 
-mod vs {
+pub(crate) mod vs {
     vulkano_shaders::shader! {
         ty: "vertex",
         path: "shaders/pixels_draw/vs.glsl"
