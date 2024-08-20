@@ -43,7 +43,7 @@ impl State {
         );
         let sim_clock = SimClock::default();
         let size = renderer.window_size();
-        let camera = Camera::create_camera_from_screen_size(
+        let mut camera = Camera::create_camera_from_screen_size(
             size[0] as f32,
             size[1] as f32,
             0.1,
@@ -51,6 +51,7 @@ impl State {
             1.0,
             Vec2::ZERO,
         );
+        camera.update_matrix();
         State {
             renderer,
             render_pipeline,
@@ -125,7 +126,8 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
-        self.input.event(ev);
+        self.input.event(ev.clone());
+        self.camera.event(ev);
     }
 }
 
