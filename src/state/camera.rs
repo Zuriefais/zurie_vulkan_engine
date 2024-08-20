@@ -1,4 +1,6 @@
 use glam::{Mat4, Vec2, Vec4};
+use log::info;
+use winit::event::{MouseScrollDelta, WindowEvent};
 
 use crate::pixels_draw;
 
@@ -105,5 +107,23 @@ impl Camera {
 
     pub fn get_matrix(&self) -> Mat4 {
         self.create_matrix()
+    }
+
+    pub fn event(&mut self, ev: WindowEvent) {
+        match ev {
+            WindowEvent::MouseWheel { delta, .. } => match delta {
+                MouseScrollDelta::LineDelta(_, y) => {
+                    info!("Mouse scroll: {}", y);
+                    if y > 0.0 {
+                        self.zoom_factor += 1.0;
+                    } else {
+                        self.zoom_factor -= 1.0;
+                    }
+                    self.update_matrix()
+                }
+                _ => {}
+            },
+            _ => {}
+        }
     }
 }
