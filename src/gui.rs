@@ -1,7 +1,6 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
-use log::info;
 use strum::IntoEnumIterator;
 use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
@@ -51,7 +50,7 @@ impl GameGui {
         size: [u32; 2],
         background_color: &mut [f32; 4],
     ) {
-        let (simulate_ui_togle, cur_sim, &mut mut sim_rate) = sim_clock.ui_togles();
+        let (simulate_ui_togle, cur_sim, &mut sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
             let ctx = gui.context();
             let mut pointer_on_debug_window = false;
@@ -111,15 +110,10 @@ impl GameGui {
                 pointer_on_brush_window = ui.ui_contains_pointer();
             });
 
-            if pointer_on_debug_window
+            *is_hovered = pointer_on_debug_window
                 || pointer_on_selector_window
                 || pointer_on_color_window
-                || pointer_on_brush_window
-            {
-                *is_hovered = true
-            } else {
-                *is_hovered = false
-            }
+                || pointer_on_brush_window;
         });
     }
 

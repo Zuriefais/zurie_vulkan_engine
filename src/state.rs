@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use camera::Camera;
 use ecolor::hex_color;
+use glam::Vec2;
 use input::InputState;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
@@ -26,6 +28,7 @@ pub struct State {
     input: InputState,
     selected_cell_type: CellType,
     background_color: [f32; 4],
+    camera: Camera,
 }
 
 impl State {
@@ -39,6 +42,16 @@ impl State {
             renderer.output_format,
         );
         let sim_clock = SimClock::default();
+        let size = renderer.window_size();
+        let mut camera = Camera::create_camera_from_screen_size(
+            size[0] as f32,
+            size[1] as f32,
+            0.1,
+            100.0,
+            1.0,
+            Vec2::ZERO,
+        );
+        camera.update_matrix();
         State {
             renderer,
             render_pipeline,
@@ -47,6 +60,7 @@ impl State {
             input: InputState::default(),
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
+            camera,
         }
     }
 
@@ -97,6 +111,7 @@ impl State {
             color_image,
             target_image.clone(),
             self.background_color,
+            self.camera.uniform,
         );
         let after_gui = self.gui.draw_on_image(after_render, target_image);
 
@@ -111,7 +126,8 @@ impl State {
 
     pub fn event(&mut self, ev: WindowEvent) {
         self.gui.event(&ev);
-        self.input.event(ev);
+        self.input.event(ev.clone());
+        self.camera.event(ev);
     }
 }
 
@@ -134,8 +150,8 @@ impl Default for SimClock {
         SimClock {
             simulate: true,
             simulate_ui_togle: true,
-            sim_rate: 1,
-            cur_sim: 1,
+            sim_rate: 0,
+            cur_sim: 0,
         }
     }
 }
