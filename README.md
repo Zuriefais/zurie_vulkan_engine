@@ -10,6 +10,10 @@
 
 ## Showcase
 
+### Latest
+
+![latest](./static/Latest.png)
+
 ### Magic bugs from my game
 
 ![magic](./static/Game.png)
