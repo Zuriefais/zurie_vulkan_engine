@@ -1,23 +1,3 @@
-[package]
-name = "vulkan_engine"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-bytemuck = { version = "1.16.3", features = ["derive"] }
-color-hex = "0.2.0"
-ecolor = { version = "0.28.1", features = ["color-hex"] }
-egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
-env_logger = "0.11.5"
-fastrand = "2.1.0"
-glam = { version = "0.29.0", features = ["mint"] }
-log = "0.4.22"
-naga = { version = "22.1.0", features = ["spv-out", "wgsl-in"] }
-png = "0.17.13"
-pollster = "0.3.0"
-vulkano = { version = "0.34.1", features = ["macros"] }
-vulkano-shaders = "0.34.0"
-winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
-strum = "*"
-strum_macros = "*"
-wasmtime = "24.0.0"
+[workspace]
+workspace.resolver = "2"
+members = ["crates/example_mod/","crates/core"]
