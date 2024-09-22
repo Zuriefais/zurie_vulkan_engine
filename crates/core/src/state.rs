@@ -4,6 +4,7 @@ use camera::Camera;
 use ecolor::hex_color;
 use glam::Vec2;
 use input::InputState;
+use wasmtime::Engine;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
@@ -29,6 +30,7 @@ pub struct State {
     selected_cell_type: CellType,
     background_color: [f32; 4],
     camera: Camera,
+    test_mod: EngineMod,
 }
 
 impl State {
@@ -52,6 +54,14 @@ impl State {
             Vec2::ZERO,
         );
         camera.update_matrix();
+
+        let engine = Engine::default();
+
+        let test_mod = EngineMod::new(
+            "./target/wasm32-wasip1/release/example_mod.wasm".to_string(),
+            &engine,
+        )
+        .expect("Error loading mod");
         State {
             renderer,
             render_pipeline,
@@ -61,6 +71,7 @@ impl State {
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
+            test_mod,
         }
     }
 
@@ -136,6 +147,7 @@ use crate::{
     gui::GameGui,
     render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
+    scripting::EngineMod,
 };
 
 pub struct SimClock {

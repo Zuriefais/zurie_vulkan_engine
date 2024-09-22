@@ -4,6 +4,7 @@ pub mod gui;
 pub mod pixels_draw;
 pub mod render;
 pub mod render_pass;
+pub mod scripting;
 pub mod state;
 
 use app::App;

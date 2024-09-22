@@ -2,13 +2,17 @@
 run:
     cargo fmt
     cargo zigbuild --release
-    mangohud RUST_LOG=info ./target/release/vulkan_engine
+    mangohud RUST_LOG=info ./target/release/zurie_engine
 
 [windows]
 run:
     cargo fmt
     cargo zigbuild --release
-    RUST_LOG=info ./target/release/vulkan_engine.exe
+    build_mods
+    RUST_LOG=info ./target/release/zurie_engine.exe
+
+build_mods:
+    cargo build --package example_mod --target wasm32-wasip1 --release
 
 build_windows:
     cargo xwin build --release --target x86_64-pc-windows-msvc
