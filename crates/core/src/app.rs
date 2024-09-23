@@ -1,8 +1,5 @@
 use log::info;
-use std::{
-    sync::Arc,
-    time::{self, Duration, Instant},
-};
+use std::{sync::Arc, time::Instant};
 
 use winit::{
     application::ApplicationHandler,
@@ -12,7 +9,7 @@ use winit::{
     window::Window,
 };
 
-use crate::state::{self, State};
+use crate::state::State;
 
 pub struct App {
     window: Option<Arc<Window>>,
@@ -71,6 +68,7 @@ impl ApplicationHandler for App {
                     .as_mut()
                     .unwrap()
                     .render(self.delta_time.elapsed().as_secs_f32());
+                self.delta_time = Instant::now();
                 self.window.as_ref().unwrap().request_redraw();
             }
             event => self.state.as_mut().unwrap().event(event),

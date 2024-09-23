@@ -129,7 +129,7 @@ impl GameGui {
     }
 }
 
-fn integer_edit_field<T>(ui: &mut egui::Ui, value: &mut T) -> egui::Response
+pub fn integer_edit_field<T>(ui: &mut egui::Ui, value: &mut T) -> egui::Response
 where
     T: Display,
     T: FromStr,
