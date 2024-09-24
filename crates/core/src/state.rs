@@ -76,7 +76,7 @@ impl State {
     }
 
     pub fn render(&mut self, delta_time: f32) {
-        self.test_mod.update(delta_time).unwrap();
+        self.test_mod.update().unwrap();
         self.sim_clock.clock();
         self.gui.draw_gui(
             &mut self.sim_clock,

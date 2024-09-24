@@ -11,6 +11,8 @@ use winit::{
 
 use crate::state::State;
 
+pub static mut DELTA_TIME: f32 = 0.0;
+
 pub struct App {
     window: Option<Arc<Window>>,
     state: Option<State>,
@@ -68,6 +70,9 @@ impl ApplicationHandler for App {
                     .as_mut()
                     .unwrap()
                     .render(self.delta_time.elapsed().as_secs_f32());
+                unsafe {
+                    DELTA_TIME = self.delta_time.elapsed().as_secs_f32();
+                }
                 self.delta_time = Instant::now();
                 self.window.as_ref().unwrap().request_redraw();
             }

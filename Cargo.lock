@@ -1097,6 +1097,9 @@ checksum = "a5d9305ccc6942a704f4335694ecd3de2ea531b114ac2d51f5f843750787a92f"
 [[package]]
 name = "example_mod"
 version = "0.1.0"
+dependencies = [
+ "mod_api",
+]
 
 [[package]]
 name = "exr"
@@ -1779,6 +1782,10 @@ dependencies = [
  "wasi",
  "windows-sys 0.52.0",
 ]
+
+[[package]]
+name = "mod_api"
+version = "0.0.0"
 
 [[package]]
 name = "naga"
