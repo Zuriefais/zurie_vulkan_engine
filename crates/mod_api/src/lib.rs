@@ -18,6 +18,19 @@ pub fn info(s: String) {
     let (ptr, len) = string_to_pointer(s);
     unsafe { info_sys(ptr, len) }
 }
+extern "C" {
+    pub fn get_mod_name_callback(ptr: u32, len: u32);
+}
+
+#[macro_export]
+macro_rules! info {
+    () => {
+        info("\n")
+    };
+    ($($arg:tt)*) => {{
+        info(format!($($arg)*));
+    }};
+}
 
 extern "C" {
     fn info_sys(pointer: u32, len: u32);

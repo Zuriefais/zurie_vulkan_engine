@@ -1,4 +1,4 @@
-use mod_api::{get_delta_time, info, string_to_pointer};
+use mod_api::{get_delta_time, get_mod_name_callback, info, string_to_pointer};
 
 #[no_mangle]
 pub extern "C" fn init() {
@@ -7,15 +7,11 @@ pub extern "C" fn init() {
 
 #[no_mangle]
 pub extern "C" fn get_mod_name() {
-    let (ptr, len) = string_to_pointer("Example mod".to_string());
+    let (ptr, len) = string_to_pointer("example mod".to_string());
     unsafe { get_mod_name_callback(ptr, len) };
-}
-
-extern "C" {
-    fn get_mod_name_callback(ptr: u32, len: u32);
 }
 
 #[no_mangle]
 pub extern "C" fn update() {
-    info(format!("update..... delta_time: {}", get_delta_time()));
+    info!("update..... delta_time: {}", get_delta_time());
 }
