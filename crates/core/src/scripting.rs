@@ -61,7 +61,7 @@ impl EngineMod {
                 },
                 None => anyhow::bail!("pointer/length out of bounds"),
             };
-            let mut data_lock = mod_name2.write().unwrap();
+            let mut data_lock = mod_name_func.write().unwrap();
             *data_lock = name.to_string();
             Ok(())
         };
