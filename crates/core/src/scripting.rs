@@ -46,7 +46,7 @@ impl EngineMod {
                     Ok(s) => s,
                     Err(_) => anyhow::bail!("invalid utf-8"),
                 },
-                None => anyhow::bail!("pointer/length out of bounds"),
+                _ => anyhow::bail!("pointer/length out of bounds"),
             };
             let mut data_lock = mod_name_func.write().unwrap();
             *data_lock = name.to_string();

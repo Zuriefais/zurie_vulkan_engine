@@ -32,6 +32,23 @@ macro_rules! info {
     }};
 }
 
+#[macro_export]
+macro_rules! set_mod_name {
+    ($mod_name:literal) => {
+        #[no_mangle]
+        pub extern "C" fn get_mod_name() {
+            let (ptr, len) = string_to_pointer($mod_name.to_string());
+            unsafe { get_mod_name_callback(ptr, len) };
+        }
+    };
+}
+
+#[no_mangle]
+pub extern "C" fn get_mod_name() {
+    let (ptr, len) = string_to_pointer("example mod".to_string());
+    unsafe { get_mod_name_callback(ptr, len) };
+}
+
 extern "C" {
     fn info_sys(pointer: u32, len: u32);
 }
