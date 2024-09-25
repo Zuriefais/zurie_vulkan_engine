@@ -58,7 +58,7 @@ impl State {
         let engine = Engine::default();
 
         let test_mod = EngineMod::new(
-            "./target/wasm32-wasip1/release/example_mod.wasm".to_string(),
+            "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
             &engine,
         )
         .expect("Error loading mod");
