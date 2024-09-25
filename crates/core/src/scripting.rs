@@ -15,8 +15,8 @@ pub struct EngineMod {
 impl EngineMod {
     pub fn new(mod_path: String, engine: &Engine) -> Result<Self, wasmtime::Error> {
         let mut linker: Linker<()> = Linker::new(engine);
-        let mut mod_name = Arc::new(RwLock::new("No name".to_string()));
-        let mut mod_name2 = mod_name.clone();
+        let mod_name = Arc::new(RwLock::new("No name".to_string()));
+        let mod_name_func = mod_name.clone();
         //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
         info!("mod at path {} compiled", mod_path);
