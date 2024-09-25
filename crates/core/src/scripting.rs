@@ -17,6 +17,7 @@ impl EngineMod {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
+        let mod_name_func2 = mod_name.clone();
         //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
         info!("mod at path {} compiled", mod_path);
@@ -26,23 +27,9 @@ impl EngineMod {
         linker.func_wrap("env", "get_delta_time_sys", || -> f32 {
             unsafe { DELTA_TIME }
         })?;
-        let func_info = |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
-            let mem = match caller.get_export("memory") {
-                Some(Extern::Memory(mem)) => mem,
-                _ => anyhow::bail!("failed to find host memory"),
-            };
-            let data = mem
-                .data(&caller)
-                .get(ptr as usize..)
-                .and_then(|arr| arr.get(..len as usize));
-            let string = match data {
-                Some(data) => match std::str::from_utf8(data) {
-                    Ok(s) => s,
-                    Err(_) => anyhow::bail!("invalid utf-8"),
-                },
-                None => anyhow::bail!("pointer/length out of bounds"),
-            };
-            info!("{}", string);
+        let func_info = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let string = get_string_by_ptr(caller, ptr, len)?;
+            info!(target: mod_name_func2.read().unwrap().as_str(), "{}", string);
             Ok(())
         };
         let func_get_mod_name_callback = move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
@@ -89,4 +76,27 @@ impl EngineMod {
         self.update_fn.call(&mut self.store, ())?;
         Ok(())
     }
+}
+
+fn get_string_by_ptr(
+    mut caller: Caller<'_, ()>,
+    ptr: u32,
+    len: u32,
+) -> Result<String, wasmtime::Error> {
+    let mem = match caller.get_export("memory") {
+        Some(Extern::Memory(mem)) => mem,
+        _ => anyhow::bail!("failed to find host memory"),
+    };
+    let data = mem
+        .data(&caller)
+        .get(ptr as usize..)
+        .and_then(|arr| arr.get(..len as usize));
+    let str = match data {
+        Some(data) => match std::str::from_utf8(data) {
+            Ok(s) => s,
+            Err(_) => anyhow::bail!("invalid utf-8"),
+        },
+        None => anyhow::bail!("pointer/length out of bounds"),
+    };
+    Ok(str.to_string())
 }
