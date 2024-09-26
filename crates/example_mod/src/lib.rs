@@ -1,4 +1,6 @@
-use mod_api::{get_delta_time, get_mod_name_callback, info, set_mod_name, string_to_pointer};
+use mod_api::{
+    get_delta_time, get_mod_name_callback, gui::gui_text, info, set_mod_name, string_to_pointer,
+};
 
 struct GameState {
     i: u32,
@@ -21,4 +23,8 @@ pub extern "C" fn update() {
         get_delta_time(),
         unsafe { STATE.i }
     );
+    gui_text(format!("GUI text from mod!!!"));
+    gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
+        STATE.i
+    }));
 }

@@ -1,7 +1,7 @@
 [unix]
 run:
     cargo fmt
-    cargo zigbuild --release
+    cargo zigbuild --release --package core
     just build_mods
     mangohud RUST_LOG=info ./target/release/zurie_engine
 

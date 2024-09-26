@@ -1,8 +1,5 @@
 use std::ffi::CString;
-
-extern "C" {
-    fn get_delta_time_sys() -> f32;
-}
+pub mod gui;
 
 pub fn get_delta_time() -> f32 {
     unsafe { get_delta_time_sys() }
@@ -18,7 +15,11 @@ pub fn info(s: String) {
     let (ptr, len) = string_to_pointer(s);
     unsafe { info_sys(ptr, len) }
 }
+
 extern "C" {
+    fn get_delta_time_sys() -> f32;
+
+    fn info_sys(pointer: u32, len: u32);
     pub fn get_mod_name_callback(ptr: u32, len: u32);
 }
 
@@ -41,8 +42,4 @@ macro_rules! set_mod_name {
             unsafe { get_mod_name_callback(ptr, len) };
         }
     };
-}
-
-extern "C" {
-    fn info_sys(pointer: u32, len: u32);
 }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use camera::Camera;
+use crossbeam::queue::ArrayQueue;
 use ecolor::hex_color;
 use glam::Vec2;
 use input::InputState;
@@ -31,6 +32,7 @@ pub struct State {
     background_color: [f32; 4],
     camera: Camera,
     test_mod: EngineMod,
+    gui_text_queue: Arc<ArrayQueue<String>>,
 }
 
 impl State {
@@ -56,10 +58,11 @@ impl State {
         camera.update_matrix();
 
         let engine = Engine::default();
-
+        let gui_text_queue = Arc::new(ArrayQueue::new(100));
         let test_mod = EngineMod::new(
             "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
             &engine,
+            gui_text_queue.clone(),
         )
         .expect("Error loading mod");
         State {
@@ -72,6 +75,7 @@ impl State {
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
             test_mod,
+            gui_text_queue,
         }
     }
 
@@ -85,6 +89,7 @@ impl State {
             &mut self.selected_cell_type,
             self.renderer.window_size(),
             &mut self.background_color,
+            self.gui_text_queue.clone(),
         );
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(

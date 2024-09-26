@@ -1,6 +1,7 @@
 use crate::app::DELTA_TIME;
+use crossbeam::queue::ArrayQueue;
 use log::info;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
 
 pub struct EngineMod {
@@ -12,11 +13,16 @@ pub struct EngineMod {
 }
 
 impl EngineMod {
-    pub fn new(mod_path: String, engine: &Engine) -> Result<Self, wasmtime::Error> {
+    pub fn new(
+        mod_path: String,
+        engine: &Engine,
+        gui_text: Arc<ArrayQueue<String>>,
+    ) -> Result<Self, wasmtime::Error> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
         let mod_name_func2 = mod_name.clone();
+        //let mod_name_func3 = mod_name.clone();
         //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
         info!("mod at path {} compiled", mod_path);
@@ -31,6 +37,12 @@ impl EngineMod {
             info!(target: mod_name_func2.read().unwrap().as_str(), "{}", string);
             Ok(())
         };
+        let func_gui_text = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let string = get_string_by_ptr(caller, ptr, len)?;
+            gui_text.push(string);
+
+            Ok(())
+        };
         let func_get_mod_name_callback = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let name = get_string_by_ptr(caller, ptr, len)?;
             let mut data_lock = mod_name_func.write().unwrap();
@@ -38,6 +50,7 @@ impl EngineMod {
             Ok(())
         };
         linker.func_wrap("env", "info_sys", func_info)?;
+        linker.func_wrap("env", "gui_text_sys", func_gui_text)?;
         linker.func_wrap("env", "get_mod_name_callback", func_get_mod_name_callback)?;
         let instance = linker.instantiate(&mut store, &module)?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;

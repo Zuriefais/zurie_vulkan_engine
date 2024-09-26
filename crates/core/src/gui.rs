@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr, sync::Arc};
 
 use egui_winit_vulkano::{egui, Gui, GuiConfig};
+use log::info;
 use strum::IntoEnumIterator;
 use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
@@ -11,6 +12,7 @@ use crate::{
     compute_sand::{BrushType, CellType, SandComputePipeline},
     state::SimClock,
 };
+use crossbeam::queue::ArrayQueue;
 
 pub struct GameGui {
     gui: Gui,
@@ -49,6 +51,7 @@ impl GameGui {
         selected_cell_type: &mut CellType,
         size: [u32; 2],
         background_color: &mut [f32; 4],
+        gui_text: Arc<ArrayQueue<String>>,
     ) {
         let (simulate_ui_togle, cur_sim, &mut sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
@@ -96,6 +99,16 @@ impl GameGui {
                 }
                 pointer_on_color_window = ui.ui_contains_pointer();
             });
+            let mut pointer_on_mod_window = false;
+
+            egui::Window::new("Mod Window").show(&ctx, |ui| {
+                while !gui_text.is_empty() {
+                    let text = gui_text.pop().unwrap();
+                    info!("{}", text);
+                    ui.label(text);
+                }
+                pointer_on_mod_window = ui.ui_contains_pointer();
+            });
 
             let mut pointer_on_brush_window = false;
             egui::Window::new("Brush editor").show(&ctx, |ui| {
@@ -113,6 +126,7 @@ impl GameGui {
             *is_hovered = pointer_on_debug_window
                 || pointer_on_selector_window
                 || pointer_on_color_window
+                || pointer_on_mod_window
                 || pointer_on_brush_window;
         });
     }
