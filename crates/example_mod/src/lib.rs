@@ -23,7 +23,7 @@ pub extern "C" fn update() {
         get_delta_time(),
         unsafe { STATE.i }
     );
-    gui_text(format!("GUI text from mod!!!"));
+    gui_text(format!("Delta time: {} s", get_delta_time()));
     gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
         STATE.i
     }));

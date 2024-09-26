@@ -1,4 +1,5 @@
 # Game engine made on vulkan
+#Currently changing engine direction to wasm 2d engine
 
 ## Dependencies
 
