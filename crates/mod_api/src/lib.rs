@@ -11,7 +11,7 @@ pub fn get_delta_time() -> f32 {
 pub fn string_to_pointer(s: String) -> (u32, u32) {
     let len = s.len() as u32;
     let cs = CString::new(s).unwrap();
-    return (cs.into_raw() as u32, len);
+    (cs.into_raw() as u32, len)
 }
 
 pub fn info(s: String) {

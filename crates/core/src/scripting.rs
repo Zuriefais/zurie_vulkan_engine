@@ -1,7 +1,6 @@
 use crate::app::DELTA_TIME;
 use log::info;
-use std::cell::{Cell, LazyCell};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
 
 pub struct EngineMod {
@@ -32,22 +31,8 @@ impl EngineMod {
             info!(target: mod_name_func2.read().unwrap().as_str(), "{}", string);
             Ok(())
         };
-        let func_get_mod_name_callback = move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
-            let mem = match caller.get_export("memory") {
-                Some(Extern::Memory(mem)) => mem,
-                _ => anyhow::bail!("failed to find host memory"),
-            };
-            let data = mem
-                .data(&caller)
-                .get(ptr as usize..)
-                .and_then(|arr| arr.get(..len as usize));
-            let name = match data {
-                Some(data) => match std::str::from_utf8(data) {
-                    Ok(s) => s,
-                    Err(_) => anyhow::bail!("invalid utf-8"),
-                },
-                _ => anyhow::bail!("pointer/length out of bounds"),
-            };
+        let func_get_mod_name_callback = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let name = get_string_by_ptr(caller, ptr, len)?;
             let mut data_lock = mod_name_func.write().unwrap();
             *data_lock = name.to_string();
             Ok(())
