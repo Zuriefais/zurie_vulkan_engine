@@ -1,5 +1,7 @@
 use mod_api::{
-    get_delta_time, get_mod_name_callback, gui::gui_text, info, set_mod_name, string_to_pointer,
+    get_delta_time, get_mod_name_callback,
+    gui::{gui_button, gui_text},
+    info, set_mod_name, string_to_pointer,
 };
 
 struct GameState {
@@ -27,4 +29,5 @@ pub extern "C" fn update() {
     gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
         STATE.i
     }));
+    gui_button(format!("click_me"));
 }

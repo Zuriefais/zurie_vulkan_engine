@@ -7,3 +7,11 @@ pub fn gui_text(text: String) {
 extern "C" {
     fn gui_text_sys(ptr: u32, len: u32);
 }
+
+pub fn gui_button(text: String) -> bool {
+    let (ptr, len) = string_to_pointer(text);
+    return unsafe { gui_button_sys(ptr, len) };
+}
+extern "C" {
+    fn gui_button_sys(ptr: u32, len: u32) -> bool;
+}
