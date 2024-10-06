@@ -29,5 +29,5 @@ pub extern "C" fn update() {
     gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
         STATE.i
     }));
-    gui_button(format!("click_me"));
+    gui_button("click_me".to_string());
 }

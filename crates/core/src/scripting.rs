@@ -1,9 +1,7 @@
 use crate::app::DELTA_TIME;
 use crossbeam::queue::ArrayQueue;
 use log::info;
-use std::sync::{Arc, Mutex, RwLock};
-use wasmtime::Func;
-use wasmtime::Val;
+use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
 
 pub struct EngineMod {
@@ -24,6 +22,7 @@ impl EngineMod {
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
         let mod_name_func2 = mod_name.clone();
+        let mod_name_func3 = mod_name.clone();
         //let mod_name_func3 = mod_name.clone();
         //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
@@ -45,22 +44,6 @@ impl EngineMod {
 
             Ok(())
         };
-        // let func_gui_button = move |_, params: &[Val], results: &mut [Val]| {
-        //     let mut value = params[0].unwrap_i32();
-        //     value *= 2;
-        //     results[0] = value.into();
-        //     Ok(())
-        // };
-        // let double = Func::new(
-        //     &mut store,
-        //     wasmtime::FuncType::new(
-        //         store.engine(),
-        //         [wasmtime::ValType::I32].iter().cloned(),
-        //         [wasmtime::ValType::I32].iter().cloned(),
-        //     ),
-        //
-        // );
-
         let func_get_mod_name_callback = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let name = get_string_by_ptr(caller, ptr, len)?;
             let mut data_lock = mod_name_func.write().unwrap();
@@ -82,12 +65,21 @@ impl EngineMod {
                     .cloned(),
                 [wasmtime::ValType::I32].iter().cloned(),
             ),
-            |_, params, results| {
-                let mut value = params[0].unwrap_i32() as u32;
-                results[0] = wasmtime::Val::I32(true as i32);
+            move |caller, params, results| {
+                let button_text = get_string_by_ptr(
+                    caller,
+                    params[0].unwrap_i32() as u32,
+                    params[1].unwrap_i32() as u32,
+                )?;
+                info!(
+                    target: mod_name_func3.read().unwrap().as_str(),
+                    "button_text: {}",
+                    button_text
+                );
+                results[0] = wasmtime::Val::I32(1);
                 Ok(())
             },
-        );
+        )?;
         let instance = linker.instantiate(&mut store, &module)?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
         let update_fn: TypedFunc<(), ()> =
