@@ -11,6 +11,7 @@ use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, 
 
 #[derive()]
 pub struct EngineMod {
+    pub path: String,
     pub module: Module,
     pub instance: Instance,
     pub store: Store<()>,
@@ -93,6 +94,7 @@ impl EngineMod {
         info!("Mod name: {}", mod_name.read().unwrap());
         init_fn.call(&mut store, ())?;
         Ok(Self {
+            path: mod_path,
             module,
             instance,
             store,

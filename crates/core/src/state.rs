@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use anyhow::Ok;
 use camera::Camera;
-use crossbeam::queue::ArrayQueue;
 use ecolor::hex_color;
+use egui_winit_vulkano::egui::Context;
 use glam::Vec2;
 use input::InputState;
 use std::sync::RwLock;
@@ -34,7 +34,8 @@ pub struct State {
     background_color: [f32; 4],
     camera: Camera,
     mods: Vec<Arc<RwLock<EngineMod>>>,
-    gui_text_queue: Arc<ArrayQueue<String>>,
+    engine: Engine,
+    gui_context: Context,
 }
 
 impl State {
@@ -61,12 +62,11 @@ impl State {
         camera.update_matrix();
 
         let engine = Engine::default();
-        let gui_text_queue = Arc::new(ArrayQueue::new(100));
         let test_mod = Arc::new(RwLock::new(
             EngineMod::new(
                 "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
                 &engine,
-                gui_context,
+                gui_context.clone(),
             )
             .expect("Error loading mod"),
         ));
@@ -82,12 +82,14 @@ impl State {
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
             mods,
-            gui_text_queue,
+            engine,
+            gui_context,
         }
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.sim_clock.clock();
+        let mut reload_mods = false;
         self.gui.draw_gui(
             &mut self.sim_clock,
             &mut self.render_pipeline.compute,
@@ -95,8 +97,21 @@ impl State {
             &mut self.selected_cell_type,
             self.renderer.window_size(),
             &mut self.background_color,
-            self.gui_text_queue.clone(),
+            &mut reload_mods,
         );
+        if reload_mods {
+            let mut new_mods = vec![];
+            for engine_mod in self.mods.iter() {
+                let mod_lock = engine_mod.read().unwrap();
+                let mod_path = mod_lock.path.clone();
+                new_mods.push(Arc::new(RwLock::new(EngineMod::new(
+                    mod_path,
+                    &self.engine,
+                    self.gui_context.clone(),
+                )?)));
+            }
+            self.mods = new_mods;
+        }
         for engine_mod in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             mod_lock.update()?;

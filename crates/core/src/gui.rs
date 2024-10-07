@@ -51,7 +51,7 @@ impl GameGui {
         selected_cell_type: &mut CellType,
         size: [u32; 2],
         background_color: &mut [f32; 4],
-        gui_text: Arc<ArrayQueue<String>>,
+        reload_mods: &mut bool,
     ) {
         let (simulate_ui_togle, cur_sim, &mut sim_rate) = sim_clock.ui_togles();
         self.gui.immediate_ui(|gui| {
@@ -101,12 +101,8 @@ impl GameGui {
             });
             let mut pointer_on_mod_window = false;
 
-            egui::Window::new("Mod Window").show(&ctx, |ui| {
-                while !gui_text.is_empty() {
-                    let text = gui_text.pop().unwrap();
-                    info!("{}", text);
-                    ui.label(text);
-                }
+            egui::Window::new("Mods Window").show(&ctx, |ui| {
+                *reload_mods = ui.button("reload mods").clicked();
                 pointer_on_mod_window = ui.ui_contains_pointer();
             });
 
