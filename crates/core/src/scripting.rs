@@ -9,6 +9,7 @@ use shared_types::{
 use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
 
+#[derive()]
 pub struct EngineMod {
     pub module: Module,
     pub instance: Instance,
@@ -28,14 +29,8 @@ impl EngineMod {
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
         let mod_name_func2 = mod_name.clone();
-        let mod_name_func3 = mod_name.clone();
-        let mod_name_func4 = mod_name.clone();
-        //let mod_name_func3 = mod_name.clone();
-        //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
         info!("mod at path {} compiled", mod_path);
-
-        //let wasi = WasiCtxBuilder::new().inherit_stdio().build_p1();
         let mut store = Store::new(engine, ());
         linker.func_wrap("env", "get_delta_time_sys", || -> f32 {
             unsafe { DELTA_TIME }
@@ -49,9 +44,6 @@ impl EngineMod {
         let gui_context_clone2 = gui_context.clone();
         let func_gui_text = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let obj = get_obj_by_ptr::<GuiTextMessage>(caller, ptr, len).unwrap();
-
-            //gui_text.push(string);
-
             let window = egui::Window::new(obj.window_title);
             window.show(&gui_context_clone, |ui| ui.label(obj.label_text));
         };

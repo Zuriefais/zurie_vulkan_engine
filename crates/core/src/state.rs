@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use anyhow::Ok;
 use camera::Camera;
 use crossbeam::queue::ArrayQueue;
 use ecolor::hex_color;
 use glam::Vec2;
 use input::InputState;
+use std::sync::RwLock;
 use wasmtime::Engine;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
@@ -31,7 +33,7 @@ pub struct State {
     selected_cell_type: CellType,
     background_color: [f32; 4],
     camera: Camera,
-    test_mod: EngineMod,
+    mods: Vec<Arc<RwLock<EngineMod>>>,
     gui_text_queue: Arc<ArrayQueue<String>>,
 }
 
@@ -60,12 +62,16 @@ impl State {
 
         let engine = Engine::default();
         let gui_text_queue = Arc::new(ArrayQueue::new(100));
-        let test_mod = EngineMod::new(
-            "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
-            &engine,
-            gui_context,
-        )
-        .expect("Error loading mod");
+        let test_mod = Arc::new(RwLock::new(
+            EngineMod::new(
+                "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
+                &engine,
+                gui_context,
+            )
+            .expect("Error loading mod"),
+        ));
+        let mods = vec![test_mod];
+
         State {
             renderer,
             render_pipeline,
@@ -75,12 +81,12 @@ impl State {
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
-            test_mod,
+            mods,
             gui_text_queue,
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self) -> anyhow::Result<()> {
         self.sim_clock.clock();
         self.gui.draw_gui(
             &mut self.sim_clock,
@@ -91,7 +97,10 @@ impl State {
             &mut self.background_color,
             self.gui_text_queue.clone(),
         );
-        self.test_mod.update().unwrap();
+        for engine_mod in self.mods.iter() {
+            let mut mod_lock = engine_mod.write().unwrap();
+            mod_lock.update()?;
+        }
 
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(
@@ -107,13 +116,7 @@ impl State {
                 CellType::Empty,
             );
         }
-        let before_pipeline_future = match self.renderer.acquire() {
-            Err(e) => {
-                println!("{e}");
-                return;
-            }
-            Ok(future) => future,
-        };
+        let before_pipeline_future = self.renderer.acquire()?;
 
         // Compute.
         let after_compute = self
@@ -136,6 +139,7 @@ impl State {
 
         // Finish the frame. Wait for the future so resources are not in use when we render.
         self.renderer.present(after_gui, true);
+        anyhow::Ok(())
     }
 
     pub fn resize(&mut self, size: [u32; 2]) {
