@@ -1,14 +1,9 @@
 use std::sync::Arc;
 
-use anyhow::Ok;
 use camera::Camera;
 use ecolor::hex_color;
-use egui_winit_vulkano::egui::Context;
 use glam::Vec2;
 use input::InputState;
-use log::info;
-use std::sync::RwLock;
-use wasmtime::Engine;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
@@ -34,9 +29,7 @@ pub struct State {
     selected_cell_type: CellType,
     background_color: [f32; 4],
     camera: Camera,
-    mods: Vec<Arc<RwLock<EngineMod>>>,
-    engine: Engine,
-    gui_context: Context,
+    mod_manager: ModManager,
 }
 
 impl State {
@@ -61,17 +54,7 @@ impl State {
             Vec2::ZERO,
         );
         camera.update_matrix();
-
-        let engine = Engine::default();
-        let test_mod = Arc::new(RwLock::new(
-            EngineMod::new(
-                "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
-                &engine,
-                gui_context.clone(),
-            )
-            .expect("Error loading mod"),
-        ));
-        let mods = vec![test_mod];
+        let mod_manager = ModManager::new(gui_context.clone());
 
         State {
             renderer,
@@ -82,15 +65,13 @@ impl State {
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
-            mods,
-            engine,
-            gui_context,
+            mod_manager,
         }
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.sim_clock.clock();
-        let mut reload_mods = false;
+
         self.gui.draw_gui(
             &mut self.sim_clock,
             &mut self.render_pipeline.compute,
@@ -98,26 +79,8 @@ impl State {
             &mut self.selected_cell_type,
             self.renderer.window_size(),
             &mut self.background_color,
-            &mut reload_mods,
         );
-        if reload_mods {
-            let mut new_mods = vec![];
-            for engine_mod in self.mods.iter() {
-                let mod_lock = engine_mod.read().unwrap();
-                let mod_path = mod_lock.path.clone();
-                new_mods.push(Arc::new(RwLock::new(EngineMod::new(
-                    mod_path.clone(),
-                    &self.engine,
-                    self.gui_context.clone(),
-                )?)));
-                info!("reloading {}", mod_path);
-            }
-            self.mods = new_mods;
-        }
-        for engine_mod in self.mods.iter() {
-            let mut mod_lock = engine_mod.write().unwrap();
-            mod_lock.update()?;
-        }
+        self.mod_manager.update()?;
 
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(
@@ -176,7 +139,7 @@ use crate::{
     gui::GameGui,
     render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
-    scripting::EngineMod,
+    scripting::ModManager,
 };
 
 pub struct SimClock {

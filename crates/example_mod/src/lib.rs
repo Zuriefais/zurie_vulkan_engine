@@ -22,11 +22,6 @@ set_mod_name!("example_mod");
 #[no_mangle]
 pub extern "C" fn update() {
     unsafe { STATE.i += 1 }
-    // info!(
-    //     "update..... delta_time: {}, i: {}",
-    //     get_delta_time(),
-    //     unsafe { STATE.i }
-    // );
     gui_text(GuiTextMessage {
         window_title: "Delta time".to_string(),
         label_text: format!("Delta time: {} s", get_delta_time()),
@@ -37,11 +32,11 @@ pub extern "C" fn update() {
     });
     gui_text(GuiTextMessage {
         window_title: "Test".to_string(),
-        label_text: format!("test"),
+        label_text: "test".to_string(),
     });
     if gui_button(GuiTextMessage {
         window_title: "Button test".to_string(),
-        label_text: format!("Click me"),
+        label_text: "Click me".to_string(),
     }) {
         info!("clicked!!!")
     };

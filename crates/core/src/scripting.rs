@@ -1,13 +1,82 @@
 use crate::app::DELTA_TIME;
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context, Ui};
+use egui_winit_vulkano::egui::{self, Context};
 use log::info;
 use shared_types::{
     bitcode::{self, Decode},
     GuiTextMessage,
 };
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
+use wasmtime::{
+    Caller, Engine, Extern, Instance, Linker, Module, Store, TypedFunc,
+};
+use winit::event::WindowEvent;
+
+pub struct ModManager {
+    engine: Engine,
+    gui_context: Context,
+    mods: Vec<Arc<RwLock<EngineMod>>>,
+    new_mod_path: String,
+}
+
+impl ModManager {
+    pub fn event(&mut self, ev: WindowEvent) {}
+    pub fn update(&mut self) -> anyhow::Result<()> {
+        let mut reload_mods = false;
+        let mut load_new_mod = false;
+        egui::Window::new("Mods Window").show(&self.gui_context, |ui| {
+            reload_mods = ui.button("reload mods").clicked();
+            load_new_mod = ui.button("Load new mod").clicked();
+            ui.label("mod path:");
+            ui.text_edit_singleline(&mut self.new_mod_path);
+        });
+        if reload_mods {
+            let mut new_mods = vec![];
+            for engine_mod in self.mods.iter() {
+                let mod_lock = engine_mod.read().unwrap();
+                let mod_path = mod_lock.path.clone();
+                new_mods.push(Arc::new(RwLock::new(EngineMod::new(
+                    mod_path.clone(),
+                    &self.engine,
+                    self.gui_context.clone(),
+                )?)));
+                info!("reloading {}", mod_path);
+            }
+            self.mods = new_mods;
+        }
+        if load_new_mod {
+            info!("Loading mod at path: {}", self.new_mod_path.clone());
+            self.mods.push(Arc::new(RwLock::new(EngineMod::new(
+                self.new_mod_path.clone(),
+                &self.engine,
+                self.gui_context.clone(),
+            )?)));
+        }
+        for engine_mod in self.mods.iter() {
+            let mut mod_lock = engine_mod.write().unwrap();
+            mod_lock.update().unwrap();
+        }
+        Ok(())
+    }
+    pub fn new(gui_context: Context) -> Self {
+        let engine = Engine::default();
+        let test_mod = Arc::new(RwLock::new(
+            EngineMod::new(
+                "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
+                &engine,
+                gui_context.clone(),
+            )
+            .expect("Error loading mod"),
+        ));
+        let mods = vec![test_mod];
+        Self {
+            engine,
+            gui_context,
+            mods,
+            new_mod_path: String::new(),
+        }
+    }
+}
 
 #[derive()]
 pub struct EngineMod {
@@ -17,15 +86,10 @@ pub struct EngineMod {
     pub store: Store<()>,
     pub update_fn: TypedFunc<(), ()>,
     pub mod_name: Arc<RwLock<String>>,
-    gui_context: Context,
 }
 
 impl EngineMod {
-    pub fn new(
-        mod_path: String,
-        engine: &Engine,
-        gui_context: Context,
-    ) -> Result<Self, wasmtime::Error> {
+    pub fn new(mod_path: String, engine: &Engine, gui_context: Context) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
@@ -99,7 +163,6 @@ impl EngineMod {
             store,
             update_fn,
             mod_name,
-            gui_context,
         })
     }
 
@@ -138,6 +201,6 @@ fn get_obj_by_ptr<T: for<'a> Decode<'a>>(
         .get(ptr as usize..)
         .and_then(|arr| arr.get(..len as usize))
         .unwrap();
-    let obj = bitcode::decode(&data)?;
+    let obj = bitcode::decode(data)?;
     Ok(obj)
 }
