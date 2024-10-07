@@ -46,6 +46,7 @@ impl EngineMod {
             Ok(())
         };
         let gui_context_clone = gui_context.clone();
+        let gui_context_clone2 = gui_context.clone();
         let func_gui_text = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let obj = get_obj_by_ptr::<GuiTextMessage>(caller, ptr, len).unwrap();
 
@@ -75,17 +76,18 @@ impl EngineMod {
                 [wasmtime::ValType::I32].iter().cloned(),
             ),
             move |caller, params, results| {
-                let button_text = get_string_by_ptr(
+                let obj = get_obj_by_ptr::<GuiTextMessage>(
                     caller,
                     params[0].unwrap_i32() as u32,
                     params[1].unwrap_i32() as u32,
-                )?;
-                info!(
-                    target: mod_name_func3.read().unwrap().as_str(),
-                    "button_text: {}",
-                    button_text
-                );
-                results[0] = wasmtime::Val::I32(1);
+                )
+                .unwrap();
+                let mut clicked = 0;
+                let window = egui::Window::new(obj.window_title);
+                window.show(&gui_context_clone2, |ui| {
+                    clicked = ui.button(obj.label_text).clicked() as i32;
+                });
+                results[0] = wasmtime::Val::I32(clicked);
                 Ok(())
             },
         )?;

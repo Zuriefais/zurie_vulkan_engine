@@ -1,6 +1,7 @@
 use std::ffi::CString;
 pub mod gui;
 pub use shared_types;
+use shared_types::borsh::{to_vec, BorshSerialize};
 
 pub fn get_delta_time() -> f32 {
     unsafe { get_delta_time_sys() }
@@ -10,6 +11,13 @@ pub fn string_to_pointer(s: String) -> (u32, u32) {
     let len = s.len() as u32;
     let cs = CString::new(s).unwrap();
     (cs.into_raw() as u32, len)
+}
+
+pub fn onj_to_pointer<T: BorshSerialize>(obj: &T) -> (u32, u32) {
+    let mut message_bin = to_vec(obj).unwrap();
+    let len = message_bin.len() as u32;
+    let ptr = message_bin.as_mut_ptr() as u32;
+    (ptr, len)
 }
 
 pub fn info(s: String) {
