@@ -1,9 +1,9 @@
 use shared_types::GuiTextMessage;
 
-use crate::onj_to_pointer;
+use crate::obj_to_pointer;
 
 pub fn gui_text(message: GuiTextMessage) {
-    let (ptr, len) = onj_to_pointer(&message);
+    let (ptr, len) = obj_to_pointer(&message);
     unsafe { gui_text_sys(ptr, len) };
 }
 extern "C" {
@@ -11,7 +11,7 @@ extern "C" {
 }
 
 pub fn gui_button(message: GuiTextMessage) -> bool {
-    let (ptr, len) = onj_to_pointer(&message);
+    let (ptr, len) = obj_to_pointer(&message);
     unsafe { gui_button_sys(ptr, len) != 0 }
 }
 extern "C" {

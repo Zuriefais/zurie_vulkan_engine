@@ -13,7 +13,7 @@ pub fn string_to_pointer(s: String) -> (u32, u32) {
     (cs.into_raw() as u32, len)
 }
 
-pub fn onj_to_pointer<T: BorshSerialize>(obj: &T) -> (u32, u32) {
+pub fn obj_to_pointer<T: BorshSerialize>(obj: &T) -> (u32, u32) {
     let mut message_bin = to_vec(obj).unwrap();
     let len = message_bin.len() as u32;
     let ptr = message_bin.as_mut_ptr() as u32;
