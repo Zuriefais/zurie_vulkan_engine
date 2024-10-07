@@ -15,7 +15,7 @@ use crate::{
 use crossbeam::queue::ArrayQueue;
 
 pub struct GameGui {
-    gui: Gui,
+    pub gui: Gui,
 }
 
 impl GameGui {

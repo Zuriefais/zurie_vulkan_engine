@@ -1,5 +1,6 @@
 use std::ffi::CString;
 pub mod gui;
+pub use shared_types;
 
 pub fn get_delta_time() -> f32 {
     unsafe { get_delta_time_sys() }

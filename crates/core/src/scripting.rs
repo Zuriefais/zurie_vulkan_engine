@@ -1,6 +1,11 @@
 use crate::app::DELTA_TIME;
-use crossbeam::queue::ArrayQueue;
+use anyhow::Ok;
+use egui_winit_vulkano::egui::{self, Context, Ui};
 use log::info;
+use shared_types::{
+    borsh::{from_slice, BorshDeserialize},
+    GuiTextMessage,
+};
 use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Result, Store, TypedFunc};
 
@@ -10,19 +15,21 @@ pub struct EngineMod {
     pub store: Store<()>,
     pub update_fn: TypedFunc<(), ()>,
     pub mod_name: Arc<RwLock<String>>,
+    gui_context: Context,
 }
 
 impl EngineMod {
     pub fn new(
         mod_path: String,
         engine: &Engine,
-        gui_text: Arc<ArrayQueue<String>>,
+        gui_context: Context,
     ) -> Result<Self, wasmtime::Error> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
         let mod_name_func2 = mod_name.clone();
         let mod_name_func3 = mod_name.clone();
+        let mod_name_func4 = mod_name.clone();
         //let mod_name_func3 = mod_name.clone();
         //preview1::add_to_linker_sync(&mut linker, |t| t)?;
         let module = Module::from_file(engine, &mod_path)?;
@@ -38,11 +45,14 @@ impl EngineMod {
             info!(target: mod_name_func2.read().unwrap().as_str(), "{}", string);
             Ok(())
         };
+        let gui_context_clone = gui_context.clone();
         let func_gui_text = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
-            let string = get_string_by_ptr(caller, ptr, len)?;
-            gui_text.push(string);
+            let obj = get_obj_by_ptr::<GuiTextMessage>(caller, ptr, len).unwrap();
 
-            Ok(())
+            //gui_text.push(string);
+
+            let window = egui::Window::new(obj.window_title);
+            window.show(&gui_context_clone, |ui| ui.label(obj.label_text));
         };
         let func_get_mod_name_callback = move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let name = get_string_by_ptr(caller, ptr, len)?;
@@ -53,7 +63,6 @@ impl EngineMod {
         linker.func_wrap("host", "double", |x: i32| x * 2)?;
         linker.func_wrap("env", "info_sys", func_info)?;
         linker.func_wrap("env", "gui_text_sys", func_gui_text)?;
-        //linker.func_wrap("env", "gui_button_sys", func_gui_button)?;
         linker.func_wrap("env", "get_mod_name_callback", func_get_mod_name_callback)?;
         linker.func_new(
             "env",
@@ -95,20 +104,18 @@ impl EngineMod {
             store,
             update_fn,
             mod_name,
+            gui_context,
         })
     }
 
-    pub fn update(&mut self) -> Result<(), wasmtime::Error> {
+    pub fn update(&mut self) -> anyhow::Result<()> {
         self.update_fn.call(&mut self.store, ())?;
+        //egui::Label::new("fsdfsdf").
         Ok(())
     }
 }
 
-fn get_string_by_ptr(
-    mut caller: Caller<'_, ()>,
-    ptr: u32,
-    len: u32,
-) -> Result<String, wasmtime::Error> {
+fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::Result<String> {
     let mem = match caller.get_export("memory") {
         Some(Extern::Memory(mem)) => mem,
         _ => anyhow::bail!("failed to find host memory"),
@@ -116,13 +123,25 @@ fn get_string_by_ptr(
     let data = mem
         .data(&caller)
         .get(ptr as usize..)
-        .and_then(|arr| arr.get(..len as usize));
-    let str = match data {
-        Some(data) => match std::str::from_utf8(data) {
-            Ok(s) => s,
-            Err(_) => anyhow::bail!("invalid utf-8"),
-        },
-        _ => anyhow::bail!("pointer/length out of bounds"),
+        .and_then(|arr| arr.get(..len as usize))
+        .unwrap();
+    Ok(std::str::from_utf8(data)?.to_string())
+}
+
+fn get_obj_by_ptr<T: BorshDeserialize>(
+    mut caller: Caller<'_, ()>,
+    ptr: u32,
+    len: u32,
+) -> anyhow::Result<T> {
+    let mem = match caller.get_export("memory") {
+        Some(Extern::Memory(mem)) => mem,
+        _ => anyhow::bail!("failed to find host memory"),
     };
-    Ok(str.to_string())
+    let data = mem
+        .data(&caller)
+        .get(ptr as usize..)
+        .and_then(|arr| arr.get(..len as usize))
+        .unwrap();
+    let obj = from_slice::<T>(data)?;
+    Ok(obj)
 }

@@ -1,7 +1,11 @@
+use shared_types::{borsh::to_vec, GuiTextMessage};
+
 use crate::string_to_pointer;
 
-pub fn gui_text(text: String) {
-    let (ptr, len) = string_to_pointer(text);
+pub fn gui_text(message: GuiTextMessage) {
+    let mut message_bin = to_vec(&message).unwrap();
+    let len = message_bin.len() as u32;
+    let ptr = message_bin.as_mut_ptr() as u32;
     unsafe { gui_text_sys(ptr, len) };
 }
 extern "C" {

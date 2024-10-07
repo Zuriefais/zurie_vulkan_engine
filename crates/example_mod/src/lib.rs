@@ -1,7 +1,9 @@
 use mod_api::{
     get_delta_time, get_mod_name_callback,
     gui::{gui_button, gui_text},
-    info, set_mod_name, string_to_pointer,
+    info, set_mod_name,
+    shared_types::GuiTextMessage,
+    string_to_pointer,
 };
 
 struct GameState {
@@ -25,9 +27,13 @@ pub extern "C" fn update() {
         get_delta_time(),
         unsafe { STATE.i }
     );
-    gui_text(format!("Delta time: {} s", get_delta_time()));
-    gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
-        STATE.i
-    }));
+    gui_text(GuiTextMessage {
+        window_title: "Delta time".to_string(),
+        label_text: format!("Delta time: {} s", get_delta_time()),
+    });
+    //gui_text());
+    // gui_text(format!("GUI text from mod 2 time!!!, i: {}", unsafe {
+    //     STATE.i
+    // }));
     gui_button("click_me".to_string());
 }

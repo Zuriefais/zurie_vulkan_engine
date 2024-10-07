@@ -2,3 +2,6 @@
 name = "mod_api"
 version = "0.0.0"
 edition = "2021"
+
+[dependencies]
+shared_types = { path = "../shared_types" }

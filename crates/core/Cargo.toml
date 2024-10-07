@@ -29,3 +29,4 @@ wasmtime = "25.0.0"
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"
+shared_types = { path = "../shared_types" }

@@ -45,6 +45,7 @@ impl State {
             renderer.gfx_queue.clone(),
             renderer.output_format,
         );
+        let gui_context = gui.gui.context();
         let sim_clock = SimClock::default();
         let size = renderer.window_size();
         let mut camera = Camera::create_camera_from_screen_size(
@@ -62,7 +63,7 @@ impl State {
         let test_mod = EngineMod::new(
             "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
             &engine,
-            gui_text_queue.clone(),
+            gui_context,
         )
         .expect("Error loading mod");
         State {
@@ -79,8 +80,7 @@ impl State {
         }
     }
 
-    pub fn render(&mut self, delta_time: f32) {
-        self.test_mod.update().unwrap();
+    pub fn render(&mut self) {
         self.sim_clock.clock();
         self.gui.draw_gui(
             &mut self.sim_clock,
@@ -91,6 +91,8 @@ impl State {
             &mut self.background_color,
             self.gui_text_queue.clone(),
         );
+        self.test_mod.update().unwrap();
+
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(
                 self.input.mouse.position,
