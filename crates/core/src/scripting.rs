@@ -3,7 +3,7 @@ use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context, Ui};
 use log::info;
 use shared_types::{
-    borsh::{from_slice, BorshDeserialize},
+    bitcode::{self, Decode},
     GuiTextMessage,
 };
 use std::sync::{Arc, RwLock};
@@ -73,8 +73,7 @@ impl EngineMod {
                     caller,
                     params[0].unwrap_i32() as u32,
                     params[1].unwrap_i32() as u32,
-                )
-                .unwrap();
+                )?;
                 let mut clicked = 0;
                 let window = egui::Window::new(obj.window_title);
                 window.show(&gui_context_clone2, |ui| {
@@ -106,9 +105,10 @@ impl EngineMod {
 
     pub fn update(&mut self) -> anyhow::Result<()> {
         self.update_fn.call(&mut self.store, ())?;
-        //egui::Label::new("fsdfsdf").
         Ok(())
     }
+
+    pub fn event() {}
 }
 
 fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::Result<String> {
@@ -124,7 +124,7 @@ fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::
     Ok(std::str::from_utf8(data)?.to_string())
 }
 
-fn get_obj_by_ptr<T: BorshDeserialize>(
+fn get_obj_by_ptr<T: for<'a> Decode<'a>>(
     mut caller: Caller<'_, ()>,
     ptr: u32,
     len: u32,
@@ -138,6 +138,6 @@ fn get_obj_by_ptr<T: BorshDeserialize>(
         .get(ptr as usize..)
         .and_then(|arr| arr.get(..len as usize))
         .unwrap();
-    let obj = from_slice::<T>(data)?;
+    let obj = bitcode::decode(&data)?;
     Ok(obj)
 }

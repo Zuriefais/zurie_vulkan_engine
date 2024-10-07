@@ -6,6 +6,7 @@ use ecolor::hex_color;
 use egui_winit_vulkano::egui::Context;
 use glam::Vec2;
 use input::InputState;
+use log::info;
 use std::sync::RwLock;
 use wasmtime::Engine;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
@@ -105,10 +106,11 @@ impl State {
                 let mod_lock = engine_mod.read().unwrap();
                 let mod_path = mod_lock.path.clone();
                 new_mods.push(Arc::new(RwLock::new(EngineMod::new(
-                    mod_path,
+                    mod_path.clone(),
                     &self.engine,
                     self.gui_context.clone(),
                 )?)));
+                info!("reloading {}", mod_path);
             }
             self.mods = new_mods;
         }
