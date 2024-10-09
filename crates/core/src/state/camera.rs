@@ -1,5 +1,5 @@
-use glam::{Mat4, Vec2};
 use log::info;
+use shared_types::glam::{Mat4, Vec2};
 use winit::event::{MouseScrollDelta, WindowEvent};
 
 use crate::pixels_draw;

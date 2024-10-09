@@ -1,5 +1,6 @@
 use std::ffi::CString;
 pub mod gui;
+pub mod input;
 pub use shared_types;
 use shared_types::bitcode::{self, Encode};
 

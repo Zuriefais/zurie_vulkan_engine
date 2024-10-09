@@ -1,15 +1,14 @@
 use crate::app::DELTA_TIME;
 use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context};
+use hashbrown::HashSet;
 use log::info;
 use shared_types::{
     bitcode::{self, Decode},
-    GuiTextMessage,
+    GuiTextMessage, KeyCode,
 };
 use std::sync::{Arc, RwLock};
-use wasmtime::{
-    Caller, Engine, Extern, Instance, Linker, Module, Store, TypedFunc,
-};
+use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Store, TypedFunc};
 use winit::event::WindowEvent;
 
 pub struct ModManager {
@@ -20,7 +19,23 @@ pub struct ModManager {
 }
 
 impl ModManager {
-    pub fn event(&mut self, ev: WindowEvent) {}
+    pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
+        match ev {
+            WindowEvent::KeyboardInput { event, .. } => match event.physical_key {
+                winit::keyboard::PhysicalKey::Code(key_code) => {
+                    let key_code = key_code as u32;
+                    let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
+                    for engine_mod in self.mods.iter() {
+                        let mut mod_lock = engine_mod.write().unwrap();
+                        mod_lock.key_event(key_code.clone())?;
+                    }
+                }
+                winit::keyboard::PhysicalKey::Unidentified(_) => {}
+            },
+            _ => {}
+        }
+        Ok(())
+    }
     pub fn update(&mut self) -> anyhow::Result<()> {
         let mut reload_mods = false;
         let mut load_new_mod = false;
@@ -85,7 +100,9 @@ pub struct EngineMod {
     pub instance: Instance,
     pub store: Store<()>,
     pub update_fn: TypedFunc<(), ()>,
+    pub key_event_fn: TypedFunc<u32, ()>,
     pub mod_name: Arc<RwLock<String>>,
+    pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
 }
 
 impl EngineMod {
@@ -94,7 +111,10 @@ impl EngineMod {
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
         let mod_name_func2 = mod_name.clone();
+        let mod_name_func3 = mod_name.clone();
         let module = Module::from_file(engine, &mod_path)?;
+        let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
+        let subscribed_keys_clone = subscribed_keys.clone();
         info!("mod at path {} compiled", mod_path);
         let mut store = Store::new(engine, ());
         linker.func_wrap("env", "get_delta_time_sys", || -> f32 {
@@ -118,10 +138,21 @@ impl EngineMod {
             *data_lock = name.to_string();
             Ok(())
         };
+        let subscribe_for_key_event_sys = move |key: u32| {
+            let key: KeyCode = KeyCode::try_from(key).unwrap();
+            info!(target: mod_name_func3.read().unwrap().as_str(), "subscribed for {:?}", key);
+            let mut keys_lock = subscribed_keys_clone.write().unwrap();
+            keys_lock.insert(key);
+        };
         linker.func_wrap("host", "double", |x: i32| x * 2)?;
         linker.func_wrap("env", "info_sys", func_info)?;
         linker.func_wrap("env", "gui_text_sys", func_gui_text)?;
         linker.func_wrap("env", "get_mod_name_callback", func_get_mod_name_callback)?;
+        linker.func_wrap(
+            "env",
+            "subscribe_for_key_event_sys",
+            subscribe_for_key_event_sys,
+        )?;
         linker.func_new(
             "env",
             "gui_button_sys",
@@ -151,6 +182,8 @@ impl EngineMod {
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
         let update_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "update")?;
+        let key_event_fn: TypedFunc<u32, ()> =
+            instance.get_typed_func::<u32, ()>(&mut store, "key_event")?;
         let get_mod_name_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
         get_mod_name_fn.call(&mut store, ())?;
@@ -162,7 +195,9 @@ impl EngineMod {
             instance,
             store,
             update_fn,
+            key_event_fn,
             mod_name,
+            subscribed_keys,
         })
     }
 
@@ -171,7 +206,13 @@ impl EngineMod {
         Ok(())
     }
 
-    pub fn event() {}
+    pub fn key_event(&mut self, key_code: KeyCode) -> anyhow::Result<()> {
+        let keys_lock = self.subscribed_keys.read().unwrap();
+        if keys_lock.contains(&key_code) {
+            self.key_event_fn.call(&mut self.store, key_code as u32)?;
+        }
+        Ok(())
+    }
 }
 
 fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::Result<String> {
@@ -179,6 +220,7 @@ fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::
         Some(Extern::Memory(mem)) => mem,
         _ => anyhow::bail!("failed to find host memory"),
     };
+
     let data = mem
         .data(&caller)
         .get(ptr as usize..)

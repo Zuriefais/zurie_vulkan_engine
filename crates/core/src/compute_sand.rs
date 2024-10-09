@@ -1,6 +1,6 @@
 use crate::render::Renderer;
-use glam::{IVec2, Vec2};
 use log::info;
+use shared_types::glam::{IVec2, Vec2};
 use std::f64::consts::PI;
 use std::sync::Arc;
 use strum_macros::{Display, EnumIter};

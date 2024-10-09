@@ -73,7 +73,7 @@ impl ApplicationHandler for App {
                 self.delta_time = Instant::now();
                 self.window.as_ref().unwrap().request_redraw();
             }
-            event => self.state.as_mut().unwrap().event(event),
+            event => self.state.as_mut().unwrap().event(event).unwrap(),
         }
     }
 }

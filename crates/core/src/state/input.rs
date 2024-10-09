@@ -1,5 +1,5 @@
-use glam::Vec2;
 use log::info;
+use shared_types::glam::Vec2;
 use winit::event::{ElementState, MouseButton, WindowEvent};
 
 #[derive(Default)]

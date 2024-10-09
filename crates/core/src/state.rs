@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use camera::Camera;
 use ecolor::hex_color;
-use glam::Vec2;
 use input::InputState;
+use shared_types::glam::Vec2;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 
 pub struct RenderPipeline {
@@ -127,10 +127,12 @@ impl State {
         self.render_pipeline.compute.resize(size)
     }
 
-    pub fn event(&mut self, ev: WindowEvent) {
+    pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
         self.gui.event(&ev);
         self.input.event(ev.clone());
-        self.camera.event(ev);
+        self.camera.event(ev.clone());
+        self.mod_manager.event(ev)?;
+        Ok(())
     }
 }
 
