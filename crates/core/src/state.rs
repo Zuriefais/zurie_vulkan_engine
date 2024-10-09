@@ -54,14 +54,15 @@ impl State {
             Vec2::ZERO,
         );
         camera.update_matrix();
-        let mod_manager = ModManager::new(gui_context.clone());
+        let input = InputState::default();
+        let mod_manager = ModManager::new(gui_context.clone(), input.pressed_keys_buffer.clone());
 
         State {
             renderer,
             render_pipeline,
             gui,
             sim_clock,
-            input: InputState::default(),
+            input,
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
@@ -119,6 +120,7 @@ impl State {
 
         // Finish the frame. Wait for the future so resources are not in use when we render.
         self.renderer.present(after_gui, true);
+        self.input.after_update();
         anyhow::Ok(())
     }
 

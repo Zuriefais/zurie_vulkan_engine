@@ -16,6 +16,7 @@ pub struct ModManager {
     gui_context: Context,
     mods: Vec<Arc<RwLock<EngineMod>>>,
     new_mod_path: String,
+    pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
 }
 
 impl ModManager {
@@ -54,6 +55,7 @@ impl ModManager {
                     mod_path.clone(),
                     &self.engine,
                     self.gui_context.clone(),
+                    self.pressed_keys_buffer.clone(),
                 )?)));
                 info!("reloading {}", mod_path);
             }
@@ -65,6 +67,7 @@ impl ModManager {
                 self.new_mod_path.clone(),
                 &self.engine,
                 self.gui_context.clone(),
+                self.pressed_keys_buffer.clone(),
             )?)));
         }
         for engine_mod in self.mods.iter() {
@@ -73,13 +76,14 @@ impl ModManager {
         }
         Ok(())
     }
-    pub fn new(gui_context: Context) -> Self {
+    pub fn new(gui_context: Context, pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>) -> Self {
         let engine = Engine::default();
         let test_mod = Arc::new(RwLock::new(
             EngineMod::new(
                 "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
                 &engine,
                 gui_context.clone(),
+                pressed_keys_buffer.clone(),
             )
             .expect("Error loading mod"),
         ));
@@ -89,6 +93,7 @@ impl ModManager {
             gui_context,
             mods,
             new_mod_path: String::new(),
+            pressed_keys_buffer,
         }
     }
 }
@@ -106,7 +111,12 @@ pub struct EngineMod {
 }
 
 impl EngineMod {
-    pub fn new(mod_path: String, engine: &Engine, gui_context: Context) -> anyhow::Result<Self> {
+    pub fn new(
+        mod_path: String,
+        engine: &Engine,
+        gui_context: Context,
+        pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
+    ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         let mod_name_func = mod_name.clone();
@@ -144,7 +154,6 @@ impl EngineMod {
             let mut keys_lock = subscribed_keys_clone.write().unwrap();
             keys_lock.insert(key);
         };
-        linker.func_wrap("host", "double", |x: i32| x * 2)?;
         linker.func_wrap("env", "info_sys", func_info)?;
         linker.func_wrap("env", "gui_text_sys", func_gui_text)?;
         linker.func_wrap("env", "get_mod_name_callback", func_get_mod_name_callback)?;
@@ -174,6 +183,21 @@ impl EngineMod {
                 window.show(&gui_context_clone2, |ui| {
                     clicked = ui.button(obj.label_text).clicked() as i32;
                 });
+                results[0] = wasmtime::Val::I32(clicked);
+                Ok(())
+            },
+        )?;
+        linker.func_new(
+            "env",
+            "if_key_pressed_sys",
+            wasmtime::FuncType::new(
+                store.engine(),
+                [wasmtime::ValType::I32].iter().cloned(),
+                [wasmtime::ValType::I32].iter().cloned(),
+            ),
+            move |_, params, results| {
+                let key: KeyCode = KeyCode::try_from(params[0].unwrap_i32() as u32).unwrap();
+                let clicked = pressed_keys_buffer.read().unwrap().contains(&key) as i32;
                 results[0] = wasmtime::Val::I32(clicked);
                 Ok(())
             },

@@ -2,7 +2,7 @@ use mod_api::{
     get_delta_time, get_mod_name_callback,
     gui::{gui_button, gui_text},
     info,
-    input::subscribe_for_key_event,
+    input::{if_key_presed, subscribe_for_key_event},
     set_mod_name,
     shared_types::{GuiTextMessage, KeyCode},
     string_to_pointer,
@@ -46,6 +46,9 @@ pub extern "C" fn update() {
     }) {
         info!("clicked!!!")
     };
+    if if_key_presed(KeyCode::KeyW) {
+        info!("key w pressed")
+    }
 }
 
 #[no_mangle]
