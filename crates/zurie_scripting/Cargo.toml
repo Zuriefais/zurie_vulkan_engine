@@ -1,0 +1,16 @@
+[package]
+name = "zurie_scripting"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+wasmtime = "25.0.2"
+thiserror = "1.0.63"
+anyhow = "1.0.89"
+crossbeam = "0.8.4"
+shared_types = { path = "../shared_types" }
+zurie_shared = { path = "../zurie_shared" }
+hashbrown = "0.15.0"
+egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
+log = "0.4.22"
+winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }

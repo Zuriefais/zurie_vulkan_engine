@@ -1,5 +1,6 @@
 use log::info;
 use std::{sync::Arc, time::Instant};
+use zurie_shared::DELTA_TIME;
 
 use winit::{
     application::ApplicationHandler,
@@ -10,8 +11,6 @@ use winit::{
 };
 
 use crate::state::State;
-
-pub static mut DELTA_TIME: f32 = 0.0;
 
 pub struct App {
     window: Option<Arc<Window>>,

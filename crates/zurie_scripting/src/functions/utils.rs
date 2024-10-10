@@ -1,9 +1,9 @@
+use crate::utils::get_string_by_ptr;
 use anyhow::Ok;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Linker};
-
-use crate::{app::DELTA_TIME, scripting::utils::get_string_by_ptr};
+use zurie_shared::DELTA_TIME;
 
 pub fn register_get_delta_time(linker: &mut Linker<()>) -> anyhow::Result<()> {
     linker.func_wrap("env", "get_delta_time_sys", || -> f32 {

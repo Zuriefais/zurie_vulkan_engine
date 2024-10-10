@@ -1,4 +1,4 @@
-use crate::scripting::functions::{
+use crate::functions::{
     gui::{register_gui_button, register_gui_text},
     input::{register_key_pressed, register_subscribe_for_key_event_sys},
     utils::{register_get_delta_time, register_get_mod_name_callback, register_info},

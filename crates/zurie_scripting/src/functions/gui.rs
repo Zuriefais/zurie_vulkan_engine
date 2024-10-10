@@ -3,7 +3,7 @@ use egui_winit_vulkano::egui::{self, Context};
 use shared_types::GuiTextMessage;
 use wasmtime::{Caller, Linker, Store};
 
-use crate::scripting::utils::get_obj_by_ptr;
+use crate::utils::get_obj_by_ptr;
 
 pub fn register_gui_button(
     linker: &mut Linker<()>,
