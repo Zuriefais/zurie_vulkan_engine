@@ -10,12 +10,12 @@ extern "C" {
     fn subscribe_for_key_event_sys(key: KeyCode);
 }
 
-pub fn if_key_presed(key: KeyCode) -> bool {
-    unsafe { if_key_pressed_sys(key) != 0 }
+pub fn key_presed(key: KeyCode) -> bool {
+    unsafe { key_pressed_sys(key) != 0 }
 }
 
 extern "C" {
-    fn if_key_pressed_sys(key: KeyCode) -> i32;
+    fn key_pressed_sys(key: KeyCode) -> i32;
 }
 
 pub fn get_mouse_pos() -> Vec2 {
