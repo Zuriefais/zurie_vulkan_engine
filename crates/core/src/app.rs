@@ -65,7 +65,7 @@ impl ApplicationHandler for App {
                 .unwrap()
                 .resize([size.width, size.height]),
             WindowEvent::RedrawRequested => {
-                self.state.as_mut().unwrap().render();
+                self.state.as_mut().unwrap().render().unwrap();
                 unsafe {
                     DELTA_TIME = self.delta_time.elapsed().as_secs_f32();
                 }

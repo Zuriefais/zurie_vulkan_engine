@@ -1,14 +1,14 @@
 [unix]
 run:
     cargo fmt
-    cargo zigbuild --release --package core
+    cargo zigbuild --release --package zurie_core
     just build_mods
     mangohud RUST_LOG=info ./target/release/zurie_engine
 
 [windows]
 run:
     cargo fmt
-    cargo zigbuild --release --package core
+    cargo zigbuild --release --package zurie_core
     just build_mods
     RUST_LOG=info ./target/release/zurie_engine.exe
 

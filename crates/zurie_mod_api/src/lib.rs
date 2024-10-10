@@ -1,8 +1,8 @@
 use std::ffi::CString;
 pub mod gui;
 pub mod input;
-pub use shared_types;
-use shared_types::bitcode::{self, Encode};
+pub use zurie_types;
+use zurie_types::bitcode::{self, Encode};
 
 pub fn get_delta_time() -> f32 {
     unsafe { get_delta_time_sys() }

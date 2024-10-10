@@ -1,6 +1,6 @@
 use anyhow::Ok;
-use shared_types::bitcode::{self, Decode};
 use wasmtime::{Caller, Extern};
+use zurie_types::bitcode::{self, Decode};
 
 pub fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::Result<String> {
     let mem = match caller.get_export("memory") {

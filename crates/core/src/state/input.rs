@@ -1,8 +1,8 @@
 use hashbrown::HashSet;
 use log::info;
-use shared_types::{glam::Vec2, KeyCode};
 use std::sync::{Arc, RwLock};
 use winit::event::{ElementState, MouseButton, WindowEvent};
+use zurie_types::{glam::Vec2, KeyCode};
 
 #[derive(Default)]
 pub struct InputState {

@@ -472,32 +472,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "color-hex",
- "ecolor 0.28.1",
- "egui_winit_vulkano",
- "env_logger",
- "fastrand",
- "hashbrown 0.15.0",
- "log",
- "naga",
- "png",
- "pollster",
- "shared_types",
- "strum",
- "strum_macros",
- "vulkano",
- "vulkano-shaders",
- "winit",
- "zurie_scripting",
- "zurie_shared",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1020,7 +994,7 @@ checksum = "a5d9305ccc6942a704f4335694ecd3de2ea531b114ac2d51f5f843750787a92f"
 name = "example_mod"
 version = "0.1.0"
 dependencies = [
- "mod_api",
+ "zurie_mod_api",
 ]
 
 [[package]]
@@ -1563,13 +1537,6 @@ name = "mint"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e53debba6bda7a793e5f99b8dacf19e626084f525f7829104ba9898f367d85ff"
-
-[[package]]
-name = "mod_api"
-version = "0.0.0"
-dependencies = [
- "shared_types",
-]
 
 [[package]]
 name = "naga"
@@ -2353,15 +2320,6 @@ dependencies = [
  "cmake",
  "libc",
  "roxmltree",
-]
-
-[[package]]
-name = "shared_types"
-version = "0.0.0"
-dependencies = [
- "bitcode",
- "glam",
- "num_enum",
 ]
 
 [[package]]
@@ -3863,6 +3821,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "zurie_core"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "color-hex",
+ "ecolor 0.28.1",
+ "egui_winit_vulkano",
+ "env_logger",
+ "fastrand",
+ "hashbrown 0.15.0",
+ "log",
+ "naga",
+ "png",
+ "pollster",
+ "strum",
+ "strum_macros",
+ "vulkano",
+ "vulkano-shaders",
+ "winit",
+ "zurie_scripting",
+ "zurie_shared",
+ "zurie_types",
+]
+
+[[package]]
+name = "zurie_mod_api"
+version = "0.0.0"
+dependencies = [
+ "zurie_types",
+]
+
+[[package]]
 name = "zurie_scripting"
 version = "0.0.0"
 dependencies = [
@@ -3871,13 +3862,22 @@ dependencies = [
  "egui_winit_vulkano",
  "hashbrown 0.15.0",
  "log",
- "shared_types",
  "thiserror",
  "wasmtime",
  "winit",
  "zurie_shared",
+ "zurie_types",
 ]
 
 [[package]]
 name = "zurie_shared"
 version = "0.0.0"
+
+[[package]]
+name = "zurie_types"
+version = "0.0.0"
+dependencies = [
+ "bitcode",
+ "glam",
+ "num_enum",
+]

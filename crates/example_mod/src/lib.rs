@@ -1,11 +1,10 @@
-use mod_api::{
+use zurie_mod_api::{
     get_delta_time, get_mod_name_callback,
     gui::{gui_button, gui_text},
     info,
     input::{key_presed, subscribe_for_key_event},
-    set_mod_name,
-    shared_types::{GuiTextMessage, KeyCode},
-    string_to_pointer,
+    set_mod_name, string_to_pointer,
+    zurie_types::{GuiTextMessage, KeyCode},
 };
 
 struct GameState {

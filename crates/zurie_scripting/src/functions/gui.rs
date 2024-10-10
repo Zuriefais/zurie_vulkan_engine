@@ -1,7 +1,7 @@
 use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context};
-use shared_types::GuiTextMessage;
 use wasmtime::{Caller, Linker, Store};
+use zurie_types::GuiTextMessage;
 
 use crate::utils::get_obj_by_ptr;
 

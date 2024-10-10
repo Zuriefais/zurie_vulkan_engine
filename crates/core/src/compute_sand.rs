@@ -1,6 +1,5 @@
 use crate::render::Renderer;
 use log::info;
-use shared_types::glam::{IVec2, Vec2};
 use std::f64::consts::PI;
 use std::sync::Arc;
 use strum_macros::{Display, EnumIter};
@@ -24,6 +23,7 @@ use vulkano::{
     },
     sync::GpuFuture,
 };
+use zurie_types::glam::{IVec2, Vec2};
 
 pub struct SandComputePipeline {
     compute_queue: Arc<Queue>,

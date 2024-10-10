@@ -1,4 +1,4 @@
-use shared_types::GuiTextMessage;
+use zurie_types::GuiTextMessage;
 
 use crate::obj_to_pointer;
 

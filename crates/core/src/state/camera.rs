@@ -1,6 +1,6 @@
 use log::info;
-use shared_types::glam::{Mat4, Vec2};
 use winit::event::{MouseScrollDelta, WindowEvent};
+use zurie_types::glam::{Mat4, Vec2};
 
 use crate::pixels_draw;
 

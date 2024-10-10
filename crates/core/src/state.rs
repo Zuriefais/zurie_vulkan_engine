@@ -3,8 +3,8 @@ use std::sync::Arc;
 use camera::Camera;
 use ecolor::hex_color;
 use input::InputState;
-use shared_types::glam::Vec2;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
+use zurie_types::glam::Vec2;
 
 pub struct RenderPipeline {
     pub compute: SandComputePipeline,

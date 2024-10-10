@@ -1,9 +1,9 @@
 use anyhow::Ok;
 use hashbrown::HashSet;
 use log::info;
-use shared_types::KeyCode;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store};
+use zurie_types::KeyCode;
 
 pub fn register_subscribe_for_key_event_sys(
     linker: &mut Linker<()>,

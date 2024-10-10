@@ -2,10 +2,10 @@ use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context};
 use hashbrown::HashSet;
 use log::info;
-use shared_types::KeyCode;
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::event::WindowEvent;
+use zurie_types::KeyCode;
 
 use super::engine_mod::EngineMod;
 

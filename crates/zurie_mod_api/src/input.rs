@@ -1,4 +1,4 @@
-use shared_types::{glam::Vec2, KeyCode};
+use zurie_types::{glam::Vec2, KeyCode};
 
 pub fn subscribe_for_key_event(key: KeyCode) {
     unsafe {

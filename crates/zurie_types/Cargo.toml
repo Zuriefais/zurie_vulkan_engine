@@ -1,5 +1,5 @@
 [package]
-name = "shared_types"
+name = "zurie_types"
 version = "0.0.0"
 edition = "2021"
 

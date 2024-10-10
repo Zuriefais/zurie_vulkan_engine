@@ -7,9 +7,9 @@ use anyhow::Ok;
 use egui_winit_vulkano::egui::Context;
 use hashbrown::HashSet;
 use log::info;
-use shared_types::KeyCode;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
+use zurie_types::KeyCode;
 
 #[derive()]
 pub struct EngineMod {

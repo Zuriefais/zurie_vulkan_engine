@@ -8,7 +8,7 @@ wasmtime = "25.0.2"
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"
-shared_types = { path = "../shared_types" }
+zurie_types = { path = "../zurie_types" }
 zurie_shared = { path = "../zurie_shared" }
 hashbrown = "0.15.0"
 egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
