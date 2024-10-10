@@ -143,7 +143,7 @@ use crate::{
     gui::GameGui,
     render::Renderer,
     render_pass::RenderPassPlaceOverFrame,
-    scripting::ModManager,
+    scripting::mod_manager::ModManager,
 };
 
 pub struct SimClock {

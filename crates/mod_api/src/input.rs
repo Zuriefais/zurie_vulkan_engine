@@ -1,4 +1,4 @@
-use shared_types::KeyCode;
+use shared_types::{glam::Vec2, KeyCode};
 
 pub fn subscribe_for_key_event(key: KeyCode) {
     unsafe {
@@ -11,9 +11,19 @@ extern "C" {
 }
 
 pub fn if_key_presed(key: KeyCode) -> bool {
-    return unsafe { if_key_pressed_sys(key) != 0 };
+    unsafe { if_key_pressed_sys(key) != 0 }
 }
 
 extern "C" {
     fn if_key_pressed_sys(key: KeyCode) -> i32;
 }
+
+pub fn get_mouse_pos() -> Vec2 {
+    Vec2::ZERO
+}
+
+extern "C" {
+    fn get_mouse_pos_sys();
+}
+
+// pub fn get_mouse_pos_in_world() -> Vec2 {}

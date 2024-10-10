@@ -13,8 +13,8 @@ pub struct InputState {
 
 impl InputState {
     pub fn event(&mut self, ev: WindowEvent) {
-        match ev.clone() {
-            WindowEvent::KeyboardInput { event, .. } => match event.physical_key {
+        if let WindowEvent::KeyboardInput { event, .. } = ev.clone() {
+            match event.physical_key {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
                     let key_code = key_code as u32;
                     let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
@@ -22,8 +22,7 @@ impl InputState {
                     keys_lock.insert(key_code);
                 }
                 winit::keyboard::PhysicalKey::Unidentified(_) => {}
-            },
-            _ => {}
+            }
         }
         self.mouse.event(ev);
     }

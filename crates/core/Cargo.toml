@@ -24,7 +24,7 @@ vulkano-shaders = "0.34.0"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 strum = "*"
 strum_macros = "*"
-wasmtime = "25.0.0"
+wasmtime = "25.0.2"
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"

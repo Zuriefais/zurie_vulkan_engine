@@ -1,102 +1,14 @@
-use crate::app::DELTA_TIME;
+use crate::{
+    app::DELTA_TIME,
+    scripting::utils::{get_obj_by_ptr, get_string_by_ptr},
+};
 use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context};
 use hashbrown::HashSet;
 use log::info;
-use shared_types::{
-    bitcode::{self, Decode},
-    GuiTextMessage, KeyCode,
-};
+use shared_types::{GuiTextMessage, KeyCode};
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Extern, Instance, Linker, Module, Store, TypedFunc};
-use winit::event::WindowEvent;
-
-pub struct ModManager {
-    engine: Engine,
-    gui_context: Context,
-    mods: Vec<Arc<RwLock<EngineMod>>>,
-    new_mod_path: String,
-    pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
-}
-
-impl ModManager {
-    pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
-        match ev {
-            WindowEvent::KeyboardInput { event, .. } => match event.physical_key {
-                winit::keyboard::PhysicalKey::Code(key_code) => {
-                    let key_code = key_code as u32;
-                    let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
-                    for engine_mod in self.mods.iter() {
-                        let mut mod_lock = engine_mod.write().unwrap();
-                        mod_lock.key_event(key_code.clone())?;
-                    }
-                }
-                winit::keyboard::PhysicalKey::Unidentified(_) => {}
-            },
-            _ => {}
-        }
-        Ok(())
-    }
-    pub fn update(&mut self) -> anyhow::Result<()> {
-        let mut reload_mods = false;
-        let mut load_new_mod = false;
-        egui::Window::new("Mods Window").show(&self.gui_context, |ui| {
-            reload_mods = ui.button("reload mods").clicked();
-            load_new_mod = ui.button("Load new mod").clicked();
-            ui.label("mod path:");
-            ui.text_edit_singleline(&mut self.new_mod_path);
-        });
-        if reload_mods {
-            let mut new_mods = vec![];
-            for engine_mod in self.mods.iter() {
-                let mod_lock = engine_mod.read().unwrap();
-                let mod_path = mod_lock.path.clone();
-                new_mods.push(Arc::new(RwLock::new(EngineMod::new(
-                    mod_path.clone(),
-                    &self.engine,
-                    self.gui_context.clone(),
-                    self.pressed_keys_buffer.clone(),
-                )?)));
-                info!("reloading {}", mod_path);
-            }
-            self.mods = new_mods;
-        }
-        if load_new_mod {
-            info!("Loading mod at path: {}", self.new_mod_path.clone());
-            self.mods.push(Arc::new(RwLock::new(EngineMod::new(
-                self.new_mod_path.clone(),
-                &self.engine,
-                self.gui_context.clone(),
-                self.pressed_keys_buffer.clone(),
-            )?)));
-        }
-        for engine_mod in self.mods.iter() {
-            let mut mod_lock = engine_mod.write().unwrap();
-            mod_lock.update().unwrap();
-        }
-        Ok(())
-    }
-    pub fn new(gui_context: Context, pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>) -> Self {
-        let engine = Engine::default();
-        let test_mod = Arc::new(RwLock::new(
-            EngineMod::new(
-                "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
-                &engine,
-                gui_context.clone(),
-                pressed_keys_buffer.clone(),
-            )
-            .expect("Error loading mod"),
-        ));
-        let mods = vec![test_mod];
-        Self {
-            engine,
-            gui_context,
-            mods,
-            new_mod_path: String::new(),
-            pressed_keys_buffer,
-        }
-    }
-}
+use wasmtime::{Caller, Engine, Instance, Linker, Module, Store, TypedFunc};
 
 #[derive()]
 pub struct EngineMod {
@@ -237,36 +149,4 @@ impl EngineMod {
         }
         Ok(())
     }
-}
-
-fn get_string_by_ptr(mut caller: Caller<'_, ()>, ptr: u32, len: u32) -> anyhow::Result<String> {
-    let mem = match caller.get_export("memory") {
-        Some(Extern::Memory(mem)) => mem,
-        _ => anyhow::bail!("failed to find host memory"),
-    };
-
-    let data = mem
-        .data(&caller)
-        .get(ptr as usize..)
-        .and_then(|arr| arr.get(..len as usize))
-        .unwrap();
-    Ok(std::str::from_utf8(data)?.to_string())
-}
-
-fn get_obj_by_ptr<T: for<'a> Decode<'a>>(
-    mut caller: Caller<'_, ()>,
-    ptr: u32,
-    len: u32,
-) -> anyhow::Result<T> {
-    let mem = match caller.get_export("memory") {
-        Some(Extern::Memory(mem)) => mem,
-        _ => anyhow::bail!("failed to find host memory"),
-    };
-    let data = mem
-        .data(&caller)
-        .get(ptr as usize..)
-        .and_then(|arr| arr.get(..len as usize))
-        .unwrap();
-    let obj = bitcode::decode(data)?;
-    Ok(obj)
 }
