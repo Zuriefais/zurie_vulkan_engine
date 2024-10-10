@@ -2,10 +2,12 @@ use anyhow::Ok;
 use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
-use wasmtime::{Linker, Store};
-use zurie_types::KeyCode;
+use wasmtime::{Caller, Linker, Store, TypedFunc};
+use zurie_types::{glam::Vec2, KeyCode};
 
-pub fn register_subscribe_for_key_event_sys(
+use crate::utils::copy_obj_to_memory;
+
+pub fn register_subscribe_for_key_event(
     linker: &mut Linker<()>,
     mod_name: Arc<RwLock<String>>,
     subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
@@ -37,6 +39,30 @@ pub fn register_key_pressed(
             let clicked = pressed_keys_buffer.read().unwrap().contains(&key) as i32;
             results[0] = wasmtime::Val::I32(clicked);
             Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+pub fn register_request_mouse_pos(
+    linker: &mut Linker<()>,
+    mouse_pos: Arc<RwLock<Vec2>>,
+) -> anyhow::Result<()> {
+    let mouse_pos = mouse_pos.clone();
+    linker.func_wrap(
+        "env",
+        "request_mouse_pos_sys",
+        move |mut caller: Caller<'_, ()>| {
+            let alloc_fn = caller
+                .get_export("alloc")
+                .and_then(|export| export.into_func())
+                .ok_or_else(|| anyhow::anyhow!("Failed to find 'alloc' function"))?
+                .typed::<u32, u32>(&caller)?;
+            Ok(copy_obj_to_memory(
+                &mut caller,
+                mouse_pos.read().unwrap().clone(),
+                alloc_fn.clone(),
+            ))
         },
     )?;
     Ok(())

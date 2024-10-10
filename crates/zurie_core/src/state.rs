@@ -55,7 +55,11 @@ impl State {
         );
         camera.update_matrix();
         let input = InputState::default();
-        let mod_manager = ModManager::new(gui_context.clone(), input.pressed_keys_buffer.clone());
+        let mod_manager = ModManager::new(
+            gui_context.clone(),
+            input.pressed_keys_buffer.clone(),
+            input.mouse.position.clone(),
+        );
 
         State {
             renderer,
@@ -85,14 +89,14 @@ impl State {
 
         if self.input.mouse.left_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(
-                self.input.mouse.position,
+                self.input.mouse.position.read().unwrap().clone(),
                 self.renderer.window_size(),
                 self.selected_cell_type,
             );
         }
         if self.input.mouse.right_pressed && !self.input.mouse.hover_gui {
             self.render_pipeline.compute.draw(
-                self.input.mouse.position,
+                self.input.mouse.position.read().unwrap().clone(),
                 self.renderer.window_size(),
                 CellType::Empty,
             );

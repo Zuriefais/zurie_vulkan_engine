@@ -2,7 +2,7 @@ use zurie_mod_api::{
     get_delta_time, get_mod_name_callback,
     gui::{gui_button, gui_text},
     info,
-    input::{key_presed, subscribe_for_key_event},
+    input::{get_mouse_pos, key_presed, subscribe_for_key_event},
     set_mod_name, string_to_pointer,
     zurie_types::{GuiTextMessage, KeyCode},
 };
@@ -48,6 +48,7 @@ pub extern "C" fn update() {
     if key_presed(KeyCode::KeyW) {
         info!("key w pressed")
     }
+    info!("mouse pos: {:?}", get_mouse_pos())
 }
 
 #[no_mangle]

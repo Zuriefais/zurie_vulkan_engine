@@ -4,6 +4,9 @@ pub mod input;
 pub use zurie_types;
 use zurie_types::bitcode::{self, Encode};
 
+pub static mut PTR: u32 = 0;
+pub static mut LEN: u32 = 0;
+
 pub fn get_delta_time() -> f32 {
     unsafe { get_delta_time_sys() }
 }
@@ -66,7 +69,9 @@ pub extern "C" fn alloc(len: usize) -> *mut u8 {
     // called when the object goes out of scope
     // at the end of the function
     std::mem::forget(buf);
-    // return the pointer so the runtime
-    // can write data at this offset
+    unsafe {
+        PTR = ptr as u32;
+        LEN = len as u32
+    }
     ptr
 }

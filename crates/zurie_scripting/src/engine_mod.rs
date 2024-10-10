@@ -1,7 +1,12 @@
-use crate::functions::{
-    gui::{register_gui_button, register_gui_text},
-    input::{register_key_pressed, register_subscribe_for_key_event_sys},
-    utils::{register_get_delta_time, register_get_mod_name_callback, register_info},
+use crate::{
+    functions::{
+        gui::{register_gui_button, register_gui_text},
+        input::{
+            register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event,
+        },
+        utils::{register_get_delta_time, register_get_mod_name_callback, register_info},
+    },
+    utils::copy_obj_to_memory,
 };
 use anyhow::Ok;
 use egui_winit_vulkano::egui::Context;
@@ -9,7 +14,7 @@ use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
-use zurie_types::KeyCode;
+use zurie_types::{glam::Vec2, KeyCode};
 
 #[derive()]
 pub struct EngineMod {
@@ -29,6 +34,7 @@ impl EngineMod {
         engine: &Engine,
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
+        mouse_pos: Arc<RwLock<Vec2>>,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
@@ -40,14 +46,10 @@ impl EngineMod {
         register_info(&mut linker, mod_name.clone())?;
         register_gui_text(&mut linker, gui_context.clone())?;
         register_get_mod_name_callback(&mut linker, mod_name.clone())?;
-        register_subscribe_for_key_event_sys(
-            &mut linker,
-            mod_name.clone(),
-            subscribed_keys.clone(),
-        )?;
+        register_subscribe_for_key_event(&mut linker, mod_name.clone(), subscribed_keys.clone())?;
         register_gui_button(&mut linker, &store, gui_context.clone())?;
         register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
-
+        register_request_mouse_pos(&mut linker, mouse_pos)?;
         let instance = linker.instantiate(&mut store, &module)?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
         let update_fn: TypedFunc<(), ()> =
@@ -56,6 +58,7 @@ impl EngineMod {
             instance.get_typed_func::<u32, ()>(&mut store, "key_event")?;
         let get_mod_name_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
+
         get_mod_name_fn.call(&mut store, ())?;
         info!("Mod name: {}", mod_name.read().unwrap());
         init_fn.call(&mut store, ())?;

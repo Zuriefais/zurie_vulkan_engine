@@ -20,9 +20,9 @@ pub fn register_gui_button(
                 .cloned(),
             [wasmtime::ValType::I32].iter().cloned(),
         ),
-        move |caller, params, results| {
+        move |mut caller, params, results| {
             let obj = get_obj_by_ptr::<GuiTextMessage>(
-                caller,
+                &mut caller,
                 params[0].unwrap_i32() as u32,
                 params[1].unwrap_i32() as u32,
             )?;
@@ -41,8 +41,8 @@ pub fn register_gui_text(linker: &mut Linker<()>, gui_context: Context) -> anyho
     linker.func_wrap(
         "env",
         "gui_text_sys",
-        move |caller: Caller<'_, ()>, ptr: u32, len: u32| {
-            let obj = get_obj_by_ptr::<GuiTextMessage>(caller, ptr, len).unwrap();
+        move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let obj = get_obj_by_ptr::<GuiTextMessage>(&mut caller, ptr, len).unwrap();
             let window = egui::Window::new(obj.window_title);
             window.show(&gui_context, |ui| ui.label(obj.label_text));
         },

@@ -40,7 +40,7 @@ pub struct KeyboardState {}
 
 #[derive(Default)]
 pub struct MouseState {
-    pub position: Vec2,
+    pub position: Arc<RwLock<Vec2>>,
     pub left_pressed: bool,
     pub right_pressed: bool,
     pub hover_gui: bool,
@@ -70,7 +70,8 @@ impl MouseState {
             },
 
             WindowEvent::CursorMoved { position, .. } => {
-                self.position = Vec2::new(position.x as f32, position.y as f32)
+                let mut pos_lock = self.position.write().unwrap();
+                *pos_lock = Vec2::new(position.x as f32, position.y as f32);
             }
             _ => {}
         }
