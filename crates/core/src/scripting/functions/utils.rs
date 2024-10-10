@@ -1,10 +1,7 @@
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context};
-use hashbrown::HashSet;
 use log::info;
-use shared_types::{GuiTextMessage, KeyCode};
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Instance, Linker, Module, Store, TypedFunc};
+use wasmtime::{Caller, Linker};
 
 use crate::{app::DELTA_TIME, scripting::utils::get_string_by_ptr};
 

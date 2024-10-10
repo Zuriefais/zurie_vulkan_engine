@@ -1,10 +1,9 @@
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context};
 use hashbrown::HashSet;
 use log::info;
-use shared_types::{GuiTextMessage, KeyCode};
+use shared_types::KeyCode;
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Instance, Linker, Module, Store, TypedFunc};
+use wasmtime::{Linker, Store};
 
 pub fn register_subscribe_for_key_event_sys(
     linker: &mut Linker<()>,

@@ -1,10 +1,7 @@
 use anyhow::Ok;
 use egui_winit_vulkano::egui::{self, Context};
-use hashbrown::HashSet;
-use log::info;
-use shared_types::{GuiTextMessage, KeyCode};
-use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Instance, Linker, Module, Store, TypedFunc};
+use shared_types::GuiTextMessage;
+use wasmtime::{Caller, Linker, Store};
 
 use crate::scripting::utils::get_obj_by_ptr;
 

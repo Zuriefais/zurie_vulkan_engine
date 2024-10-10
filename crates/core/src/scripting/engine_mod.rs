@@ -1,21 +1,15 @@
-use crate::{
-    app::DELTA_TIME,
-    scripting::{
-        functions::{
-            gui::{register_gui_button, register_gui_text},
-            input::{register_key_pressed, register_subscribe_for_key_event_sys},
-            utils::{register_get_delta_time, register_get_mod_name_callback, register_info},
-        },
-        utils::{get_obj_by_ptr, get_string_by_ptr},
-    },
+use crate::scripting::functions::{
+    gui::{register_gui_button, register_gui_text},
+    input::{register_key_pressed, register_subscribe_for_key_event_sys},
+    utils::{register_get_delta_time, register_get_mod_name_callback, register_info},
 };
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context};
+use egui_winit_vulkano::egui::Context;
 use hashbrown::HashSet;
 use log::info;
-use shared_types::{GuiTextMessage, KeyCode};
+use shared_types::KeyCode;
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Engine, Instance, Linker, Module, Store, TypedFunc};
+use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
 
 #[derive()]
 pub struct EngineMod {
