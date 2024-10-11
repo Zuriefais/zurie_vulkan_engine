@@ -1,6 +1,10 @@
-use zurie_types::{bitcode, glam::Vec2, KeyCode};
+use zurie_types::{
+    bitcode::{self, Decode},
+    glam::Vec2,
+    KeyCode,
+};
 
-use crate::{LEN, PTR};
+use crate::{get_obj_from_mem, LEN, PTR};
 
 pub fn subscribe_for_key_event(key: KeyCode) {
     unsafe {
@@ -22,10 +26,7 @@ extern "C" {
 
 pub fn get_mouse_pos() -> Vec2 {
     unsafe { request_mouse_pos_sys() };
-    let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
-    let pos = bitcode::decode(&data).unwrap();
-    std::mem::drop(data);
-    pos
+    get_obj_from_mem()
 }
 
 extern "C" {

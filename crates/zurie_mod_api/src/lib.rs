@@ -2,7 +2,7 @@ use std::ffi::CString;
 pub mod gui;
 pub mod input;
 pub use zurie_types;
-use zurie_types::bitcode::{self, Encode};
+use zurie_types::bitcode::{self, Decode, Encode};
 
 pub static mut PTR: u32 = 0;
 pub static mut LEN: u32 = 0;
@@ -56,6 +56,13 @@ macro_rules! set_mod_name {
             unsafe { get_mod_name_callback(ptr, len) };
         }
     };
+}
+
+pub fn get_obj_from_mem<T: for<'a> Decode<'a>>() -> T {
+    let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
+    let obj = bitcode::decode(&data).unwrap();
+    std::mem::drop(data);
+    obj
 }
 
 #[no_mangle]
