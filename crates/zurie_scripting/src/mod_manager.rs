@@ -5,7 +5,7 @@ use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::event::WindowEvent;
-use zurie_types::{glam::Vec2, KeyCode};
+use zurie_types::{glam::Vec2, KeyCode, Object};
 
 use super::engine_mod::EngineMod;
 
@@ -16,6 +16,7 @@ pub struct ModManager {
     new_mod_path: String,
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
+    object_storage: Arc<RwLock<Vec<Object>>>,
 }
 
 impl ModManager {
@@ -55,6 +56,7 @@ impl ModManager {
                     self.gui_context.clone(),
                     self.pressed_keys_buffer.clone(),
                     self.mouse_pos.clone(),
+                    self.object_storage.clone(),
                 )?)));
                 info!("reloading {}", mod_path);
             }
@@ -68,6 +70,7 @@ impl ModManager {
                 self.gui_context.clone(),
                 self.pressed_keys_buffer.clone(),
                 self.mouse_pos.clone(),
+                self.object_storage.clone(),
             )?)));
         }
         for engine_mod in self.mods.iter() {
@@ -80,6 +83,7 @@ impl ModManager {
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
+        object_storage: Arc<RwLock<Vec<Object>>>,
     ) -> Self {
         let engine = Engine::default();
         let test_mod = Arc::new(RwLock::new(
@@ -89,6 +93,7 @@ impl ModManager {
                 gui_context.clone(),
                 pressed_keys_buffer.clone(),
                 mouse_pos.clone(),
+                object_storage.clone(),
             )
             .expect("Error loading mod"),
         ));
@@ -100,6 +105,7 @@ impl ModManager {
             new_mod_path: String::new(),
             pressed_keys_buffer,
             mouse_pos,
+            object_storage,
         }
     }
 }

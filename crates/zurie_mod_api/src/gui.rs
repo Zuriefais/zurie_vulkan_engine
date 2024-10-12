@@ -1,6 +1,6 @@
 use zurie_types::GuiTextMessage;
 
-use crate::obj_to_pointer;
+use crate::utils::obj_to_pointer;
 
 pub fn gui_text(message: GuiTextMessage) {
     let (ptr, len) = obj_to_pointer(&message);

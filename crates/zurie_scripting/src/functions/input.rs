@@ -2,7 +2,7 @@ use anyhow::Ok;
 use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
-use wasmtime::{Caller, Linker, Store, TypedFunc};
+use wasmtime::{Caller, Linker, Store};
 use zurie_types::{glam::Vec2, KeyCode};
 
 use crate::utils::copy_obj_to_memory;
@@ -60,7 +60,7 @@ pub fn register_request_mouse_pos(
                 .typed::<u32, u32>(&caller)?;
             Ok(copy_obj_to_memory(
                 &mut caller,
-                mouse_pos.read().unwrap().clone(),
+                *mouse_pos.read().unwrap(),
                 alloc_fn.clone(),
             ))
         },

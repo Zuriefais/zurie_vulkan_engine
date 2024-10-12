@@ -1,10 +1,6 @@
-use zurie_types::{
-    bitcode::{self, Decode},
-    glam::Vec2,
-    KeyCode,
-};
+use zurie_types::{glam::Vec2, KeyCode};
 
-use crate::{get_obj_from_mem, LEN, PTR};
+use crate::utils::get_obj_from_mem;
 
 pub fn subscribe_for_key_event(key: KeyCode) {
     unsafe {

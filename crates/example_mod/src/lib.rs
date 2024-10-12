@@ -1,9 +1,12 @@
+use zurie_mod_api::game_logic::spawn_object;
+use zurie_mod_api::info;
+use zurie_mod_api::zurie_types::glam::Vec2;
+use zurie_mod_api::zurie_types::Object;
 use zurie_mod_api::{
-    get_delta_time, get_mod_name_callback,
     gui::{gui_button, gui_text},
-    info,
     input::{get_mouse_pos, key_presed, subscribe_for_key_event},
-    set_mod_name, string_to_pointer,
+    set_mod_name,
+    utils::*,
     zurie_types::{GuiTextMessage, KeyCode},
 };
 
@@ -20,6 +23,9 @@ pub extern "C" fn init() {
     subscribe_for_key_event(KeyCode::KeyA);
     subscribe_for_key_event(KeyCode::KeyS);
     subscribe_for_key_event(KeyCode::KeyD);
+    spawn_object(Object {
+        position: Vec2::new(10.0, 10.0),
+    });
 }
 
 set_mod_name!("example_mod");

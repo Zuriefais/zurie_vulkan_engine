@@ -57,9 +57,9 @@ pub fn copy_to_memory(
     Ok(())
 }
 
-pub fn copy_obj_to_memory<T: Encode>(
+pub fn copy_obj_to_memory(
     caller: &mut Caller<'_, ()>,
-    obj: T,
+    obj: impl Encode,
     alloc_fn: TypedFunc<u32, u32>,
 ) -> anyhow::Result<()> {
     let bytes = bitcode::encode(&obj);
