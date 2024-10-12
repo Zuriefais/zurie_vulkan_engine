@@ -1,12 +1,7 @@
 [package]
-name = "zurie_core"
+name = "zurie_render"
 version = "0.0.0"
 edition = "2021"
-
-[[bin]]
-name = "zurie_engine"
-path = "src/main.rs"
-
 
 [dependencies]
 bytemuck = { version = "1.16.3", features = ["derive"] }
@@ -17,16 +12,11 @@ env_logger = "0.11.5"
 fastrand = "2.1.0"
 log = "0.4.22"
 naga = { version = "22.1.0", features = ["spv-out", "wgsl-in"] }
-png = "0.17.13"
 pollster = "0.3.0"
 vulkano = { version = "0.34.1", features = ["macros"] }
 vulkano-shaders = "0.34.0"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
+zurie_shared = { path = "../zurie_shared" }
 strum = "*"
 strum_macros = "*"
 zurie_types = { path = "../zurie_types" }
-zurie_shared = { path = "../zurie_shared" }
-zurie_scripting = { path = "../zurie_scripting" }
-zurie_render = { path = "../zurie_render" }
-anyhow = "1.0.89"
-hashbrown = "0.15.0"

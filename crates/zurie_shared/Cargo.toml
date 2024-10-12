@@ -4,3 +4,6 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+zurie_types = { path = "../zurie_types" }
+winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
+log = "0.4.22"

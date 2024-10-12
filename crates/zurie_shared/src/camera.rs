@@ -2,10 +2,8 @@ use log::info;
 use winit::event::{MouseScrollDelta, WindowEvent};
 use zurie_types::glam::{Mat4, Vec2};
 
-use crate::pixels_draw;
-
+#[derive(Clone, Copy)]
 pub struct Camera {
-    pub uniform: pixels_draw::vs::Camera,
     pub right: f32,
     pub left: f32,
     pub top: f32,
@@ -32,10 +30,6 @@ impl Camera {
         }
 
         Self {
-            uniform: pixels_draw::vs::Camera {
-                proj_mat: Mat4::ZERO.to_cols_array_2d(),
-                cam_pos: (position / zoom_factor).into(),
-            },
             right,
             left,
             top,
@@ -95,15 +89,15 @@ impl Camera {
         self.left = left;
         self.bottom = bottom;
         self.top = top;
-        self.update_matrix();
+        //self.update_matrix();
     }
 
-    pub fn update_matrix(&mut self) {
-        self.uniform = pixels_draw::vs::Camera {
-            proj_mat: self.create_matrix().to_cols_array_2d(),
-            cam_pos: (self.position / self.zoom_factor).into(),
-        }
-    }
+    // pub fn update_matrix(&mut self) {
+    //     self.uniform = pixels_draw::vs::Camera {
+    //         proj_mat: self.create_matrix().to_cols_array_2d(),
+    //         cam_pos: (self.position / self.zoom_factor).into(),
+    //     }
+    // }
 
     pub fn get_matrix(&self) -> Mat4 {
         self.create_matrix()
@@ -118,7 +112,7 @@ impl Camera {
                 if y < 1.0 {
                     self.zoom_factor += 0.5;
                 }
-                self.update_matrix();
+                //self.update_matrix();
                 info!("Mouse scroll: {}, Zoom factor: {}", y, self.zoom_factor);
             }
         }

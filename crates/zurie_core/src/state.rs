@@ -1,24 +1,15 @@
-use std::sync::Arc;
+pub mod input;
 
-use camera::Camera;
 use ecolor::hex_color;
 use input::InputState;
+use std::sync::Arc;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
+use zurie_render::{
+    compute_sand::CellType, gui::GameGui, render::Renderer, render_state::RenderPipeline,
+};
+use zurie_scripting::mod_manager::ModManager;
+use zurie_shared::{camera::Camera, sim_clock::SimClock};
 use zurie_types::glam::Vec2;
-
-pub struct RenderPipeline {
-    pub compute: SandComputePipeline,
-    pub place_over_frame: RenderPassPlaceOverFrame,
-}
-
-impl RenderPipeline {
-    pub fn new(renderer: &Renderer) -> RenderPipeline {
-        RenderPipeline {
-            compute: SandComputePipeline::new(renderer),
-            place_over_frame: RenderPassPlaceOverFrame::new(renderer),
-        }
-    }
-}
 
 pub struct State {
     pub render_pipeline: RenderPipeline,
@@ -45,7 +36,7 @@ impl State {
         let gui_context = gui.gui.context();
         let sim_clock = SimClock::default();
         let size = renderer.window_size();
-        let mut camera = Camera::create_camera_from_screen_size(
+        let camera = Camera::create_camera_from_screen_size(
             size[0] as f32,
             size[1] as f32,
             0.1,
@@ -53,7 +44,6 @@ impl State {
             1.0,
             Vec2::ZERO,
         );
-        camera.update_matrix();
         let input = InputState::default();
         let object_storage = Default::default();
         let mod_manager = ModManager::new(
@@ -120,7 +110,7 @@ impl State {
             color_image,
             target_image.clone(),
             self.background_color,
-            self.camera.uniform,
+            self.camera,
         );
         let after_gui = self.gui.draw_on_image(after_render, target_image);
 
@@ -143,59 +133,3 @@ impl State {
         Ok(())
     }
 }
-
-use crate::{
-    compute_sand::{CellType, SandComputePipeline},
-    gui::GameGui,
-    render::Renderer,
-    render_pass::RenderPassPlaceOverFrame,
-};
-use zurie_scripting::mod_manager::ModManager;
-
-pub struct SimClock {
-    simulate: bool,
-    simulate_ui_togle: bool,
-    sim_rate: u16,
-    cur_sim: u16,
-}
-
-impl Default for SimClock {
-    fn default() -> Self {
-        SimClock {
-            simulate: true,
-            simulate_ui_togle: true,
-            sim_rate: 0,
-            cur_sim: 0,
-        }
-    }
-}
-
-impl SimClock {
-    pub fn clock(&mut self) {
-        if self.cur_sim == self.sim_rate {
-            self.simulate = true;
-            self.sim_rate = 0;
-        } else if self.simulate_ui_togle {
-            self.simulate = false;
-            self.sim_rate += 1;
-        }
-        if !self.simulate_ui_togle {
-            self.simulate = false;
-        }
-    }
-
-    pub fn ui_togles(&mut self) -> (&mut bool, &mut u16, &mut u16) {
-        (
-            &mut self.simulate_ui_togle,
-            &mut self.cur_sim,
-            &mut self.sim_rate,
-        )
-    }
-
-    fn simulate(&mut self) -> bool {
-        self.simulate
-    }
-}
-
-pub mod camera;
-pub mod input;

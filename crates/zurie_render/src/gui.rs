@@ -6,11 +6,9 @@ use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
 };
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
+use zurie_shared::sim_clock::SimClock;
 
-use crate::{
-    compute_sand::{BrushType, CellType, SandComputePipeline},
-    state::SimClock,
-};
+use crate::compute_sand::{BrushType, CellType, SandComputePipeline};
 
 pub struct GameGui {
     pub gui: Gui,

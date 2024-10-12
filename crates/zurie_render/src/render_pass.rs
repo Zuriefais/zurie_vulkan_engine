@@ -58,7 +58,7 @@ impl RenderPassPlaceOverFrame {
         image_view: Arc<ImageView>,
         target: Arc<ImageView>,
         background_color: [f32; 4],
-        camera: pixels_draw::vs::Camera,
+        camera: zurie_shared::camera::Camera,
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,
@@ -91,9 +91,14 @@ impl RenderPassPlaceOverFrame {
                 },
             )
             .unwrap();
-        let cb = self
-            .pixels_draw_pipeline
-            .draw(img_dims, image_view, background_color, camera);
+        let proj_mat = camera.create_matrix().to_cols_array_2d();
+        let cam_pos = (camera.position / camera.zoom_factor).into();
+        let cb = self.pixels_draw_pipeline.draw(
+            img_dims,
+            image_view,
+            background_color,
+            pixels_draw::vs::Camera { proj_mat, cam_pos },
+        );
 
         command_buffer_builder.execute_commands(cb).unwrap();
         command_buffer_builder

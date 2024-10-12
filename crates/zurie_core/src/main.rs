@@ -1,9 +1,4 @@
 pub mod app;
-pub mod compute_sand;
-pub mod gui;
-pub mod pixels_draw;
-pub mod render;
-pub mod render_pass;
 
 pub mod state;
 

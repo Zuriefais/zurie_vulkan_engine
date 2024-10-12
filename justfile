@@ -15,6 +15,7 @@ run:
 build_mods:
     cargo build --package example_mod --target  wasm32-unknown-unknown --release
 
+
 build_windows:
     cargo xwin build --release --target x86_64-pc-windows-msvc
 

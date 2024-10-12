@@ -3841,6 +3841,7 @@ dependencies = [
  "vulkano",
  "vulkano-shaders",
  "winit",
+ "zurie_render",
  "zurie_scripting",
  "zurie_shared",
  "zurie_types",
@@ -3850,6 +3851,28 @@ dependencies = [
 name = "zurie_mod_api"
 version = "0.0.0"
 dependencies = [
+ "zurie_types",
+]
+
+[[package]]
+name = "zurie_render"
+version = "0.0.0"
+dependencies = [
+ "bytemuck",
+ "color-hex",
+ "ecolor 0.28.1",
+ "egui_winit_vulkano",
+ "env_logger",
+ "fastrand",
+ "log",
+ "naga",
+ "pollster",
+ "strum",
+ "strum_macros",
+ "vulkano",
+ "vulkano-shaders",
+ "winit",
+ "zurie_shared",
  "zurie_types",
 ]
 
@@ -3872,6 +3895,11 @@ dependencies = [
 [[package]]
 name = "zurie_shared"
 version = "0.0.0"
+dependencies = [
+ "log",
+ "winit",
+ "zurie_types",
+]
 
 [[package]]
 name = "zurie_types"
