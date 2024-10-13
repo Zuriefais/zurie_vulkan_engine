@@ -34,6 +34,7 @@ use vulkano::{
     },
     render_pass::Subpass,
 };
+use zurie_types::Object;
 
 /// Vertex for textured quads.
 #[derive(BufferContents, Vertex)]
@@ -258,6 +259,7 @@ impl ObjectDrawPipeline {
         image: Arc<ImageView>,
         background_color: [f32; 4],
         camera: vs::Camera,
+        objects: &[Object],
     ) -> Arc<SecondaryAutoCommandBuffer> {
         let mut builder = AutoCommandBufferBuilder::secondary(
             self.command_buffer_allocator.as_ref(),

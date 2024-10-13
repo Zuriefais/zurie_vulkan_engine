@@ -1,7 +1,4 @@
-use crate::{
-    pixels_draw::{self, PixelsDrawPipeline},
-    render::Renderer,
-};
+use crate::render::Renderer;
 use std::sync::Arc;
 use vulkano::{
     command_buffer::{
@@ -13,17 +10,20 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     sync::GpuFuture,
 };
+use zurie_types::Object;
+
+use super::pipeline::{self, ObjectDrawPipeline};
 
 /// A render pass which places an incoming image over the frame, filling it.
-pub struct RenderPassPlaceOverFrame {
+pub struct ObjectRenderPass {
     gfx_queue: Arc<Queue>,
     render_pass: Arc<RenderPass>,
-    pixels_draw_pipeline: PixelsDrawPipeline,
+    pixels_draw_pipeline: ObjectDrawPipeline,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
 }
 
-impl RenderPassPlaceOverFrame {
-    pub fn new(app: &Renderer) -> RenderPassPlaceOverFrame {
+impl ObjectRenderPass {
+    pub fn new(app: &Renderer) -> ObjectRenderPass {
         let render_pass = vulkano::single_pass_renderpass!(
             app.gfx_queue.device().clone(),
             attachments: {
@@ -41,10 +41,10 @@ impl RenderPassPlaceOverFrame {
         )
         .unwrap();
         let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
-        let pixels_draw_pipeline = PixelsDrawPipeline::new(app, subpass);
+        let pixels_draw_pipeline = ObjectDrawPipeline::new(app, subpass);
         let gfx_queue = app.gfx_queue();
 
-        RenderPassPlaceOverFrame {
+        ObjectRenderPass {
             gfx_queue,
             render_pass,
             pixels_draw_pipeline,
@@ -59,6 +59,7 @@ impl RenderPassPlaceOverFrame {
         target: Arc<ImageView>,
         background_color: [f32; 4],
         camera: zurie_shared::camera::Camera,
+        objects: &[Object],
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,
@@ -97,7 +98,8 @@ impl RenderPassPlaceOverFrame {
             img_dims,
             image_view,
             background_color,
-            pixels_draw::vs::Camera { proj_mat, cam_pos },
+            pipeline::vs::Camera { proj_mat, cam_pos },
+            objects,
         );
 
         command_buffer_builder.execute_commands(cb).unwrap();

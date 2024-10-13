@@ -3825,7 +3825,6 @@ name = "zurie_core"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "bytemuck",
  "color-hex",
  "ecolor 0.28.1",
  "egui_winit_vulkano",
@@ -3833,13 +3832,9 @@ dependencies = [
  "fastrand",
  "hashbrown 0.15.0",
  "log",
- "naga",
- "png",
  "pollster",
  "strum",
  "strum_macros",
- "vulkano",
- "vulkano-shaders",
  "winit",
  "zurie_render",
  "zurie_scripting",
@@ -3858,6 +3853,7 @@ dependencies = [
 name = "zurie_render"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "bytemuck",
  "color-hex",
  "ecolor 0.28.1",

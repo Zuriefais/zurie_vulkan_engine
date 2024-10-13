@@ -20,3 +20,4 @@ zurie_shared = { path = "../zurie_shared" }
 strum = "*"
 strum_macros = "*"
 zurie_types = { path = "../zurie_types" }
+anyhow = "1.0.89"

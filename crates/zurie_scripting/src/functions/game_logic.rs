@@ -69,7 +69,7 @@ pub fn register_request_object(
             let storage_lock = object_storage.read().unwrap();
             let object: Option<&Object> = storage_lock.get(index);
             if let Some(obj) = object {
-                let obj_clone = obj.clone();
+                let obj_clone = *obj;
                 let alloc_fn = caller
                     .get_export("alloc")
                     .and_then(|export| export.into_func())
@@ -107,7 +107,7 @@ pub fn register_request_object_position(
             let storage_lock = object_storage.read().unwrap();
             let object: Option<&Object> = storage_lock.get(index);
             if let Some(obj) = object {
-                let obj_clone = obj.position.clone();
+                let obj_clone = obj.position;
                 let alloc_fn = caller
                     .get_export("alloc")
                     .and_then(|export| export.into_func())
