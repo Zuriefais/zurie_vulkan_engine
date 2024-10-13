@@ -5,7 +5,7 @@ use crate::functions::{
     utils::{register_get_delta_time, register_get_mod_name_callback, register_info},
 };
 use anyhow::Ok;
-use egui_winit_vulkano::egui::Context;
+use egui::Context;
 use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};

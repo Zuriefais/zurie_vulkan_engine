@@ -1,10 +1,12 @@
+pub mod gui;
 pub mod input;
 
 use ecolor::hex_color;
+use gui::GameGui;
 use input::InputState;
 use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_render::{compute_sand::CellType, gui::GameGui, render_state::RenderState};
+use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_shared::{camera::Camera, sim_clock::SimClock};
 use zurie_types::{glam::Vec2, Object};
@@ -23,14 +25,10 @@ pub struct State {
 
 impl State {
     pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
-        let render_state = RenderState::new(window);
-        let gui = GameGui::new(
-            event_loop,
-            render_state.renderer.surface(),
-            render_state.renderer.gfx_queue.clone(),
-            render_state.renderer.output_format,
-        );
-        let gui_context = gui.gui.context();
+        let render_state = RenderState::new(window, event_loop);
+        let gui_context = render_state.gui.gui.context();
+        let gui = GameGui::new(gui_context.clone());
+
         let sim_clock = SimClock::default();
         let size = render_state.renderer.window_size();
         let camera = Camera::create_camera_from_screen_size(
@@ -65,7 +63,7 @@ impl State {
 
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.sim_clock.clock();
-
+        self.render_state.gui.start_gui();
         self.gui.draw_gui(
             &mut self.sim_clock,
             &mut self.render_state.compute,
@@ -84,7 +82,6 @@ impl State {
             self.input.mouse.hover_gui,
             self.background_color,
             self.camera,
-            &mut self.gui,
         );
         self.input.after_update();
 
@@ -96,7 +93,7 @@ impl State {
     }
 
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
-        self.gui.event(&ev);
+        self.render_state.event(&ev);
         self.input.event(ev.clone());
         self.camera.event(ev.clone());
         self.mod_manager.event(ev)?;

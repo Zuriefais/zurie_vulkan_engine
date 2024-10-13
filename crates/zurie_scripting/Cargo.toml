@@ -11,6 +11,6 @@ crossbeam = "0.8.4"
 zurie_types = { path = "../zurie_types" }
 zurie_shared = { path = "../zurie_shared" }
 hashbrown = "0.15.0"
-egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
+egui = { version = "0.29.1" }
 log = "0.4.22"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }

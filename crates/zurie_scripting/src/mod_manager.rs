@@ -1,5 +1,5 @@
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context};
+use egui::{self, Context};
 use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};

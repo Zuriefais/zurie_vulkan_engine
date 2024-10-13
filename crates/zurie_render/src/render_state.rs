@@ -1,11 +1,11 @@
 use std::sync::Arc;
-use winit::window::Window;
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_shared::{camera::Camera, sim_clock::SimClock};
 use zurie_types::glam::Vec2;
 
 use crate::{
     compute_sand::{CellType, SandComputePipeline},
-    gui::GameGui,
+    gui::GuiRender,
     pixels_draw::render_pass::PixelsRenderPass,
     render::Renderer,
 };
@@ -14,15 +14,23 @@ pub struct RenderState {
     pub compute: SandComputePipeline,
     pub place_over_frame: PixelsRenderPass,
     pub renderer: Renderer,
+    pub gui: GuiRender,
 }
 
 impl RenderState {
-    pub fn new(window: Arc<Window>) -> RenderState {
+    pub fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> RenderState {
         let renderer = Renderer::new(window);
+        let gui = GuiRender::new(
+            event_loop,
+            renderer.surface(),
+            renderer.gfx_queue.clone(),
+            renderer.output_format.clone(),
+        );
         RenderState {
             compute: SandComputePipeline::new(&renderer),
             place_over_frame: PixelsRenderPass::new(&renderer),
             renderer,
+            gui,
         }
     }
 
@@ -36,7 +44,6 @@ impl RenderState {
         hover_gui: bool,
         background_color: [f32; 4],
         camera: Camera,
-        gui: &mut GameGui,
     ) -> anyhow::Result<()> {
         if left_pressed && !hover_gui {
             self.compute
@@ -65,7 +72,7 @@ impl RenderState {
             camera,
             //&self.object_storage.read().unwrap(),
         );
-        let after_gui = gui.draw_on_image(after_render, target_image);
+        let after_gui = self.gui.draw_on_image(after_render, target_image);
 
         // Finish the frame. Wait for the future so resources are not in use when we render.
         self.renderer.present(after_gui, true);
@@ -76,5 +83,9 @@ impl RenderState {
     pub fn resize(&mut self, size: [u32; 2]) {
         self.renderer.resize();
         self.compute.resize(size)
+    }
+    pub fn event(&mut self, ev: &WindowEvent) -> anyhow::Result<()> {
+        self.gui.event(&ev);
+        Ok(())
     }
 }

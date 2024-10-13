@@ -3878,7 +3878,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "crossbeam",
- "egui_winit_vulkano",
+ "egui",
  "hashbrown 0.15.0",
  "log",
  "thiserror",

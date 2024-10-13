@@ -1,5 +1,5 @@
 use anyhow::Ok;
-use egui_winit_vulkano::egui::{self, Context};
+use egui::{self, Context};
 use wasmtime::{Caller, Linker, Store};
 use zurie_types::GuiTextMessage;
 
