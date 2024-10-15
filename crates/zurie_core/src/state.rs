@@ -82,7 +82,7 @@ impl State {
             self.input.mouse.hover_gui,
             self.background_color,
             self.camera,
-        );
+        )?;
         self.input.after_update();
 
         anyhow::Ok(())
@@ -93,7 +93,7 @@ impl State {
     }
 
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
-        self.render_state.event(&ev);
+        self.render_state.event(&ev)?;
         self.input.event(ev.clone());
         self.camera.event(ev.clone());
         self.mod_manager.event(ev)?;

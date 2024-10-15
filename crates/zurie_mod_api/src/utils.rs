@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use zurie_types::{
     bitcode::{self, Decode, Encode},
-    KeyCode, Object,
+    KeyCode,
 };
 
 pub static mut PTR: u32 = 0;
@@ -137,7 +137,10 @@ pub extern "C" fn key_event(key_code: u32) {
 }
 
 pub fn get_mod() -> &'static mut dyn Mod {
-    unsafe { MOD.as_deref_mut().unwrap() }
+    unsafe {
+        #[allow(static_mut_refs)]
+        MOD.as_deref_mut().unwrap()
+    }
 }
 
 pub fn register_mod(build_mod: fn() -> Box<dyn Mod>) {

@@ -24,7 +24,7 @@ impl RenderState {
             event_loop,
             renderer.surface(),
             renderer.gfx_queue.clone(),
-            renderer.output_format.clone(),
+            renderer.output_format,
         );
         RenderState {
             compute: SandComputePipeline::new(&renderer),
@@ -85,7 +85,7 @@ impl RenderState {
         self.compute.resize(size)
     }
     pub fn event(&mut self, ev: &WindowEvent) -> anyhow::Result<()> {
-        self.gui.event(&ev);
+        self.gui.event(ev);
         Ok(())
     }
 }
