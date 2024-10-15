@@ -1,6 +1,6 @@
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use std::sync::Arc;
 
-use egui_winit_vulkano::{egui, Gui, GuiConfig};
+use egui_winit_vulkano::{Gui, GuiConfig};
 use vulkano::{
     device::Queue, format::Format, image::view::ImageView, swapchain::Surface, sync::GpuFuture,
 };

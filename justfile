@@ -17,7 +17,7 @@ build_mods:
 
 
 build_windows:
-    cargo xwin build --release --target x86_64-pc-windows-msvc
+    cargo xwin build --release --target x86_64-pc-windows-msvc --package zurie_core
 
 [unix]
 editor:

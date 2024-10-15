@@ -1,11 +1,7 @@
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use std::{fmt::Display, str::FromStr};
 
-use egui_winit_vulkano::{
-    egui::{self, Context},
-    Gui, GuiConfig,
-};
+use egui_winit_vulkano::egui::{self, Context};
 use strum::IntoEnumIterator;
-use winit::{event::WindowEvent, event_loop::ActiveEventLoop};
 use zurie_shared::sim_clock::SimClock;
 
 use zurie_render::compute_sand::{BrushType, CellType, SandComputePipeline};
