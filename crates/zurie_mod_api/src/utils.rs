@@ -1,5 +1,8 @@
 use std::ffi::CString;
-use zurie_types::bitcode::{self, Decode, Encode};
+use zurie_types::{
+    bitcode::{self, Decode, Encode},
+    KeyCode, Object,
+};
 
 pub static mut PTR: u32 = 0;
 pub static mut LEN: u32 = 0;
@@ -80,4 +83,63 @@ pub extern "C" fn alloc(len: usize) -> *mut u8 {
         LEN = len as u32
     }
     ptr
+}
+
+pub trait Mod: Send + Sync {
+    fn update(&mut self);
+    fn key_event(&mut self, key: KeyCode);
+    fn init(&mut self);
+
+    fn new() -> Self
+    where
+        Self: Sized;
+    fn get_mod_name(&self) -> String;
+}
+
+pub static mut MOD: Option<Box<dyn Mod>> = None;
+
+#[macro_export]
+macro_rules! register_mod {
+    ($mod_type:ty) => {
+        #[no_mangle]
+        pub extern "C" fn new() {
+            unsafe {
+                MOD = Some(Box::new(<$mod_type as zurie_mod_api::utils::Mod>::new()));
+            }
+        }
+    };
+}
+
+#[no_mangle]
+pub extern "C" fn get_mod_name() {
+    let game_mod = get_mod();
+    let name = game_mod.get_mod_name();
+    let (ptr, len) = string_to_pointer(name);
+    unsafe { get_mod_name_callback(ptr, len) };
+}
+
+#[no_mangle]
+pub extern "C" fn update() {
+    let game_mod = get_mod();
+    game_mod.update();
+}
+
+#[no_mangle]
+pub extern "C" fn init() {
+    let game_mod = get_mod();
+    game_mod.init();
+}
+
+#[no_mangle]
+pub extern "C" fn key_event(key_code: u32) {
+    let game_mod = get_mod();
+    game_mod.key_event(KeyCode::try_from(key_code).unwrap());
+}
+
+pub fn get_mod() -> &'static mut dyn Mod {
+    unsafe { MOD.as_deref_mut().unwrap() }
+}
+
+pub fn register_mod(build_mod: fn() -> Box<dyn Mod>) {
+    unsafe { MOD = Some(build_mod()) }
 }

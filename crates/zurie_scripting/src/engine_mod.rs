@@ -49,6 +49,7 @@ impl EngineMod {
         register_request_mouse_pos(&mut linker, mouse_pos)?;
         register_game_logic_bindings(&mut linker, &store, object_storage)?;
         let instance = linker.instantiate(&mut store, &module)?;
+        let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
         let update_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "update")?;
@@ -56,7 +57,7 @@ impl EngineMod {
             instance.get_typed_func::<u32, ()>(&mut store, "key_event")?;
         let get_mod_name_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
-
+        new_fn.call(&mut store, ())?;
         get_mod_name_fn.call(&mut store, ())?;
         info!("Mod name: {}", mod_name.read().unwrap());
         init_fn.call(&mut store, ())?;
