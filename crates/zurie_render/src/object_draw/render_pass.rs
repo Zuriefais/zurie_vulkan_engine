@@ -55,7 +55,6 @@ impl ObjectRenderPass {
     pub fn render<F>(
         &self,
         before_future: F,
-        image_view: Arc<ImageView>,
         target: Arc<ImageView>,
         background_color: [f32; 4],
         camera: zurie_shared::camera::Camera,
@@ -96,8 +95,6 @@ impl ObjectRenderPass {
         let cam_pos = (camera.position / camera.zoom_factor).into();
         let cb = self.pixels_draw_pipeline.draw(
             img_dims,
-            image_view,
-            background_color,
             pipeline::vs::Camera { proj_mat, cam_pos },
             objects,
         );

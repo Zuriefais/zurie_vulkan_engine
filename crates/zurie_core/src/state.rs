@@ -82,6 +82,7 @@ impl State {
             self.input.mouse.hover_gui,
             self.background_color,
             self.camera,
+            &self.object_storage.read().unwrap(),
         )?;
         self.input.after_update();
 

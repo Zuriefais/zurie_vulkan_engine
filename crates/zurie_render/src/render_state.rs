@@ -1,18 +1,20 @@
 use std::sync::Arc;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_shared::{camera::Camera, sim_clock::SimClock};
-use zurie_types::glam::Vec2;
+use zurie_types::{glam::Vec2, Object};
 
 use crate::{
     compute_sand::{CellType, SandComputePipeline},
     gui::GuiRender,
+    object_draw::render_pass::ObjectRenderPass,
     pixels_draw::render_pass::PixelsRenderPass,
     render::Renderer,
 };
 
 pub struct RenderState {
     pub compute: SandComputePipeline,
-    pub place_over_frame: PixelsRenderPass,
+    pub pixels_render: PixelsRenderPass,
+    pub objects_render: ObjectRenderPass,
     pub renderer: Renderer,
     pub gui: GuiRender,
 }
@@ -28,7 +30,8 @@ impl RenderState {
         );
         RenderState {
             compute: SandComputePipeline::new(&renderer),
-            place_over_frame: PixelsRenderPass::new(&renderer),
+            pixels_render: PixelsRenderPass::new(&renderer),
+            objects_render: ObjectRenderPass::new(&renderer),
             renderer,
             gui,
         }
@@ -44,6 +47,7 @@ impl RenderState {
         hover_gui: bool,
         background_color: [f32; 4],
         camera: Camera,
+        objects: &[Object],
     ) -> anyhow::Result<()> {
         if left_pressed && !hover_gui {
             self.compute
@@ -64,15 +68,23 @@ impl RenderState {
         let color_image = self.compute.color_image();
         let target_image = self.renderer.swapchain_image_view();
 
-        let after_render = self.place_over_frame.render(
+        // let after_pixels_render = self.pixels_render.render(
+        //     after_compute,
+        //     color_image,
+        //     target_image.clone(),
+        //     background_color,
+        //     camera,
+        //     //&self.object_storage.read().unwrap(),
+        // );
+
+        let after_objects_render = self.objects_render.render(
             after_compute,
-            color_image,
             target_image.clone(),
             background_color,
             camera,
-            //&self.object_storage.read().unwrap(),
+            objects,
         );
-        let after_gui = self.gui.draw_on_image(after_render, target_image);
+        let after_gui = self.gui.draw_on_image(after_objects_render, target_image);
 
         // Finish the frame. Wait for the future so resources are not in use when we render.
         self.renderer.present(after_gui, true);

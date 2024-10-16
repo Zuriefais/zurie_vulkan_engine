@@ -116,7 +116,7 @@ pub fn register_request_object_position(
                 copy_obj_to_memory(&mut caller, obj_clone, alloc_fn.clone())?;
             }
 
-            results[0] = wasmtime::Val::I32(object.is_none() as i32);
+            results[0] = wasmtime::Val::I32(object.is_some() as i32);
             Ok(())
         },
     )?;
@@ -133,9 +133,13 @@ pub fn register_set_object_position(
         "set_object_position_sys",
         wasmtime::FuncType::new(
             store.engine(),
-            [wasmtime::ValType::I32, wasmtime::ValType::I32]
-                .iter()
-                .cloned(),
+            [
+                wasmtime::ValType::I32,
+                wasmtime::ValType::I32,
+                wasmtime::ValType::I32,
+            ]
+            .iter()
+            .cloned(),
             [].iter().cloned(),
         ),
         move |mut caller, params, _| {

@@ -1,5 +1,5 @@
 use crate::render::Renderer;
-use fs::UBO;
+
 use std::sync::Arc;
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
@@ -11,15 +11,11 @@ use vulkano::{
         allocator::StandardDescriptorSetAllocator, PersistentDescriptorSet, WriteDescriptorSet,
     },
     device::Queue,
-    image::{
-        sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode},
-        view::ImageView,
-    },
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
     pipeline::{
         graphics::{
             color_blend::{
-                AttachmentBlend, BlendFactor, BlendOp, ColorBlendAttachmentState, ColorBlendState,
+                ColorBlendAttachmentState, ColorBlendState,
             },
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
@@ -36,38 +32,36 @@ use vulkano::{
 };
 use zurie_types::Object;
 
-/// Vertex for textured quads.
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
-pub struct TexturedVertex {
+pub struct TriangleVertex {
     #[format(R32G32_SFLOAT)]
-    pub position: [f32; 2],
-    #[format(R32G32_SFLOAT)]
-    pub tex_coords: [f32; 2],
+    pub vert_position: [f32; 2],
 }
 
-pub fn textured_quad(width: f32, height: f32) -> (Vec<TexturedVertex>, Vec<u32>) {
-    (
-        vec![
-            TexturedVertex {
-                position: [-(width / 2.0), -(height / 2.0)],
-                tex_coords: [0.0, 1.0],
-            },
-            TexturedVertex {
-                position: [-(width / 2.0), height / 2.0],
-                tex_coords: [0.0, 0.0],
-            },
-            TexturedVertex {
-                position: [width / 2.0, height / 2.0],
-                tex_coords: [1.0, 0.0],
-            },
-            TexturedVertex {
-                position: [width / 2.0, -(height / 2.0)],
-                tex_coords: [1.0, 1.0],
-            },
-        ],
-        vec![0, 2, 1, 0, 3, 2],
-    )
+/// The vertex type that describes the unique data per instance.
+#[derive(BufferContents, Vertex)]
+#[repr(C)]
+pub struct InstanceData {
+    #[format(R32G32_SFLOAT)]
+    position: [f32; 2],
+}
+
+pub fn textured_quad() -> Vec<TriangleVertex> {
+    vec![
+        TriangleVertex {
+            vert_position: [1.0, -(1.0)],
+        },
+        TriangleVertex {
+            vert_position: [-(1.0), 1.0],
+        },
+        TriangleVertex {
+            vert_position: [1.0, 1.0],
+        },
+        TriangleVertex {
+            vert_position: [1.0, -(1.0)],
+        },
+    ]
 }
 
 /// A subpass pipeline that fills a quad over the frame.
@@ -82,14 +76,26 @@ pub struct ObjectDrawPipeline {
             vulkano::memory::allocator::FreeListAllocator,
         >,
     >,
-    vertices: Subbuffer<[TexturedVertex]>,
-    indices: Subbuffer<[u32]>,
+    vertices: Subbuffer<[TriangleVertex]>,
+    instances: Subbuffer<[InstanceData]>,
 }
 
 impl ObjectDrawPipeline {
     pub fn new(app: &Renderer, subpass: Subpass) -> Self {
-        let (vertices, indices) = textured_quad(2.0, 2.0);
-        let memory_allocator = app.memory_allocator.clone();
+        let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(app.device.clone()));
+        let command_buffer_allocator = app.command_buffer_allocator.clone();
+
+        let vertices = [
+            TriangleVertex {
+                vert_position: [-0.5, -0.25],
+            },
+            TriangleVertex {
+                vert_position: [0.0, 0.5],
+            },
+            TriangleVertex {
+                vert_position: [0.25, -0.1],
+            },
+        ];
         let vertex_buffer = Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
@@ -104,10 +110,19 @@ impl ObjectDrawPipeline {
             vertices,
         )
         .unwrap();
-        let index_buffer = Buffer::from_iter(
+
+        let instances = vec![
+            InstanceData {
+                position: [0.0, 0.0],
+            },
+            InstanceData {
+                position: [0.5, 0.0],
+            },
+        ];
+        let instances_buffer = Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
-                usage: BufferUsage::INDEX_BUFFER,
+                usage: BufferUsage::VERTEX_BUFFER,
                 ..Default::default()
             },
             AllocationCreateInfo {
@@ -115,21 +130,20 @@ impl ObjectDrawPipeline {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            indices,
+            instances,
         )
         .unwrap();
 
         let pipeline = {
-            let device = app.gfx_queue.device();
-            let vs = vs::load(device.clone())
-                .expect("failed to create shader module")
+            let vs = vs::load(app.device.clone())
+                .unwrap()
                 .entry_point("main")
-                .expect("shader entry point not found");
-            let fs = fs::load(device.clone())
-                .expect("failed to create shader module")
+                .unwrap();
+            let fs = fs::load(app.device.clone())
+                .unwrap()
                 .entry_point("main")
-                .expect("shader entry point not found");
-            let vertex_input_state = TexturedVertex::per_vertex()
+                .unwrap();
+            let vertex_input_state = [TriangleVertex::per_vertex(), InstanceData::per_instance()]
                 .definition(&vs.info().input_interface)
                 .unwrap();
             let stages = [
@@ -137,18 +151,20 @@ impl ObjectDrawPipeline {
                 PipelineShaderStageCreateInfo::new(fs),
             ];
             let layout = PipelineLayout::new(
-                device.clone(),
+                app.device.clone(),
                 PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-                    .into_pipeline_layout_create_info(device.clone())
+                    .into_pipeline_layout_create_info(app.device.clone())
                     .unwrap(),
             )
             .unwrap();
 
             GraphicsPipeline::new(
-                device.clone(),
+                app.device.clone(),
                 None,
                 GraphicsPipelineCreateInfo {
                     stages: stages.into_iter().collect(),
+                    // Use the implementations of the `Vertex` trait to describe to vulkano how the two vertex
+                    // types are expected to be used.
                     vertex_input_state: Some(vertex_input_state),
                     input_assembly_state: Some(InputAssemblyState::default()),
                     viewport_state: Some(ViewportState::default()),
@@ -156,17 +172,7 @@ impl ObjectDrawPipeline {
                     multisample_state: Some(MultisampleState::default()),
                     color_blend_state: Some(ColorBlendState::with_attachment_states(
                         subpass.num_color_attachments(),
-                        ColorBlendAttachmentState {
-                            blend: Some(AttachmentBlend {
-                                src_color_blend_factor: BlendFactor::SrcAlpha, // Source color multiplied by its alpha
-                                dst_color_blend_factor: BlendFactor::OneMinusSrcAlpha, // Destination color multiplied by (1 - source alpha)
-                                color_blend_op: BlendOp::Add, // Add the two results together
-                                src_alpha_blend_factor: BlendFactor::One, // Use the source alpha as-is
-                                dst_alpha_blend_factor: BlendFactor::Zero, // Ignore the destination alpha
-                                alpha_blend_op: BlendOp::Add, // Add the two results (effectively just keeping the source alpha)
-                            }),
-                            ..Default::default()
-                        },
+                        ColorBlendAttachmentState::default(),
                     )),
                     dynamic_state: [DynamicState::Viewport].into_iter().collect(),
                     subpass: Some(subpass.clone().into()),
@@ -175,38 +181,28 @@ impl ObjectDrawPipeline {
             )
             .unwrap()
         };
+
         let gfx_queue = app.gfx_queue();
 
         Self {
             gfx_queue,
             subpass,
             pipeline,
-            command_buffer_allocator: app.command_buffer_allocator.clone(),
+            command_buffer_allocator,
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
             memory_allocator,
             vertices: vertex_buffer,
-            indices: index_buffer,
+            instances: instances_buffer,
         }
     }
 
-    fn create_image_sampler_nearest(
-        &self,
-        image: Arc<ImageView>,
-        background_color: [f32; 4],
-        camera: vs::Camera,
-    ) -> Arc<PersistentDescriptorSet> {
-        let layout = self.pipeline.layout().set_layouts().first().unwrap();
-        let sampler = Sampler::new(
-            self.gfx_queue.device().clone(),
-            SamplerCreateInfo {
-                mag_filter: Filter::Nearest,
-                min_filter: Filter::Nearest,
-                address_mode: [SamplerAddressMode::Repeat; 3],
-                mipmap_mode: SamplerMipmapMode::Nearest,
-                ..Default::default()
-            },
-        )
-        .unwrap();
+    fn create_descriptor(&self, camera: vs::Camera) -> Arc<PersistentDescriptorSet> {
+        let layout = self
+            .pipeline
+            .layout()
+            .set_layouts()
+            .first()
+            .expect("No set layout found");
 
         let camera_buffer = Buffer::from_data(
             self.memory_allocator.clone(),
@@ -221,12 +217,46 @@ impl ObjectDrawPipeline {
             },
             camera,
         )
-        .unwrap();
+        .expect("Failed to create camera buffer");
 
-        let ubo_buffer = Buffer::from_data(
+        PersistentDescriptorSet::new(
+            &self.descriptor_set_allocator,
+            layout.clone(),
+            [WriteDescriptorSet::buffer(0, camera_buffer)],
+            [],
+        )
+        .expect("Failed to create descriptor set")
+    }
+
+    /// Draws input `image` over a quad of size -1.0 to 1.0.
+    pub fn draw(
+        &self,
+        viewport_dimensions: [u32; 2],
+        camera: vs::Camera,
+        objects: &[Object],
+    ) -> Arc<SecondaryAutoCommandBuffer> {
+        let mut builder = AutoCommandBufferBuilder::secondary(
+            self.command_buffer_allocator.as_ref(),
+            self.gfx_queue.queue_family_index(),
+            CommandBufferUsage::OneTimeSubmit,
+            CommandBufferInheritanceInfo {
+                render_pass: Some(self.subpass.clone().into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let desc_set = self.create_descriptor(camera);
+        let instance_data: Vec<InstanceData> = objects
+            .iter()
+            .map(|obj| InstanceData {
+                position: obj.position.into(),
+            })
+            .collect();
+
+        let instance_buffer = Buffer::from_iter(
             self.memory_allocator.clone(),
             BufferCreateInfo {
-                usage: BufferUsage::UNIFORM_BUFFER,
+                usage: BufferUsage::VERTEX_BUFFER,
                 ..Default::default()
             },
             AllocationCreateInfo {
@@ -234,44 +264,10 @@ impl ObjectDrawPipeline {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            UBO { background_color },
+            instance_data,
         )
         .unwrap();
-
-        PersistentDescriptorSet::new(
-            &self.descriptor_set_allocator,
-            layout.clone(),
-            [
-                WriteDescriptorSet::buffer(0, camera_buffer), // Camera uniform at binding 0
-                WriteDescriptorSet::buffer(1, ubo_buffer),    // UBO at binding 1
-                WriteDescriptorSet::sampler(2, sampler),      // Sampler at binding 2
-                WriteDescriptorSet::image_view(3, image),     // Image view at binding 3
-            ],
-            [],
-        )
-        .unwrap()
-    }
-
-    /// Draws input `image` over a quad of size -1.0 to 1.0.
-    pub fn draw(
-        &self,
-        viewport_dimensions: [u32; 2],
-        image: Arc<ImageView>,
-        background_color: [f32; 4],
-        camera: vs::Camera,
-        objects: &[Object],
-    ) -> Arc<SecondaryAutoCommandBuffer> {
-        let mut builder = AutoCommandBufferBuilder::secondary(
-            self.command_buffer_allocator.as_ref(),
-            self.gfx_queue.queue_family_index(),
-            CommandBufferUsage::MultipleSubmit,
-            CommandBufferInheritanceInfo {
-                render_pass: Some(self.subpass.clone().into()),
-                ..Default::default()
-            },
-        )
-        .unwrap();
-        let desc_set = self.create_image_sampler_nearest(image, background_color, camera);
+        let instance_buffer_len = instance_buffer.len();
         builder
             .set_viewport(
                 0,
@@ -293,11 +289,9 @@ impl ObjectDrawPipeline {
                 desc_set,
             )
             .unwrap()
-            .bind_vertex_buffers(0, self.vertices.clone())
+            .bind_vertex_buffers(0, (self.vertices.clone(), instance_buffer))
             .unwrap()
-            .bind_index_buffer(self.indices.clone())
-            .unwrap()
-            .draw_indexed(self.indices.len() as u32, 1, 0, 0, 0)
+            .draw(self.vertices.len() as u32, instance_buffer_len as u32, 0, 0)
             .unwrap();
         builder.build().unwrap()
     }

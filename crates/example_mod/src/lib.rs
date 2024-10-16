@@ -1,4 +1,4 @@
-use zurie_mod_api::game_logic::spawn_object;
+use zurie_mod_api::game_logic::{get_object_position, set_object_position, spawn_object};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::Object;
 use zurie_mod_api::{
@@ -11,6 +11,13 @@ use zurie_mod_api::{info, register_mod};
 
 pub struct MyMod {
     i: u32,
+    obj_0: u32,
+    obj_1: u32,
+}
+fn move_obj(index: u32, direction: Vec2) {
+    let mut obj_pos = get_object_position(index).expect("crash");
+    obj_pos += direction;
+    set_object_position(index, obj_pos)
 }
 
 impl Mod for MyMod {
@@ -25,8 +32,8 @@ impl Mod for MyMod {
             label_text: format!("GUI text from mod 2 time!!!, i: {}", self.i),
         });
         gui_text(GuiTextMessage {
-            window_title: "Test".to_string(),
-            label_text: "test".to_string(),
+            window_title: "obj 1 pos".to_string(),
+            label_text: format!("pos: {}", get_object_position(self.obj_0).unwrap()),
         });
         if gui_button(GuiTextMessage {
             window_title: "Button test".to_string(),
@@ -34,14 +41,25 @@ impl Mod for MyMod {
         }) {
             info!("clicked!!!")
         };
+        let mut direction = Vec2::ZERO;
         if key_presed(KeyCode::KeyW) {
-            info!("key w pressed")
+            direction += Vec2 { x: 0.0, y: -0.1 };
         }
-        info!("mouse pos: {:?}", get_mouse_pos())
+        if key_presed(KeyCode::KeyA) {
+            direction += Vec2 { x: -0.1, y: 0.0 };
+        }
+        if key_presed(KeyCode::KeyS) {
+            direction += Vec2 { x: 0.0, y: 0.1 };
+        }
+        if key_presed(KeyCode::KeyD) {
+            direction += Vec2 { x: 0.1, y: 0.0 };
+        }
+        move_obj(self.obj_0, direction);
+        info!("mouse pos: {:?}", get_mouse_pos());
     }
 
     fn key_event(&mut self, key: KeyCode) {
-        info!("key clicked {:?}", key)
+        info!("key clicked {:?}", key);
     }
 
     fn init(&mut self) {
@@ -50,8 +68,11 @@ impl Mod for MyMod {
         subscribe_for_key_event(KeyCode::KeyA);
         subscribe_for_key_event(KeyCode::KeyS);
         subscribe_for_key_event(KeyCode::KeyD);
-        spawn_object(Object {
-            position: Vec2::new(10.0, 10.0),
+        self.obj_0 = spawn_object(Object {
+            position: Vec2::new(0.0, 0.0),
+        });
+        self.obj_1 = spawn_object(Object {
+            position: Vec2::new(2.0, 2.0),
         });
     }
     fn get_mod_name(&self) -> String {
@@ -62,7 +83,11 @@ impl Mod for MyMod {
     where
         Self: Sized,
     {
-        Self { i: 0 }
+        Self {
+            i: 0,
+            obj_0: 0,
+            obj_1: 0,
+        }
     }
 }
 
