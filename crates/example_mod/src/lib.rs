@@ -70,9 +70,13 @@ impl Mod for MyMod {
         subscribe_for_key_event(KeyCode::KeyD);
         self.obj_0 = spawn_object(Object {
             position: Vec2::new(0.0, 0.0),
+            scale: [1.0, 1.0],
+            color: [1.0, 0.0, 1.0, 1.0],
         });
         self.obj_1 = spawn_object(Object {
             position: Vec2::new(2.0, 2.0),
+            scale: [2.0, 2.0],
+            color: [1.0, 0.0, 0.0, 1.0],
         });
     }
     fn get_mod_name(&self) -> String {

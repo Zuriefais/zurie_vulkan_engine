@@ -7,6 +7,8 @@ use num_enum::TryFromPrimitive;
 #[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
     pub position: Vec2,
+    pub scale: [f32; 2],
+    pub color: [f32; 4],
 }
 
 #[derive(Encode, Decode, PartialEq, Debug)]

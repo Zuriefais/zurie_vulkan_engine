@@ -14,9 +14,7 @@ use vulkano::{
     memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
     pipeline::{
         graphics::{
-            color_blend::{
-                ColorBlendAttachmentState, ColorBlendState,
-            },
+            color_blend::{ColorBlendAttachmentState, ColorBlendState},
             input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
@@ -45,6 +43,10 @@ pub struct TriangleVertex {
 pub struct InstanceData {
     #[format(R32G32_SFLOAT)]
     position: [f32; 2],
+    #[format(R32G32_SFLOAT)]
+    scale: [f32; 2],
+    #[format(R32G32B32A32_SFLOAT)]
+    color: [f32; 4],
 }
 
 pub fn textured_quad() -> Vec<TriangleVertex> {
@@ -77,7 +79,6 @@ pub struct ObjectDrawPipeline {
         >,
     >,
     vertices: Subbuffer<[TriangleVertex]>,
-    instances: Subbuffer<[InstanceData]>,
 }
 
 impl ObjectDrawPipeline {
@@ -108,29 +109,6 @@ impl ObjectDrawPipeline {
                 ..Default::default()
             },
             vertices,
-        )
-        .unwrap();
-
-        let instances = vec![
-            InstanceData {
-                position: [0.0, 0.0],
-            },
-            InstanceData {
-                position: [0.5, 0.0],
-            },
-        ];
-        let instances_buffer = Buffer::from_iter(
-            memory_allocator.clone(),
-            BufferCreateInfo {
-                usage: BufferUsage::VERTEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                ..Default::default()
-            },
-            instances,
         )
         .unwrap();
 
@@ -192,7 +170,6 @@ impl ObjectDrawPipeline {
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
             memory_allocator,
             vertices: vertex_buffer,
-            instances: instances_buffer,
         }
     }
 
@@ -250,6 +227,8 @@ impl ObjectDrawPipeline {
             .iter()
             .map(|obj| InstanceData {
                 position: obj.position.into(),
+                scale: obj.scale.into(),
+                color: obj.color.into(),
             })
             .collect();
 
