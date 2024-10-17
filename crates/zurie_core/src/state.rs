@@ -96,6 +96,10 @@ impl State {
 
     pub fn resize(&mut self, size: [u32; 2]) {
         self.render_state.resize(size);
+        self.camera
+            .write()
+            .unwrap()
+            .update_matrix_from_screen_size(size[0] as f32, size[1] as f32);
     }
 
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
