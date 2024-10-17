@@ -3,7 +3,7 @@ use bitcode::{Decode, Encode};
 pub use glam;
 use glam::Vec2;
 use num_enum::TryFromPrimitive;
-
+pub mod camera;
 #[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
     pub position: Vec2,

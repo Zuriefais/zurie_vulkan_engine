@@ -5,11 +5,15 @@ use ecolor::hex_color;
 use gui::GameGui;
 use input::InputState;
 use std::sync::{Arc, RwLock};
-use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
+use winit::{
+    event::{MouseScrollDelta, WindowEvent},
+    event_loop::ActiveEventLoop,
+    window::Window,
+};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
-use zurie_shared::{camera::Camera, sim_clock::SimClock};
-use zurie_types::{glam::Vec2, Object};
+use zurie_shared::sim_clock::SimClock;
+use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 pub struct State {
     gui: GameGui,
@@ -17,7 +21,7 @@ pub struct State {
     input: InputState,
     selected_cell_type: CellType,
     background_color: [f32; 4],
-    camera: Camera,
+    camera: Arc<RwLock<Camera>>,
     mod_manager: ModManager,
     object_storage: Arc<RwLock<Vec<Object>>>,
     render_state: RenderState,
@@ -31,14 +35,14 @@ impl State {
 
         let sim_clock = SimClock::default();
         let size = render_state.renderer.window_size();
-        let camera = Camera::create_camera_from_screen_size(
+        let camera = Arc::new(RwLock::new(Camera::create_camera_from_screen_size(
             size[0] as f32,
             size[1] as f32,
             0.1,
             100.0,
             1.0,
             Vec2::ZERO,
-        );
+        )));
         let input = InputState::default();
         let object_storage: Arc<RwLock<Vec<Object>>> = Default::default();
         let mod_manager = ModManager::new(
@@ -46,6 +50,7 @@ impl State {
             input.pressed_keys_buffer.clone(),
             input.mouse.position.clone(),
             object_storage.clone(),
+            camera.clone(),
         );
 
         State {
@@ -81,7 +86,7 @@ impl State {
             self.input.mouse.right_pressed,
             self.input.mouse.hover_gui,
             self.background_color,
-            self.camera,
+            &self.camera.read().unwrap(),
             &self.object_storage.read().unwrap(),
         )?;
         self.input.after_update();
@@ -96,7 +101,12 @@ impl State {
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
         self.render_state.event(&ev)?;
         self.input.event(ev.clone());
-        self.camera.event(ev.clone());
+        if let WindowEvent::MouseWheel { delta, .. } = ev {
+            if let MouseScrollDelta::LineDelta(_, y) = delta {
+                self.camera.write().unwrap().event(y);
+            }
+        }
+
         self.mod_manager.event(ev)?;
         Ok(())
     }

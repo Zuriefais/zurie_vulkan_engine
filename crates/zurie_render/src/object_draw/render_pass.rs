@@ -57,7 +57,7 @@ impl ObjectRenderPass {
         before_future: F,
         target: Arc<ImageView>,
         background_color: [f32; 4],
-        camera: zurie_shared::camera::Camera,
+        camera: &zurie_types::camera::Camera,
         objects: &[Object],
     ) -> Box<dyn GpuFuture>
     where

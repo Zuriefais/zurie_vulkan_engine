@@ -57,7 +57,7 @@ impl PixelsRenderPass {
         image_view: Arc<ImageView>,
         target: Arc<ImageView>,
         background_color: [f32; 4],
-        camera: zurie_shared::camera::Camera,
+        camera: zurie_types::camera::Camera,
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,

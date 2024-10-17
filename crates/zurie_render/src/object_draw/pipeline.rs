@@ -87,14 +87,25 @@ impl ObjectDrawPipeline {
         let command_buffer_allocator = app.command_buffer_allocator.clone();
 
         let vertices = [
+            // First triangle
             TriangleVertex {
-                vert_position: [-0.5, -0.25],
+                vert_position: [-0.5, -0.5],
             },
             TriangleVertex {
-                vert_position: [0.0, 0.5],
+                vert_position: [0.5, -0.5],
             },
             TriangleVertex {
-                vert_position: [0.25, -0.1],
+                vert_position: [-0.5, 0.5],
+            },
+            // Second triangle
+            TriangleVertex {
+                vert_position: [0.5, -0.5],
+            },
+            TriangleVertex {
+                vert_position: [0.5, 0.5],
+            },
+            TriangleVertex {
+                vert_position: [-0.5, 0.5],
             },
         ];
         let vertex_buffer = Buffer::from_iter(

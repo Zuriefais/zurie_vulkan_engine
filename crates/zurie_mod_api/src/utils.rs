@@ -88,6 +88,7 @@ pub extern "C" fn alloc(len: usize) -> *mut u8 {
 pub trait Mod: Send + Sync {
     fn update(&mut self);
     fn key_event(&mut self, key: KeyCode);
+    fn scroll(&mut self, scroll: f32);
     fn init(&mut self);
 
     fn new() -> Self
@@ -134,6 +135,12 @@ pub extern "C" fn init() {
 pub extern "C" fn key_event(key_code: u32) {
     let game_mod = get_mod();
     game_mod.key_event(KeyCode::try_from(key_code).unwrap());
+}
+
+#[no_mangle]
+pub extern "C" fn scroll(scroll: f32) {
+    let game_mod = get_mod();
+    game_mod.scroll(scroll);
 }
 
 pub fn get_mod() -> &'static mut dyn Mod {

@@ -4,8 +4,8 @@ use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
-use winit::event::WindowEvent;
-use zurie_types::{glam::Vec2, KeyCode, Object};
+use winit::event::{MouseScrollDelta, WindowEvent};
+use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
 use super::engine_mod::EngineMod;
 
@@ -17,11 +17,12 @@ pub struct ModManager {
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
     object_storage: Arc<RwLock<Vec<Object>>>,
+    camera: Arc<RwLock<Camera>>,
 }
 
 impl ModManager {
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
-        if let WindowEvent::KeyboardInput { event, .. } = ev {
+        if let WindowEvent::KeyboardInput { event, .. } = ev.clone() {
             match event.physical_key {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
                     let key_code = key_code as u32;
@@ -32,6 +33,14 @@ impl ModManager {
                     }
                 }
                 winit::keyboard::PhysicalKey::Unidentified(_) => {}
+            }
+        }
+        if let WindowEvent::MouseWheel { delta, .. } = ev {
+            if let MouseScrollDelta::LineDelta(_, y) = delta {
+                for engine_mod in self.mods.iter() {
+                    let mut mod_lock = engine_mod.write().unwrap();
+                    mod_lock.scroll(y)?;
+                }
             }
         }
         Ok(())
@@ -57,6 +66,7 @@ impl ModManager {
                     self.pressed_keys_buffer.clone(),
                     self.mouse_pos.clone(),
                     self.object_storage.clone(),
+                    self.camera.clone(),
                 )?)));
                 info!("reloading {}", mod_path);
             }
@@ -71,6 +81,7 @@ impl ModManager {
                 self.pressed_keys_buffer.clone(),
                 self.mouse_pos.clone(),
                 self.object_storage.clone(),
+                self.camera.clone(),
             )?)));
         }
         for engine_mod in self.mods.iter() {
@@ -84,6 +95,7 @@ impl ModManager {
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
         object_storage: Arc<RwLock<Vec<Object>>>,
+        camera: Arc<RwLock<Camera>>,
     ) -> Self {
         let engine = Engine::default();
         let test_mod = Arc::new(RwLock::new(
@@ -94,6 +106,7 @@ impl ModManager {
                 pressed_keys_buffer.clone(),
                 mouse_pos.clone(),
                 object_storage.clone(),
+                camera.clone(),
             )
             .expect("Error loading mod"),
         ));
@@ -106,6 +119,7 @@ impl ModManager {
             pressed_keys_buffer,
             mouse_pos,
             object_storage,
+            camera,
         }
     }
 }

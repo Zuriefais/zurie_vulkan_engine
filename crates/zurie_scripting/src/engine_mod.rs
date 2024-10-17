@@ -1,4 +1,5 @@
 use crate::functions::{
+    camera::register_camera_bindings,
     game_logic::register_game_logic_bindings,
     gui::{register_gui_button, register_gui_text},
     input::{register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event},
@@ -10,7 +11,7 @@ use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
-use zurie_types::{glam::Vec2, KeyCode, Object};
+use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
 #[derive()]
 pub struct EngineMod {
@@ -20,6 +21,7 @@ pub struct EngineMod {
     pub store: Store<()>,
     pub update_fn: TypedFunc<(), ()>,
     pub key_event_fn: TypedFunc<u32, ()>,
+    pub scroll_fn: TypedFunc<f32, ()>,
     pub mod_name: Arc<RwLock<String>>,
     pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
 }
@@ -32,6 +34,7 @@ impl EngineMod {
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
         object_storage: Arc<RwLock<Vec<Object>>>,
+        camera: Arc<RwLock<Camera>>,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
@@ -48,6 +51,7 @@ impl EngineMod {
         register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
         register_request_mouse_pos(&mut linker, mouse_pos)?;
         register_game_logic_bindings(&mut linker, &store, object_storage)?;
+        register_camera_bindings(&mut linker, camera, &store)?;
         let instance = linker.instantiate(&mut store, &module)?;
         let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
@@ -55,6 +59,8 @@ impl EngineMod {
             instance.get_typed_func::<(), ()>(&mut store, "update")?;
         let key_event_fn: TypedFunc<u32, ()> =
             instance.get_typed_func::<u32, ()>(&mut store, "key_event")?;
+        let scroll_fn: TypedFunc<f32, ()> =
+            instance.get_typed_func::<f32, ()>(&mut store, "scroll")?;
         let get_mod_name_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
         new_fn.call(&mut store, ())?;
@@ -68,6 +74,7 @@ impl EngineMod {
             store,
             update_fn,
             key_event_fn,
+            scroll_fn,
             mod_name,
             subscribed_keys,
         })
@@ -83,6 +90,11 @@ impl EngineMod {
         if keys_lock.contains(&key_code) {
             self.key_event_fn.call(&mut self.store, key_code as u32)?;
         }
+        Ok(())
+    }
+
+    pub fn scroll(&mut self, scroll: f32) -> anyhow::Result<()> {
+        self.scroll_fn.call(&mut self.store, scroll)?;
         Ok(())
     }
 }

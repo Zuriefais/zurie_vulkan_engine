@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_shared::{camera::Camera, sim_clock::SimClock};
-use zurie_types::{glam::Vec2, Object};
+use zurie_shared::sim_clock::SimClock;
+use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 use crate::{
     compute_sand::{CellType, SandComputePipeline},
@@ -46,7 +46,7 @@ impl RenderState {
         right_pressed: bool,
         hover_gui: bool,
         background_color: [f32; 4],
-        camera: Camera,
+        camera: &Camera,
         objects: &[Object],
     ) -> anyhow::Result<()> {
         if left_pressed && !hover_gui {

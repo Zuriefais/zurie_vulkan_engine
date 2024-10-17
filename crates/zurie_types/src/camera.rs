@@ -1,8 +1,8 @@
-use log::info;
-use winit::event::{MouseScrollDelta, WindowEvent};
-use zurie_types::glam::{Mat4, Vec2};
+use bitcode::{Decode, Encode};
 
-#[derive(Clone, Copy)]
+use super::glam::{Mat4, Vec2};
+
+#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
 pub struct Camera {
     pub right: f32,
     pub left: f32,
@@ -103,18 +103,20 @@ impl Camera {
         self.create_matrix()
     }
 
-    pub fn event(&mut self, ev: WindowEvent) {
-        if let WindowEvent::MouseWheel { delta, .. } = ev {
-            if let MouseScrollDelta::LineDelta(_, y) = delta {
-                if y > 0.0 && self.zoom_factor > 1.0 {
-                    self.zoom_factor -= 0.5;
-                }
-                if y < 1.0 {
-                    self.zoom_factor += 0.5;
-                }
-                //self.update_matrix();
-                info!("Mouse scroll: {}, Zoom factor: {}", y, self.zoom_factor);
-            }
+    pub fn event(&mut self, scroll: f32) {
+        // if let WindowEvent::MouseWheel { delta, .. } = ev {
+        //     if let MouseScrollDelta::LineDelta(_, y) = delta {
+
+        //         //self.update_matrix();
+        //         info!("Mouse scroll: {}, Zoom factor: {}", y, self.zoom_factor);
+        //     }
+        // }
+        if scroll > 0.0 && self.zoom_factor > 1.0 {
+            self.zoom_factor -= 0.5;
         }
+        if scroll < 1.0 {
+            self.zoom_factor += 0.5;
+        }
+        //self.update_matrix();
     }
 }
