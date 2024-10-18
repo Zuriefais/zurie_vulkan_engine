@@ -1,7 +1,9 @@
 use zurie_mod_api::camera::{
     get_camera_position, get_zoom_factor, set_camera_position, set_zoom_factor,
 };
-use zurie_mod_api::game_logic::{get_object_position, set_object_position, spawn_object};
+use zurie_mod_api::game_logic::{
+    get_object_position, set_object_position, spawn_object, ObjectHandle,
+};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::Object;
 use zurie_mod_api::{
@@ -12,15 +14,20 @@ use zurie_mod_api::{
 };
 use zurie_mod_api::{info, register_mod};
 
+#[derive(Default)]
 pub struct MyMod {
     i: u32,
-    obj_0: u32,
-    obj_1: u32,
+    obj_0: ObjectHandle,
+    obj_1: ObjectHandle,
+    snake: Vec<ObjectHandle>,
+    apple: ObjectHandle,
+    direction: ObjectHandle,
 }
-fn move_obj(index: u32, direction: Vec2) {
-    let mut obj_pos = get_object_position(index).expect("crash");
+
+fn move_obj(handle: ObjectHandle, direction: Vec2) {
+    let mut obj_pos = handle.get_pos();
     obj_pos += direction;
-    set_object_position(index, obj_pos)
+    handle.set_pos(obj_pos);
 }
 
 fn move_camera(direction: Vec2) {
@@ -42,7 +49,7 @@ impl Mod for MyMod {
         });
         gui_text(GuiTextMessage {
             window_title: "obj 1 pos".to_string(),
-            label_text: format!("pos: {}", get_object_position(self.obj_0).unwrap()),
+            label_text: format!("pos: {}", self.obj_0.get_pos()),
         });
         if gui_button(GuiTextMessage {
             window_title: "Button test".to_string(),
@@ -64,6 +71,7 @@ impl Mod for MyMod {
             direction += Vec2 { x: 0.1, y: 0.0 };
         }
         move_obj(self.obj_0, direction);
+
         move_camera(direction);
         info!("mouse pos: {:?}", get_mouse_pos());
     }
@@ -97,11 +105,7 @@ impl Mod for MyMod {
     where
         Self: Sized,
     {
-        Self {
-            i: 0,
-            obj_0: 0,
-            obj_1: 0,
-        }
+        Default::default()
     }
 
     fn scroll(&mut self, scroll: f32) {

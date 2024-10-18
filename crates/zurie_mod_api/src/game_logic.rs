@@ -2,9 +2,26 @@ use zurie_types::{glam::Vec2, Object};
 
 use crate::utils::{get_obj_from_mem, obj_to_pointer};
 
-pub fn spawn_object(obj: Object) -> u32 {
+#[derive(Default, Clone, Copy)]
+pub struct ObjectHandle(u32);
+
+impl ObjectHandle {
+    pub fn get_pos(&self) -> Vec2 {
+        get_object_position(self.0).unwrap()
+    }
+
+    pub fn set_pos(&self, pos: Vec2) {
+        set_object_position(self.0, pos);
+    }
+
+    pub fn get_object(&self) -> Object {
+        get_object(self.0).unwrap()
+    }
+}
+
+pub fn spawn_object(obj: Object) -> ObjectHandle {
     let (ptr, len) = obj_to_pointer(&obj);
-    unsafe { spawn_object_sys(ptr, len) }
+    ObjectHandle(unsafe { spawn_object_sys(ptr, len) })
 }
 
 pub fn set_object_position(index: u32, position: Vec2) {
