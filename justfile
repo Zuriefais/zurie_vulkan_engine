@@ -13,7 +13,7 @@ run:
     RUST_LOG=info ./target/release/zurie_engine.exe
 
 build_mods:
-    cargo build --package example_mod --target  wasm32-unknown-unknown --release
+    cargo build --package example_mod --target wasm32-unknown-unknown --release
 
 
 build_windows:

@@ -3,7 +3,7 @@ use zurie_types::{glam::Vec2, Object};
 use crate::utils::{get_obj_from_mem, obj_to_pointer};
 
 #[derive(Default, Clone, Copy)]
-pub struct ObjectHandle(u32);
+pub struct ObjectHandle(u64);
 
 impl ObjectHandle {
     pub fn get_pos(&self) -> Vec2 {
@@ -24,14 +24,14 @@ pub fn spawn_object(obj: Object) -> ObjectHandle {
     ObjectHandle(unsafe { spawn_object_sys(ptr, len) })
 }
 
-pub fn set_object_position(index: u32, position: Vec2) {
+pub fn set_object_position(index: u64, position: Vec2) {
     let (ptr, len) = obj_to_pointer(&position);
     unsafe {
         set_object_position_sys(index, ptr, len);
     }
 }
 
-pub fn get_object_position(index: u32) -> Option<Vec2> {
+pub fn get_object_position(index: u64) -> Option<Vec2> {
     unsafe {
         if request_object_position_sys(index) {
             Some(get_obj_from_mem())
@@ -41,7 +41,7 @@ pub fn get_object_position(index: u32) -> Option<Vec2> {
     }
 }
 
-pub fn get_object(index: u32) -> Option<Object> {
+pub fn get_object(index: u64) -> Option<Object> {
     unsafe {
         if request_object_sys(index) {
             Some(get_obj_from_mem())
@@ -52,8 +52,8 @@ pub fn get_object(index: u32) -> Option<Object> {
 }
 
 extern "C" {
-    fn set_object_position_sys(index: u32, ptr: u32, len: u32);
-    fn spawn_object_sys(ptr: u32, len: u32) -> u32;
-    fn request_object_position_sys(index: u32) -> bool;
-    fn request_object_sys(index: u32) -> bool;
+    fn set_object_position_sys(index: u64, ptr: u32, len: u32);
+    fn spawn_object_sys(ptr: u32, len: u32) -> u64;
+    fn request_object_position_sys(index: u64) -> bool;
+    fn request_object_sys(index: u64) -> bool;
 }

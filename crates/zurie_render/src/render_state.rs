@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_shared::sim_clock::SimClock;
+use zurie_shared::{
+    sim_clock::SimClock,
+    slotmap::{DefaultKey, SlotMap},
+};
 use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 use crate::{
@@ -47,7 +50,7 @@ impl RenderState {
         hover_gui: bool,
         background_color: [f32; 4],
         camera: &Camera,
-        objects: &[Object],
+        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     ) -> anyhow::Result<()> {
         if left_pressed && !hover_gui {
             self.compute

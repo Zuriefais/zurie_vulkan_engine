@@ -5,6 +5,7 @@ use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::event::{MouseScrollDelta, WindowEvent};
+use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
 use super::engine_mod::EngineMod;
@@ -16,7 +17,7 @@ pub struct ModManager {
     new_mod_path: String,
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     camera: Arc<RwLock<Camera>>,
 }
 
@@ -94,7 +95,7 @@ impl ModManager {
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
-        object_storage: Arc<RwLock<Vec<Object>>>,
+        object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
         camera: Arc<RwLock<Camera>>,
     ) -> Self {
         let engine = Engine::default();

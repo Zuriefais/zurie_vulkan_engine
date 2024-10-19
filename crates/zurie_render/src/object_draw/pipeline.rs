@@ -1,6 +1,6 @@
 use crate::render::Renderer;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
@@ -28,6 +28,7 @@ use vulkano::{
     },
     render_pass::Subpass,
 };
+use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::Object;
 
 #[derive(BufferContents, Vertex)]
@@ -221,7 +222,7 @@ impl ObjectDrawPipeline {
         &self,
         viewport_dimensions: [u32; 2],
         camera: vs::Camera,
-        objects: &[Object],
+        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     ) -> Arc<SecondaryAutoCommandBuffer> {
         let mut builder = AutoCommandBufferBuilder::secondary(
             self.command_buffer_allocator.as_ref(),
@@ -235,11 +236,13 @@ impl ObjectDrawPipeline {
         .unwrap();
         let desc_set = self.create_descriptor(camera);
         let instance_data: Vec<InstanceData> = objects
+            .read()
+            .unwrap()
             .iter()
             .map(|obj| InstanceData {
-                position: obj.position.into(),
-                scale: obj.scale.into(),
-                color: obj.color.into(),
+                position: obj.1.position.into(),
+                scale: obj.1.scale.into(),
+                color: obj.1.color.into(),
             })
             .collect();
 

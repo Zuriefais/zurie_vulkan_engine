@@ -1,6 +1,7 @@
 use log::{info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store};
+use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
 use zurie_types::Object;
 
 use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
@@ -8,7 +9,7 @@ use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
 pub fn register_game_logic_bindings(
     linker: &mut Linker<()>,
     store: &Store<()>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     register_spawn_object(linker, store, object_storage.clone())?;
     register_request_object(linker, store, object_storage.clone())?;
@@ -20,7 +21,7 @@ pub fn register_game_logic_bindings(
 pub fn register_spawn_object(
     linker: &mut Linker<()>,
     store: &Store<()>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
@@ -30,7 +31,7 @@ pub fn register_spawn_object(
             [wasmtime::ValType::I32, wasmtime::ValType::I32]
                 .iter()
                 .cloned(),
-            [wasmtime::ValType::I32].iter().cloned(),
+            [wasmtime::ValType::I64].iter().cloned(),
         ),
         move |mut caller, params, results| {
             let obj = get_obj_by_ptr::<Object>(
@@ -40,10 +41,9 @@ pub fn register_spawn_object(
             )?;
             let mut storage_lock = object_storage.write().unwrap();
             info!("Object spawned. obj: {:?}", &obj);
-            storage_lock.push(obj);
-            let index = (storage_lock.len() - 1) as i32;
+            let index = storage_lock.insert(obj);
 
-            results[0] = wasmtime::Val::I32(index);
+            results[0] = wasmtime::Val::I64(KeyData::as_ffi(index.data()) as i64);
             Ok(())
         },
     )?;
@@ -53,21 +53,21 @@ pub fn register_spawn_object(
 pub fn register_request_object(
     linker: &mut Linker<()>,
     store: &Store<()>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
         "request_object_sys",
         wasmtime::FuncType::new(
             store.engine(),
-            [wasmtime::ValType::I32].iter().cloned(),
+            [wasmtime::ValType::I64].iter().cloned(),
             [wasmtime::ValType::I32].iter().cloned(),
         ),
         move |mut caller, params, results| {
-            let index = params[0].unwrap_i32() as usize;
+            let index = params[0].unwrap_i32() as u64;
 
             let storage_lock = object_storage.read().unwrap();
-            let object: Option<&Object> = storage_lock.get(index);
+            let object: Option<&Object> = storage_lock.get(KeyData::from_ffi(index).into());
             if let Some(obj) = object {
                 let obj_clone = *obj;
                 let alloc_fn = caller
@@ -91,21 +91,22 @@ pub fn register_request_object(
 pub fn register_request_object_position(
     linker: &mut Linker<()>,
     store: &Store<()>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
         "request_object_position_sys",
         wasmtime::FuncType::new(
             store.engine(),
-            [wasmtime::ValType::I32].iter().cloned(),
+            [wasmtime::ValType::I64].iter().cloned(),
             [wasmtime::ValType::I32].iter().cloned(),
         ),
         move |mut caller, params, results| {
-            let index = params[0].unwrap_i32() as usize;
+            let index = params[0].unwrap_i64() as u64;
 
             let storage_lock = object_storage.read().unwrap();
-            let object: Option<&Object> = storage_lock.get(index);
+            let object: Option<&Object> = storage_lock.get(KeyData::from_ffi(index).into());
+
             if let Some(obj) = object {
                 let obj_clone = obj.position;
                 let alloc_fn = caller
@@ -126,7 +127,7 @@ pub fn register_request_object_position(
 pub fn register_set_object_position(
     linker: &mut Linker<()>,
     store: &Store<()>,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
@@ -134,7 +135,7 @@ pub fn register_set_object_position(
         wasmtime::FuncType::new(
             store.engine(),
             [
-                wasmtime::ValType::I32,
+                wasmtime::ValType::I64,
                 wasmtime::ValType::I32,
                 wasmtime::ValType::I32,
             ]
@@ -144,13 +145,13 @@ pub fn register_set_object_position(
         ),
         move |mut caller, params, _| {
             let (index, ptr, len) = (
-                params[0].unwrap_i32() as usize,
+                params[0].unwrap_i64() as u64,
                 params[1].unwrap_i32() as u32,
                 params[2].unwrap_i32() as u32,
             );
             let mut storage_lock = object_storage.write().unwrap();
             let new_position = get_obj_by_ptr(&mut caller, ptr, len)?;
-            let object: Option<&mut Object> = storage_lock.get_mut(index);
+            let object: Option<&mut Object> = storage_lock.get_mut(KeyData::from_ffi(index).into());
             if let Some(obj) = object {
                 obj.position = new_position;
             }

@@ -11,6 +11,7 @@ use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
+use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
 #[derive()]
@@ -33,7 +34,7 @@ impl EngineMod {
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
-        object_storage: Arc<RwLock<Vec<Object>>>,
+        object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
         camera: Arc<RwLock<Camera>>,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);

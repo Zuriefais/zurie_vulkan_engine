@@ -1,5 +1,5 @@
 use crate::render::Renderer;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use vulkano::{
     command_buffer::{
         allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, CommandBufferUsage,
@@ -10,6 +10,7 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     sync::GpuFuture,
 };
+use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::Object;
 
 use super::pipeline::{self, ObjectDrawPipeline};
@@ -58,7 +59,7 @@ impl ObjectRenderPass {
         target: Arc<ImageView>,
         background_color: [f32; 4],
         camera: &zurie_types::camera::Camera,
-        objects: &[Object],
+        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,

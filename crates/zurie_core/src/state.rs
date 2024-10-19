@@ -12,7 +12,10 @@ use winit::{
 };
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
-use zurie_shared::sim_clock::SimClock;
+use zurie_shared::{
+    sim_clock::SimClock,
+    slotmap::{DefaultKey, SlotMap},
+};
 use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 pub struct State {
@@ -23,7 +26,7 @@ pub struct State {
     background_color: [f32; 4],
     camera: Arc<RwLock<Camera>>,
     mod_manager: ModManager,
-    object_storage: Arc<RwLock<Vec<Object>>>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     render_state: RenderState,
 }
 
@@ -44,7 +47,7 @@ impl State {
             Vec2::ZERO,
         )));
         let input = InputState::default();
-        let object_storage: Arc<RwLock<Vec<Object>>> = Default::default();
+        let object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>> = Default::default();
         let mod_manager = ModManager::new(
             gui_context.clone(),
             input.pressed_keys_buffer.clone(),
@@ -87,7 +90,7 @@ impl State {
             self.input.mouse.hover_gui,
             self.background_color,
             &self.camera.read().unwrap(),
-            &self.object_storage.read().unwrap(),
+            self.object_storage.clone(),
         )?;
         self.input.after_update();
 
