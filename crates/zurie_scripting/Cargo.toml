@@ -14,3 +14,4 @@ hashbrown = "0.15.0"
 egui = { version = "0.29.1" }
 log = "0.4.22"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
+rand = "0.8.5"

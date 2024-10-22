@@ -153,3 +153,15 @@ pub fn get_mod() -> &'static mut dyn Mod {
 pub fn register_mod(build_mod: fn() -> Box<dyn Mod>) {
     unsafe { MOD = Some(build_mod()) }
 }
+
+extern "C" {
+    fn get_rand_f32_sys(x: f32, y: f32) -> f32;
+    fn get_rand_i32_sys(x: i32, y: i32) -> i32;
+}
+
+pub fn get_rand_f32(x: f32, y: f32) -> f32 {
+    unsafe { get_rand_f32_sys(x, y) }
+}
+pub fn get_rand_i32(x: i32, y: i32) -> i32 {
+    unsafe { get_rand_i32_sys(x, y) }
+}

@@ -12,6 +12,7 @@ pub fn register_game_logic_bindings(
     object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
 ) -> anyhow::Result<()> {
     register_spawn_object(linker, store, object_storage.clone())?;
+    register_despawn_object(linker, store, object_storage.clone())?;
     register_request_object(linker, store, object_storage.clone())?;
     register_request_object_position(linker, store, object_storage.clone())?;
     register_set_object_position(linker, store, object_storage.clone())?;
@@ -44,6 +45,29 @@ pub fn register_spawn_object(
             let index = storage_lock.insert(obj);
 
             results[0] = wasmtime::Val::I64(KeyData::as_ffi(index.data()) as i64);
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+pub fn register_despawn_object(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "despawn_object_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [wasmtime::ValType::I64].iter().cloned(),
+            [].iter().cloned(),
+        ),
+        move |_, params, _| {
+            let index = params[0].unwrap_i64() as u64;
+            let mut storage_lock = object_storage.write().unwrap();
+            storage_lock.remove(KeyData::from_ffi(index).into());
             Ok(())
         },
     )?;
