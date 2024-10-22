@@ -1,36 +1,115 @@
-pub use bitcode;
-use bitcode::{Decode, Encode};
 pub use glam;
-use glam::Vec2;
 use num_enum::TryFromPrimitive;
 pub mod camera;
+pub use minicbor;
+use minicbor::Decode;
+use minicbor::Encode;
+
 #[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
-    pub position: Vec2,
+    #[n(0)]
+    pub position: Vector2,
+    #[n(1)]
     pub scale: [f32; 2],
+    #[n(2)]
     pub color: [f32; 4],
 }
 
 #[derive(Encode, Decode, PartialEq, Debug)]
 pub struct GuiTextMessage {
+    #[n(0)]
     pub window_title: String,
+    #[n(1)]
     pub label_text: String,
 }
 
 #[derive(Encode, Decode, PartialEq, Debug)]
 pub struct MouseState {
-    pub position: Vec2,
+    #[n(0)]
+    pub position: Vector2,
+    #[n(1)]
     pub left_pressed: bool,
+    #[n(2)]
     pub right_pressed: bool,
 }
 
 #[derive(Encode, Decode, PartialEq, Debug)]
 pub struct KeyboardState {
+    #[n(0)]
     pub key_map: Vec<KeyCode>,
 }
 
+#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
+pub struct Vector2 {
+    #[n(0)]
+    pub x: f32,
+    #[n(1)]
+    pub y: f32,
+}
+impl Vector2 {
+    pub fn new(x: f32, y: f32) -> Vector2 {
+        Vector2 { x, y }
+    }
+}
+
+impl From<Vector2> for [f32; 2] {
+    fn from(val: Vector2) -> Self {
+        [val.x, val.y]
+    }
+}
+impl Div<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn div(self, num: f32) -> Self::Output {
+        Vector2 {
+            x: self.x / num,
+            y: self.y / num,
+        }
+    }
+}
+
+use std::fmt;
+use std::ops::Div;
+
+impl fmt::Display for Vector2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Vector2 {{ x: {}, y: {} }}", self.x, self.y)
+    }
+}
+
+impl From<glam::Vec2> for Vector2 {
+    fn from(vec: glam::Vec2) -> Self {
+        Vector2 { x: vec.x, y: vec.y }
+    }
+}
+
+impl From<Vector2> for glam::Vec2 {
+    fn from(vec: Vector2) -> Self {
+        glam::Vec2::new(vec.x, vec.y)
+    }
+}
+
+impl<C> Encode<C> for KeyCode {
+    fn encode<W: minicbor::encode::Write>(
+        &self,
+        e: &mut minicbor::Encoder<W>,
+        _: &mut C,
+    ) -> Result<(), minicbor::encode::Error<W::Error>> {
+        e.u32(*self as u32)?;
+        Ok(())
+    }
+}
+
+impl<'b, C> Decode<'b, C> for KeyCode {
+    fn decode(d: &mut minicbor::Decoder<'b>, _: &mut C) -> Result<Self, minicbor::decode::Error> {
+        let value = d.u32()?;
+        KeyCode::try_from(value)
+            .map_err(|_| minicbor::decode::Error::message("Invalid KeyCode value"))
+    }
+}
+
 #[repr(u32)]
-#[derive(Encode, Decode, PartialEq, Debug, TryFromPrimitive, Eq, Hash, Clone)]
+#[derive(PartialEq, Debug, TryFromPrimitive, Eq, Hash, Clone, Copy)]
 pub enum KeyCode {
     /// <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave.
     /// This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd>

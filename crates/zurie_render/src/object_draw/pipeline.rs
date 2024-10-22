@@ -241,8 +241,8 @@ impl ObjectDrawPipeline {
             .iter()
             .map(|obj| InstanceData {
                 position: obj.1.position.into(),
-                scale: obj.1.scale.into(),
-                color: obj.1.color.into(),
+                scale: obj.1.scale,
+                color: obj.1.color,
             })
             .collect();
 

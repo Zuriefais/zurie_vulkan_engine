@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use zurie_types::{
-    bitcode::{self, Decode, Encode},
+    minicbor::{self, Decode, Encode},
     KeyCode,
 };
 
@@ -17,8 +17,9 @@ pub fn string_to_pointer(s: String) -> (u32, u32) {
     (cs.into_raw() as u32, len)
 }
 
-pub fn obj_to_pointer<T: Encode>(obj: &T) -> (u32, u32) {
-    let mut message_bin = bitcode::encode(obj);
+pub fn obj_to_pointer<T: Encode<()>>(obj: &T) -> (u32, u32) {
+    let mut message_bin = vec![];
+    minicbor::encode(obj, &mut message_bin);
     message_bin.shrink_to_fit();
     let len = message_bin.len() as u32;
     let ptr = message_bin.as_mut_ptr() as u32;
@@ -60,9 +61,12 @@ macro_rules! set_mod_name {
     };
 }
 
-pub fn get_obj_from_mem<T: for<'a> Decode<'a>>() -> T {
+pub fn get_obj_from_mem<T>() -> T
+where
+    T: for<'a> Decode<'a, ()>,
+{
     let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
-    let obj = bitcode::decode(&data).unwrap();
+    let obj = minicbor::decode::<T>(&data).unwrap();
     std::mem::drop(data);
     obj
 }

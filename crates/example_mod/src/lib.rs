@@ -3,7 +3,7 @@ use zurie_mod_api::camera::{
 };
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
-use zurie_mod_api::zurie_types::Object;
+use zurie_mod_api::zurie_types::{Object, Vector2};
 use zurie_mod_api::{
     gui::{gui_button, gui_text},
     input::{key_presed, subscribe_for_key_event},
@@ -28,14 +28,19 @@ fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2) {
 }
 
 fn move_camera(direction: Vec2) {
-    let mut obj_pos = get_camera_position();
-    obj_pos += direction;
-    set_camera_position(obj_pos)
+    let new_cam_pos = get_camera_position() + direction;
+
+    set_camera_position(new_cam_pos);
+    info!(
+        "cam pos: {}, cam_pos_expected: {}",
+        get_camera_position(),
+        new_cam_pos
+    );
 }
 
 fn spawn_apple() -> ObjectHandle {
     let (x, y): (i32, i32) = (get_rand_i32(-10, 10), get_rand_i32(-10, 10));
-    let position = Vec2::new(x as f32, y as f32);
+    let position = Vector2::new(x as f32, y as f32);
     spawn_object(Object {
         position,
         scale: [1.0, 1.0],
@@ -78,7 +83,7 @@ impl Mod for MyMod {
             self.direction = Vec2 { x: 1.0, y: 0.0 };
         }
 
-        move_snake(&mut self.snake, self.direction);
+        //move_snake(&mut self.snake, self.direction);
 
         move_camera(self.direction);
         info!("Direction: {}", self.direction)
@@ -95,12 +100,12 @@ impl Mod for MyMod {
         subscribe_for_key_event(KeyCode::KeyS);
         subscribe_for_key_event(KeyCode::KeyD);
         self.snake.push(spawn_object(Object {
-            position: Vec2::new(1.0, 0.0),
+            position: Vector2::new(1.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
         }));
         self.snake.push(spawn_object(Object {
-            position: Vec2::new(0.0, 1.0),
+            position: Vector2::new(0.0, 1.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
         }));

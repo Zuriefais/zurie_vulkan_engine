@@ -30,7 +30,7 @@ impl ModManager {
                     let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
                     for engine_mod in self.mods.iter() {
                         let mut mod_lock = engine_mod.write().unwrap();
-                        mod_lock.key_event(key_code.clone())?;
+                        mod_lock.key_event(key_code)?;
                     }
                 }
                 winit::keyboard::PhysicalKey::Unidentified(_) => {}

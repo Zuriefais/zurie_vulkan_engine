@@ -1,3 +1,4 @@
+use zurie_types::Vector2;
 use zurie_types::{glam::Vec2, Object};
 
 use crate::utils::{get_obj_from_mem, obj_to_pointer};
@@ -55,7 +56,7 @@ pub fn spawn_object(obj: Object) -> ObjectHandle {
 }
 
 pub fn set_object_position(index: u64, position: Vec2) {
-    let (ptr, len) = obj_to_pointer(&position);
+    let (ptr, len) = obj_to_pointer(&Into::<Vector2>::into(position));
     unsafe {
         set_object_position_sys(index, ptr, len);
     }
@@ -64,7 +65,8 @@ pub fn set_object_position(index: u64, position: Vec2) {
 pub fn get_object_position(index: u64) -> Option<Vec2> {
     unsafe {
         if request_object_position_sys(index) {
-            Some(get_obj_from_mem())
+            let vector2: Vector2 = get_obj_from_mem();
+            Some(Vec2::new(vector2.x, vector2.y))
         } else {
             None
         }

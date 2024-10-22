@@ -5,6 +5,7 @@
 
 use std::sync::{Arc, RwLock};
 
+use log::info;
 use wasmtime::{Linker, Store};
 use zurie_types::camera::Camera;
 
@@ -41,7 +42,7 @@ fn register_request_camera(
                 .and_then(|export| export.into_func())
                 .ok_or_else(|| anyhow::anyhow!("Failed to find 'alloc' function"))?
                 .typed::<u32, u32>(&caller)?;
-            copy_obj_to_memory(&mut caller, camera.clone(), alloc_fn.clone())?;
+            copy_obj_to_memory(&mut caller, *camera, alloc_fn.clone())?;
 
             Ok(())
         },
@@ -158,6 +159,7 @@ pub fn register_set_object_position(
             let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
             let mut camera = camera.write().unwrap();
             let new_position = get_obj_by_ptr(&mut caller, ptr, len)?;
+            info!("new camera position: {}", new_position);
             camera.position = new_position;
             Ok(())
         },

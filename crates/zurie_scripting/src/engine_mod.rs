@@ -3,10 +3,7 @@ use crate::functions::{
     game_logic::register_game_logic_bindings,
     gui::{register_gui_button, register_gui_text},
     input::{register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event},
-    utils::{
-        register_get_delta_time, register_get_mod_name_callback, register_info,
-        register_utils_bindings,
-    },
+    utils::register_utils_bindings,
 };
 use anyhow::Ok;
 use egui::Context;

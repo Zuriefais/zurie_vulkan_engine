@@ -1,6 +1,6 @@
 use anyhow::Ok;
 use wasmtime::{Caller, Extern, Memory, TypedFunc};
-use zurie_types::bitcode::{self, Decode, Encode};
+use zurie_types::minicbor::{self, Decode, Encode};
 
 pub fn get_string_by_ptr(
     caller: &mut Caller<'_, ()>,
@@ -11,13 +11,13 @@ pub fn get_string_by_ptr(
     Ok(std::str::from_utf8(&data)?.to_string())
 }
 
-pub fn get_obj_by_ptr<T: for<'a> Decode<'a>>(
+pub fn get_obj_by_ptr<T: for<'a> Decode<'a, ()>>(
     caller: &mut Caller<'_, ()>,
     ptr: u32,
     len: u32,
 ) -> anyhow::Result<T> {
     let data = get_bytes_from_wasm(caller, ptr, len)?;
-    let obj = bitcode::decode(&data)?;
+    let obj = minicbor::decode(&data)?;
     Ok(obj)
 }
 
@@ -59,10 +59,12 @@ pub fn copy_to_memory(
 
 pub fn copy_obj_to_memory(
     caller: &mut Caller<'_, ()>,
-    obj: impl Encode,
+    obj: impl Encode<()>,
     alloc_fn: TypedFunc<u32, u32>,
 ) -> anyhow::Result<()> {
-    let bytes = bitcode::encode(&obj);
+    let mut bytes = vec![];
+    minicbor::encode(obj, &mut bytes);
+
     copy_to_memory(caller, &bytes, alloc_fn)?;
     Ok(())
 }

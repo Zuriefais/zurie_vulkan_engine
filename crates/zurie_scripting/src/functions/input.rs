@@ -3,7 +3,7 @@ use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Linker, Store};
-use zurie_types::{glam::Vec2, KeyCode};
+use zurie_types::{glam::Vec2, KeyCode, Vector2};
 
 use crate::utils::copy_obj_to_memory;
 
@@ -58,11 +58,9 @@ pub fn register_request_mouse_pos(
                 .and_then(|export| export.into_func())
                 .ok_or_else(|| anyhow::anyhow!("Failed to find 'alloc' function"))?
                 .typed::<u32, u32>(&caller)?;
-            Ok(copy_obj_to_memory(
-                &mut caller,
-                *mouse_pos.read().unwrap(),
-                alloc_fn.clone(),
-            ))
+            let vec2 = mouse_pos.read().unwrap();
+            let vector2 = Vector2::from(*vec2);
+            Ok(copy_obj_to_memory(&mut caller, vector2, alloc_fn.clone()))
         },
     )?;
     Ok(())

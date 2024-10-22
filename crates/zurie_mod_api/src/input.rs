@@ -1,4 +1,4 @@
-use zurie_types::{glam::Vec2, KeyCode};
+use zurie_types::{glam::Vec2, KeyCode, Vector2};
 
 use crate::utils::get_obj_from_mem;
 
@@ -22,7 +22,7 @@ extern "C" {
 
 pub fn get_mouse_pos() -> Vec2 {
     unsafe { request_mouse_pos_sys() };
-    get_obj_from_mem()
+    Into::<Vec2>::into(get_obj_from_mem::<Vector2>())
 }
 
 extern "C" {
