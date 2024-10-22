@@ -20,10 +20,24 @@ pub struct MyMod {
     direction: Vec2,
 }
 
-fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2) {
-    info!("snake len: {}", snake.len());
-    for part in snake.iter() {
-        part.set_pos(part.get_pos().unwrap() + direction);
+fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2, i: &mut u32, apple_pos: Vec2) {
+    *i += 1;
+    if *i == 10 {
+        let new_pos = snake[0].get_pos().unwrap() + direction;
+        if new_pos != apple_pos {
+            let last_el = snake.pop().unwrap();
+            last_el.set_pos(new_pos);
+            snake.insert(0, last_el);
+        } else {
+            let new_obj = spawn_object(Object {
+                position: Vector2::new(new_pos.x, new_pos.y),
+                scale: [1.0, 1.0],
+                color: [1.0, 0.0, 1.0, 1.0],
+            });
+            snake.insert(0, new_obj);
+        }
+
+        *i = 0;
     }
 }
 
@@ -50,7 +64,6 @@ fn spawn_apple() -> ObjectHandle {
 
 impl Mod for MyMod {
     fn update(&mut self) {
-        self.i += 1;
         gui_text(GuiTextMessage {
             window_title: "Delta time".to_string(),
             label_text: format!("Delta time: {} s", get_delta_time()),
@@ -60,8 +73,13 @@ impl Mod for MyMod {
             label_text: format!("GUI text from mod 2 time!!!, i: {}", self.i),
         });
         gui_text(GuiTextMessage {
-            window_title: "Snake position".to_string(),
-            label_text: format!("pos: {:?}", self.snake[0].get_pos()),
+            window_title: "Snake props".to_string(),
+            label_text: format!(
+                "pos: {:?}, direction: {}, target pos: {:?}",
+                self.snake[0].get_pos(),
+                self.direction,
+                self.apple.get_pos()
+            ),
         });
         if gui_button(GuiTextMessage {
             window_title: "Button test".to_string(),
@@ -82,11 +100,12 @@ impl Mod for MyMod {
         if key_presed(KeyCode::KeyD) {
             self.direction = Vec2 { x: 1.0, y: 0.0 };
         }
-
-        //move_snake(&mut self.snake, self.direction);
-
-        move_camera(self.direction);
-        info!("Direction: {}", self.direction)
+        let apple_pos = self.apple.get_pos().unwrap();
+        move_snake(&mut self.snake, self.direction, &mut self.i, apple_pos);
+        if self.snake[0].get_pos().unwrap() == apple_pos {
+            self.apple.despawn();
+            self.apple = spawn_apple();
+        }
     }
 
     fn key_event(&mut self, key: KeyCode) {
@@ -100,12 +119,17 @@ impl Mod for MyMod {
         subscribe_for_key_event(KeyCode::KeyS);
         subscribe_for_key_event(KeyCode::KeyD);
         self.snake.push(spawn_object(Object {
+            position: Vector2::new(0.0, 0.0),
+            scale: [1.0, 1.0],
+            color: [1.0, 0.0, 1.0, 1.0],
+        }));
+        self.snake.push(spawn_object(Object {
             position: Vector2::new(1.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
         }));
         self.snake.push(spawn_object(Object {
-            position: Vector2::new(0.0, 1.0),
+            position: Vector2::new(2.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
         }));
@@ -119,7 +143,15 @@ impl Mod for MyMod {
     where
         Self: Sized,
     {
-        Default::default()
+        Self {
+            direction: match get_rand_i32(0, 3) {
+                0 => Vec2::new(1.0, 0.0),  // Right
+                1 => Vec2::new(-1.0, 0.0), // Left
+                2 => Vec2::new(0.0, 1.0),  // Down
+                _ => Vec2::new(0.0, -1.0), // Up (default case)
+            },
+            ..Default::default()
+        }
     }
 
     fn scroll(&mut self, scroll: f32) {
