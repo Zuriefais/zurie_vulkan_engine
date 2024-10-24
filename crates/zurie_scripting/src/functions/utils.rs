@@ -1,6 +1,6 @@
 use crate::utils::get_string_by_ptr;
 use anyhow::Ok;
-use log::info;
+use log::{error, info, warn};
 use rand::{thread_rng, Rng};
 use std::sync::{Arc, RwLock};
 use wasmtime::{Caller, Linker, Store, Val};
@@ -15,6 +15,8 @@ pub fn register_utils_bindings(
     register_get_rand_i32(linker, store)?;
     register_get_delta_time(linker)?;
     register_info(linker, mod_name.clone())?;
+    register_warn(linker, mod_name.clone())?;
+    register_error(linker, mod_name.clone())?;
     register_get_mod_name_callback(linker, mod_name.clone())?;
     Ok(())
 }
@@ -33,6 +35,35 @@ pub fn register_info(linker: &mut Linker<()>, mod_name: Arc<RwLock<String>>) -> 
         move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
             let string = get_string_by_ptr(&mut caller, ptr, len)?;
             info!(target: mod_name.read().unwrap().as_str(), "{}", string);
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+pub fn register_warn(linker: &mut Linker<()>, mod_name: Arc<RwLock<String>>) -> anyhow::Result<()> {
+    linker.func_wrap(
+        "env",
+        "warn_sys",
+        move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let string = get_string_by_ptr(&mut caller, ptr, len)?;
+            warn!(target: mod_name.read().unwrap().as_str(), "{}", string);
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+pub fn register_error(
+    linker: &mut Linker<()>,
+    mod_name: Arc<RwLock<String>>,
+) -> anyhow::Result<()> {
+    linker.func_wrap(
+        "env",
+        "error_sys",
+        move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
+            let string = get_string_by_ptr(&mut caller, ptr, len)?;
+            error!(target: mod_name.read().unwrap().as_str(), "{}", string);
             Ok(())
         },
     )?;

@@ -26,16 +26,18 @@ pub fn obj_to_pointer<T: Serialize>(obj: &T) -> (u32, u32) {
     (ptr, len)
 }
 
-pub fn info(s: String) {
-    let (ptr, len) = string_to_pointer(s);
-    unsafe { info_sys(ptr, len) }
-}
-
 extern "C" {
     fn get_delta_time_sys() -> f32;
 
     fn info_sys(pointer: u32, len: u32);
+    fn warn_sys(pointer: u32, len: u32);
+    fn error_sys(pointer: u32, len: u32);
     pub fn get_mod_name_callback(ptr: u32, len: u32);
+}
+
+pub fn info(s: String) {
+    let (ptr, len) = string_to_pointer(s);
+    unsafe { info_sys(ptr, len) }
 }
 
 #[macro_export]
@@ -45,6 +47,36 @@ macro_rules! info {
     };
     ($($arg:tt)*) => {{
         info(format!($($arg)*));
+    }};
+}
+
+pub fn warn(s: String) {
+    let (ptr, len) = string_to_pointer(s);
+    unsafe { warn_sys(ptr, len) }
+}
+
+#[macro_export]
+macro_rules! warn {
+    () => {
+        warn("\n")
+    };
+    ($($arg:tt)*) => {{
+        warn(format!($($arg)*));
+    }};
+}
+
+pub fn error(s: String) {
+    let (ptr, len) = string_to_pointer(s);
+    unsafe { error_sys(ptr, len) }
+}
+
+#[macro_export]
+macro_rules! error {
+    () => {
+        error("\n")
+    };
+    ($($arg:tt)*) => {{
+        error(format!($($arg)*));
     }};
 }
 
