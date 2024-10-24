@@ -1,3 +1,4 @@
+use anyhow::{Error, Ok};
 use log::{info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store};
@@ -40,6 +41,7 @@ pub fn register_spawn_object(
                 params[0].unwrap_i32() as u32,
                 params[1].unwrap_i32() as u32,
             )?;
+
             let mut storage_lock = object_storage.write().unwrap();
             info!("Object spawned. obj: {:?}", &obj);
             let index = storage_lock.insert(obj);

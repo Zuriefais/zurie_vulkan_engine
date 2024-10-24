@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-wasmtime = "25.0.2"
+wasmtime = "26.0.0"
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"

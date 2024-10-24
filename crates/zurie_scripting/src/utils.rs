@@ -1,6 +1,9 @@
 use anyhow::Ok;
 use wasmtime::{Caller, Extern, Memory, TypedFunc};
-use zurie_types::minicbor::{self, Decode, Encode};
+use zurie_types::{
+    flexbuffers,
+    serde::{Deserialize, Serialize},
+};
 
 pub fn get_string_by_ptr(
     caller: &mut Caller<'_, ()>,
@@ -11,13 +14,14 @@ pub fn get_string_by_ptr(
     Ok(std::str::from_utf8(&data)?.to_string())
 }
 
-pub fn get_obj_by_ptr<T: for<'a> Decode<'a, ()>>(
+pub fn get_obj_by_ptr<T: for<'a> Deserialize<'a>>(
     caller: &mut Caller<'_, ()>,
     ptr: u32,
     len: u32,
 ) -> anyhow::Result<T> {
     let data = get_bytes_from_wasm(caller, ptr, len)?;
-    let obj = minicbor::decode(&data)?;
+    let r = flexbuffers::Reader::get_root(data.as_slice()).unwrap();
+    let obj = T::deserialize(r).unwrap();
     Ok(obj)
 }
 
@@ -59,11 +63,12 @@ pub fn copy_to_memory(
 
 pub fn copy_obj_to_memory(
     caller: &mut Caller<'_, ()>,
-    obj: impl Encode<()>,
+    obj: impl Serialize,
     alloc_fn: TypedFunc<u32, u32>,
 ) -> anyhow::Result<()> {
-    let mut bytes = vec![];
-    minicbor::encode(obj, &mut bytes);
+    let mut serializer = flexbuffers::FlexbufferSerializer::new();
+    obj.serialize(&mut serializer).unwrap();
+    let bytes = serializer.take_buffer();
 
     copy_to_memory(caller, &bytes, alloc_fn)?;
     Ok(())

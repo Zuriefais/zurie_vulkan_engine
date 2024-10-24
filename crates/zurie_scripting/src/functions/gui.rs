@@ -1,5 +1,6 @@
 use anyhow::Ok;
 use egui::{self, Context};
+
 use wasmtime::{Caller, Linker, Store};
 use zurie_types::GuiTextMessage;
 
@@ -41,11 +42,19 @@ pub fn register_gui_text(linker: &mut Linker<()>, gui_context: Context) -> anyho
     linker.func_wrap(
         "env",
         "gui_text_sys",
-        move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| {
-            let obj = get_obj_by_ptr::<GuiTextMessage>(&mut caller, ptr, len).unwrap();
-            let window = egui::Window::new(obj.window_title);
-            window.show(&gui_context, |ui| ui.label(obj.label_text));
+        move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| -> anyhow::Result<()> {
+            match get_obj_by_ptr::<GuiTextMessage>(&mut caller, ptr, len) {
+                std::result::Result::Ok(obj) => {
+                    let window = egui::Window::new(obj.window_title);
+                    window.show(&gui_context, |ui| ui.label(obj.label_text));
+                    std::result::Result::Ok(())
+                }
+                std::result::Result::Err(e) => {
+                    log::error!("Failed to get GUI text message: {}", e);
+                    std::result::Result::Ok(())
+                }
+            }
         },
     )?;
-    Ok(())
+    std::result::Result::Ok(())
 }

@@ -1,7 +1,7 @@
 use anyhow::Ok;
 use egui::{self, Context};
 use hashbrown::HashSet;
-use log::info;
+use log::{info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -87,7 +87,10 @@ impl ModManager {
         }
         for engine_mod in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
-            mod_lock.update().unwrap();
+            if let Err(e) = mod_lock.update() {
+                warn!("Error updating mod {}: {}", mod_lock.path, e);
+                continue; // Skip this mod but continue with others
+            }
         }
         Ok(())
     }

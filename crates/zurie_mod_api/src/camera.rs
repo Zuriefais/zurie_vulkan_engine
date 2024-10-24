@@ -1,6 +1,21 @@
 use zurie_types::{camera::Camera, glam::Vec2, Vector2};
 
-use crate::utils::{get_obj_from_mem, obj_to_pointer};
+use crate::utils::info;
+use crate::{
+    info,
+    utils::{get_obj_from_mem, obj_to_pointer},
+};
+
+pub fn move_camera(direction: Vec2) {
+    let new_cam_pos = get_camera_position() + direction;
+
+    set_camera_position(new_cam_pos);
+    info!(
+        "cam pos: {}, cam_pos_expected: {}",
+        get_camera_position(),
+        new_cam_pos
+    );
+}
 
 pub fn get_camera() -> Camera {
     unsafe {

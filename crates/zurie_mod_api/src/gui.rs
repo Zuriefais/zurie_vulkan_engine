@@ -3,7 +3,13 @@ use zurie_types::GuiTextMessage;
 use crate::utils::obj_to_pointer;
 
 pub fn gui_text(message: GuiTextMessage) {
-    let (ptr, len) = obj_to_pointer(&message);
+    // Create a temporary copy to ensure proper encoding
+    let msg = GuiTextMessage {
+        window_title: message.window_title.clone(),
+        label_text: message.label_text.clone(),
+    };
+
+    let (ptr, len) = obj_to_pointer(&msg);
     unsafe { gui_text_sys(ptr, len) };
 }
 extern "C" {

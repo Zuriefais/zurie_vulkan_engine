@@ -1,27 +1,24 @@
 use crate::Vector2;
 
 use super::glam::{Mat4, Vec2};
+use super::serde::{Deserialize, Serialize};
 
-use minicbor::Decode;
-use minicbor::Encode;
-
-#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Camera {
-    #[n(0)]
     pub right: f32,
-    #[n(1)]
+
     pub left: f32,
-    #[n(2)]
+
     pub top: f32,
-    #[n(3)]
+
     pub bottom: f32,
-    #[n(4)]
+
     pub near: f32,
-    #[n(5)]
+
     pub far: f32,
-    #[n(6)]
+
     pub zoom_factor: f32,
-    #[n(7)]
+
     pub position: Vector2,
 }
 

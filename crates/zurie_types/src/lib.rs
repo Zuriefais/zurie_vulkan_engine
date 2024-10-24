@@ -1,49 +1,39 @@
 pub use glam;
 use num_enum::TryFromPrimitive;
 pub mod camera;
-pub use minicbor;
-use minicbor::Decode;
-use minicbor::Encode;
+pub use flexbuffers;
+pub use serde;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
-    #[n(0)]
     pub position: Vector2,
-    #[n(1)]
     pub scale: [f32; 2],
-    #[n(2)]
     pub color: [f32; 4],
 }
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct GuiTextMessage {
-    #[n(0)]
     pub window_title: String,
-    #[n(1)]
     pub label_text: String,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct MouseState {
-    #[n(0)]
     pub position: Vector2,
-    #[n(1)]
     pub left_pressed: bool,
-    #[n(2)]
     pub right_pressed: bool,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct KeyboardState {
-    #[n(0)]
     pub key_map: Vec<KeyCode>,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Vector2 {
-    #[n(0)]
     pub x: f32,
-    #[n(1)]
     pub y: f32,
 }
 impl Vector2 {
@@ -89,27 +79,8 @@ impl From<Vector2> for glam::Vec2 {
     }
 }
 
-impl<C> Encode<C> for KeyCode {
-    fn encode<W: minicbor::encode::Write>(
-        &self,
-        e: &mut minicbor::Encoder<W>,
-        _: &mut C,
-    ) -> Result<(), minicbor::encode::Error<W::Error>> {
-        e.u32(*self as u32)?;
-        Ok(())
-    }
-}
-
-impl<'b, C> Decode<'b, C> for KeyCode {
-    fn decode(d: &mut minicbor::Decoder<'b>, _: &mut C) -> Result<Self, minicbor::decode::Error> {
-        let value = d.u32()?;
-        KeyCode::try_from(value)
-            .map_err(|_| minicbor::decode::Error::message("Invalid KeyCode value"))
-    }
-}
-
 #[repr(u32)]
-#[derive(PartialEq, Debug, TryFromPrimitive, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Debug, TryFromPrimitive, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
 pub enum KeyCode {
     /// <kbd>`</kbd> on a US keyboard. This is also called a backtick or grave.
     /// This is the <kbd>半角</kbd>/<kbd>全角</kbd>/<kbd>漢字</kbd>

@@ -1,8 +1,7 @@
 use std::ffi::CString;
-use zurie_types::{
-    minicbor::{self, Decode, Encode},
-    KeyCode,
-};
+use zurie_types::flexbuffers;
+use zurie_types::serde::{Deserialize, Serialize};
+use zurie_types::KeyCode;
 
 pub static mut PTR: u32 = 0;
 pub static mut LEN: u32 = 0;
@@ -17,12 +16,13 @@ pub fn string_to_pointer(s: String) -> (u32, u32) {
     (cs.into_raw() as u32, len)
 }
 
-pub fn obj_to_pointer<T: Encode<()>>(obj: &T) -> (u32, u32) {
-    let mut message_bin = vec![];
-    minicbor::encode(obj, &mut message_bin);
-    message_bin.shrink_to_fit();
+pub fn obj_to_pointer<T: Serialize>(obj: &T) -> (u32, u32) {
+    let mut serializer = flexbuffers::FlexbufferSerializer::new();
+    obj.serialize(&mut serializer).unwrap();
+    let message_bin = serializer.take_buffer();
     let len = message_bin.len() as u32;
-    let ptr = message_bin.as_mut_ptr() as u32;
+    let ptr = message_bin.as_ptr() as u32;
+    std::mem::forget(message_bin);
     (ptr, len)
 }
 
@@ -63,11 +63,11 @@ macro_rules! set_mod_name {
 
 pub fn get_obj_from_mem<T>() -> T
 where
-    T: for<'a> Decode<'a, ()>,
+    T: for<'de> Deserialize<'de>,
 {
     let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
-    let obj = minicbor::decode::<T>(&data).unwrap();
-    std::mem::drop(data);
+    let r = flexbuffers::Reader::get_root(&*data).unwrap();
+    let obj = T::deserialize(r).unwrap();
     obj
 }
 
