@@ -112,6 +112,9 @@ impl State {
             if let MouseScrollDelta::LineDelta(_, y) = delta {
                 self.camera.write().unwrap().event(y);
             }
+            if let MouseScrollDelta::PixelDelta(pos) = delta {
+                self.camera.write().unwrap().event((pos.y as f32));
+            }
         }
 
         self.mod_manager.event(ev)?;
