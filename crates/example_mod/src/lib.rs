@@ -1,6 +1,4 @@
-use zurie_mod_api::camera::{
-    get_camera_position, get_zoom_factor, set_camera_position, set_zoom_factor,
-};
+use zurie_mod_api::camera::{get_zoom_factor, set_zoom_factor};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::{Object, Vector2};
@@ -129,6 +127,7 @@ impl Mod for MyMod {
     }
 
     fn init(&mut self) {
+        // subscribe_to_event_by_name("eat_apple");
         info("initializing mod.....".to_string());
         subscribe_for_key_event(KeyCode::KeyW);
         subscribe_for_key_event(KeyCode::KeyA);
@@ -151,6 +150,7 @@ impl Mod for MyMod {
         }));
         self.apple = spawn_apple();
     }
+
     fn get_mod_name(&self) -> String {
         "example_mod".to_string()
     }
@@ -180,6 +180,10 @@ impl Mod for MyMod {
         }
         info!("zoom_factor: {}", zoom_factor);
     }
+
+    // fn event(&mut self, _: EventHandle, _: &[u8]) {
+    //     todo!()
+    // }
 }
 
 register_mod!(MyMod);

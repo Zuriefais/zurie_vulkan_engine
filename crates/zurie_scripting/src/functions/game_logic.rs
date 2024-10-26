@@ -1,4 +1,4 @@
-use anyhow::{Error, Ok};
+use anyhow::Ok;
 use log::{info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store};

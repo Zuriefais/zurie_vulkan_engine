@@ -13,7 +13,7 @@ use super::engine_mod::EngineMod;
 pub struct ModManager {
     engine: Engine,
     gui_context: Context,
-    mods: Vec<Arc<RwLock<EngineMod>>>,
+    mods: SlotMap<DefaultKey, Arc<RwLock<EngineMod>>>,
     new_mod_path: String,
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
@@ -28,7 +28,7 @@ impl ModManager {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
                     let key_code = key_code as u32;
                     let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
-                    for engine_mod in self.mods.iter() {
+                    for (key, engine_mod) in self.mods.iter() {
                         let mut mod_lock = engine_mod.write().unwrap();
                         mod_lock.key_event(key_code)?;
                     }
@@ -38,7 +38,7 @@ impl ModManager {
         }
         if let WindowEvent::MouseWheel { delta, .. } = ev {
             if let MouseScrollDelta::LineDelta(_, y) = delta {
-                for engine_mod in self.mods.iter() {
+                for (key, engine_mod) in self.mods.iter() {
                     let mut mod_lock = engine_mod.write().unwrap();
                     mod_lock.scroll(y)?;
                 }
@@ -56,11 +56,13 @@ impl ModManager {
             ui.text_edit_singleline(&mut self.new_mod_path);
         });
         if reload_mods {
-            let mut new_mods = vec![];
-            for engine_mod in self.mods.iter() {
-                let mod_lock = engine_mod.read().unwrap();
-                let mod_path = mod_lock.path.clone();
-                new_mods.push(Arc::new(RwLock::new(EngineMod::new(
+            for (_, engine_mod) in self.mods.iter_mut() {
+                let mod_path = {
+                    let mod_lock = engine_mod.read().unwrap();
+                    mod_lock.path.clone()
+                };
+
+                *engine_mod = Arc::new(RwLock::new(EngineMod::new(
                     mod_path.clone(),
                     &self.engine,
                     self.gui_context.clone(),
@@ -68,14 +70,13 @@ impl ModManager {
                     self.mouse_pos.clone(),
                     self.object_storage.clone(),
                     self.camera.clone(),
-                )?)));
+                )?));
                 info!("reloading {}", mod_path);
             }
-            self.mods = new_mods;
         }
         if load_new_mod {
             info!("Loading mod at path: {}", self.new_mod_path.clone());
-            self.mods.push(Arc::new(RwLock::new(EngineMod::new(
+            self.mods.insert(Arc::new(RwLock::new(EngineMod::new(
                 self.new_mod_path.clone(),
                 &self.engine,
                 self.gui_context.clone(),
@@ -85,7 +86,7 @@ impl ModManager {
                 self.camera.clone(),
             )?)));
         }
-        for engine_mod in self.mods.iter() {
+        for (_, engine_mod) in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             if let Err(e) = mod_lock.update() {
                 warn!("Error updating mod {}: {}", mod_lock.path, e);
@@ -114,7 +115,8 @@ impl ModManager {
             )
             .expect("Error loading mod"),
         ));
-        let mods = vec![test_mod];
+        let mut mods = SlotMap::new();
+        mods.insert(test_mod);
         Self {
             engine,
             gui_context,

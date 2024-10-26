@@ -1,5 +1,6 @@
 use crate::functions::{
     camera::register_camera_bindings,
+    events::{register_events_bindings, EventManager},
     game_logic::register_game_logic_bindings,
     gui::{register_gui_button, register_gui_text},
     input::{register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event},
@@ -7,7 +8,7 @@ use crate::functions::{
 };
 use anyhow::Ok;
 use egui::Context;
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};

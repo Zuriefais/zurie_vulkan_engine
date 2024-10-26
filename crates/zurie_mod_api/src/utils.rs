@@ -3,6 +3,8 @@ use zurie_types::flexbuffers;
 use zurie_types::serde::{Deserialize, Serialize};
 use zurie_types::KeyCode;
 
+// use crate::events::{EventData, EventHandle};
+
 pub static mut PTR: u32 = 0;
 pub static mut LEN: u32 = 0;
 
@@ -126,6 +128,7 @@ pub trait Mod: Send + Sync {
     fn key_event(&mut self, key: KeyCode);
     fn scroll(&mut self, scroll: f32);
     fn init(&mut self);
+    // fn event(&mut self, handle: EventHandle, data: &[u8]);
 
     fn new() -> Self
     where
@@ -178,6 +181,13 @@ pub extern "C" fn scroll(scroll: f32) {
     let game_mod = get_mod();
     game_mod.scroll(scroll);
 }
+
+// #[no_mangle]
+// pub extern "C" fn event(handle: u64) {
+//     let game_mod = get_mod();
+//     let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
+//     game_mod.event(EventHandle::new(handle), &data);
+// }
 
 pub fn get_mod() -> &'static mut dyn Mod {
     unsafe {
