@@ -4,25 +4,32 @@ use hashbrown::HashSet;
 use log::{info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
-use winit::event::{MouseScrollDelta, WindowEvent};
-use zurie_shared::slotmap::{DefaultKey, SlotMap};
+use winit::{
+    dpi::PhysicalPosition,
+    event::{MouseScrollDelta, WindowEvent},
+};
+use zurie_shared::slotmap::{new_key_type, DefaultKey, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
+
+use crate::functions::events::EventManager;
 
 use super::engine_mod::EngineMod;
 
+new_key_type! { pub struct ModHandle; }
 pub struct ModManager {
     engine: Engine,
     gui_context: Context,
-    mods: SlotMap<DefaultKey, Arc<RwLock<EngineMod>>>,
+    mods: SlotMap<ModHandle, Arc<RwLock<EngineMod>>>,
     new_mod_path: String,
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
     object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
     camera: Arc<RwLock<Camera>>,
+    event_manager: Arc<RwLock<EventManager>>,
 }
 
 impl ModManager {
-    pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
+    pub fn window_event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
         if let WindowEvent::KeyboardInput { event, .. } = ev.clone() {
             match event.physical_key {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
@@ -37,11 +44,26 @@ impl ModManager {
             }
         }
         if let WindowEvent::MouseWheel { delta, .. } = ev {
-            if let MouseScrollDelta::LineDelta(_, y) = delta {
-                for (key, engine_mod) in self.mods.iter() {
-                    let mut mod_lock = engine_mod.write().unwrap();
-                    mod_lock.scroll(y)?;
+            let scroll_amount: f32 = match delta {
+                MouseScrollDelta::LineDelta(_, y) => {
+                    info!("scroll: {:?}", y);
+                    y
                 }
+                MouseScrollDelta::PixelDelta(pos) => {
+                    info!("scroll: {:?}", pos);
+                    if pos == PhysicalPosition::new(-0.0, -0.0) {
+                        0.0
+                    } else {
+                        -(pos.y as f32)
+                    }
+                }
+            };
+            if scroll_amount == 0.0 {
+                return Ok(());
+            }
+            for (_, engine_mod) in self.mods.iter() {
+                let mut mod_lock = engine_mod.write().unwrap();
+                mod_lock.scroll(scroll_amount)?;
             }
         }
         Ok(())
@@ -86,6 +108,10 @@ impl ModManager {
                 self.camera.clone(),
             )?)));
         }
+        self.event_manager
+            .write()
+            .unwrap()
+            .process_events(&mut self.mods);
         for (_, engine_mod) in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             if let Err(e) = mod_lock.update() {
@@ -115,8 +141,9 @@ impl ModManager {
             )
             .expect("Error loading mod"),
         ));
-        let mut mods = SlotMap::new();
+        let mut mods = SlotMap::with_key();
         mods.insert(test_mod);
+        let event_manager = Default::default();
         Self {
             engine,
             gui_context,
@@ -126,6 +153,7 @@ impl ModManager {
             mouse_pos,
             object_storage,
             camera,
+            event_manager,
         }
     }
 }

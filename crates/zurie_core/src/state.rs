@@ -108,16 +108,13 @@ impl State {
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
         self.render_state.event(&ev)?;
         self.input.event(ev.clone());
-        if let WindowEvent::MouseWheel { delta, .. } = ev {
-            if let MouseScrollDelta::LineDelta(_, y) = delta {
-                self.camera.write().unwrap().event(y);
-            }
-            if let MouseScrollDelta::PixelDelta(pos) = delta {
-                self.camera.write().unwrap().event((pos.y as f32));
-            }
-        }
+        // if let WindowEvent::MouseWheel { delta, .. } = ev {
+        //     if let MouseScrollDelta::LineDelta(_, y) = delta {
+        //         self.camera.write().unwrap().event(y);
+        //     }
+        // }
 
-        self.mod_manager.event(ev)?;
+        self.mod_manager.window_event(ev)?;
         Ok(())
     }
 }

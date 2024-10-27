@@ -1,6 +1,6 @@
 use crate::functions::{
     camera::register_camera_bindings,
-    events::{register_events_bindings, EventManager},
+    events::{register_events_bindings, EventHandle, EventManager},
     game_logic::register_game_logic_bindings,
     gui::{register_gui_button, register_gui_text},
     input::{register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event},
@@ -12,10 +12,9 @@ use hashbrown::{HashMap, HashSet};
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
-use zurie_shared::slotmap::{DefaultKey, SlotMap};
+use zurie_shared::slotmap::{new_key_type, DefaultKey, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
-#[derive()]
 pub struct EngineMod {
     pub path: String,
     pub module: Module,
@@ -97,4 +96,6 @@ impl EngineMod {
         self.scroll_fn.call(&mut self.store, scroll)?;
         Ok(())
     }
+
+    pub fn handle_event(&mut self, event_handle: EventHandle, data: &[u8]) {}
 }
