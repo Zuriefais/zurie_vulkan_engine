@@ -5,11 +5,7 @@ use ecolor::hex_color;
 use gui::GameGui;
 use input::InputState;
 use std::sync::{Arc, RwLock};
-use winit::{
-    event::{MouseScrollDelta, WindowEvent},
-    event_loop::ActiveEventLoop,
-    window::Window,
-};
+use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_shared::{

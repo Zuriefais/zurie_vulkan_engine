@@ -1,18 +1,24 @@
-use crate::functions::{
-    camera::register_camera_bindings,
-    events::{register_events_bindings, EventHandle, EventManager},
-    game_logic::register_game_logic_bindings,
-    gui::{register_gui_button, register_gui_text},
-    input::{register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event},
-    utils::register_utils_bindings,
+use crate::{
+    functions::{
+        camera::register_camera_bindings,
+        events::{register_events_bindings, EventHandle, EventManager},
+        game_logic::register_game_logic_bindings,
+        gui::{register_gui_button, register_gui_text},
+        input::{
+            register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event,
+        },
+        utils::register_utils_bindings,
+    },
+    mod_manager::ModHandle,
 };
 use anyhow::Ok;
 use egui::Context;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use log::info;
 use std::sync::{Arc, RwLock};
+use wasmtime::AsContextMut;
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
-use zurie_shared::slotmap::{new_key_type, DefaultKey, SlotMap};
+use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
 pub struct EngineMod {
@@ -21,9 +27,11 @@ pub struct EngineMod {
     pub instance: Instance,
     pub store: Store<()>,
     pub update_fn: TypedFunc<(), ()>,
+    pub event_fn: TypedFunc<u64, ()>,
     pub key_event_fn: TypedFunc<u32, ()>,
     pub scroll_fn: TypedFunc<f32, ()>,
     pub mod_name: Arc<RwLock<String>>,
+    pub alloc_fn: TypedFunc<u32, u32>,
     pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
 }
 
@@ -36,6 +44,8 @@ impl EngineMod {
         mouse_pos: Arc<RwLock<Vec2>>,
         object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
         camera: Arc<RwLock<Camera>>,
+        event_manager: Arc<RwLock<EventManager>>,
+        mod_handle: ModHandle,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
@@ -51,6 +61,7 @@ impl EngineMod {
         register_request_mouse_pos(&mut linker, mouse_pos)?;
         register_game_logic_bindings(&mut linker, &store, object_storage)?;
         register_camera_bindings(&mut linker, camera, &store)?;
+        register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
         let instance = linker.instantiate(&mut store, &module)?;
         let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
@@ -62,6 +73,10 @@ impl EngineMod {
             instance.get_typed_func::<f32, ()>(&mut store, "scroll")?;
         let get_mod_name_fn: TypedFunc<(), ()> =
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
+        let event_fn: TypedFunc<u64, ()> =
+            instance.get_typed_func::<u64, ()>(&mut store, "event")?;
+        let alloc_fn: TypedFunc<u32, u32> =
+            instance.get_typed_func::<u32, u32>(&mut store, "alloc")?;
         new_fn.call(&mut store, ())?;
         get_mod_name_fn.call(&mut store, ())?;
         info!("Mod name: {}", mod_name.read().unwrap());
@@ -72,9 +87,11 @@ impl EngineMod {
             instance,
             store,
             update_fn,
+            event_fn,
             key_event_fn,
             scroll_fn,
             mod_name,
+            alloc_fn,
             subscribed_keys,
         })
     }
@@ -97,5 +114,21 @@ impl EngineMod {
         Ok(())
     }
 
-    pub fn handle_event(&mut self, event_handle: EventHandle, data: &[u8]) {}
+    pub fn handle_event(&mut self, event_handle: EventHandle, data: &[u8]) -> anyhow::Result<()> {
+        let mut store_mut = self.store.as_context_mut();
+        let memory = self
+            .instance
+            .get_memory(&mut store_mut, "memory")
+            .ok_or_else(|| anyhow::anyhow!("failed to get memory"))?;
+        let ptr = self.alloc_fn.call(&mut self.store, data.len() as u32)? as usize;
+        memory
+            .data_mut(&mut self.store)
+            .get_mut(ptr..)
+            .and_then(|slice| slice.get_mut(..data.len()))
+            .ok_or_else(|| anyhow::anyhow!("failed to write to memory"))?
+            .copy_from_slice(data);
+        self.event_fn
+            .call(&mut self.store, KeyData::as_ffi(event_handle.data()))?;
+        Ok(())
+    }
 }

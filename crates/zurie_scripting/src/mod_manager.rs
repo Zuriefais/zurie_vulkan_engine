@@ -35,7 +35,7 @@ impl ModManager {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
                     let key_code = key_code as u32;
                     let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
-                    for (key, engine_mod) in self.mods.iter() {
+                    for (_, engine_mod) in self.mods.iter() {
                         let mut mod_lock = engine_mod.write().unwrap();
                         mod_lock.key_event(key_code)?;
                     }
@@ -78,7 +78,7 @@ impl ModManager {
             ui.text_edit_singleline(&mut self.new_mod_path);
         });
         if reload_mods {
-            for (_, engine_mod) in self.mods.iter_mut() {
+            for (handle, engine_mod) in self.mods.iter_mut() {
                 let mod_path = {
                     let mod_lock = engine_mod.read().unwrap();
                     mod_lock.path.clone()
@@ -92,26 +92,36 @@ impl ModManager {
                     self.mouse_pos.clone(),
                     self.object_storage.clone(),
                     self.camera.clone(),
+                    self.event_manager.clone(),
+                    handle,
                 )?));
                 info!("reloading {}", mod_path);
             }
         }
         if load_new_mod {
             info!("Loading mod at path: {}", self.new_mod_path.clone());
-            self.mods.insert(Arc::new(RwLock::new(EngineMod::new(
-                self.new_mod_path.clone(),
-                &self.engine,
-                self.gui_context.clone(),
-                self.pressed_keys_buffer.clone(),
-                self.mouse_pos.clone(),
-                self.object_storage.clone(),
-                self.camera.clone(),
-            )?)));
+            let event_manager = self.event_manager.clone();
+            self.mods.insert_with_key(|handle| {
+                Arc::new(RwLock::new(
+                    EngineMod::new(
+                        self.new_mod_path.clone(),
+                        &self.engine,
+                        self.gui_context.clone(),
+                        self.pressed_keys_buffer.clone(),
+                        self.mouse_pos.clone(),
+                        self.object_storage.clone(),
+                        self.camera.clone(),
+                        event_manager,
+                        handle,
+                    )
+                    .unwrap(),
+                ))
+            });
         }
         self.event_manager
             .write()
             .unwrap()
-            .process_events(&mut self.mods);
+            .process_events(&mut self.mods)?;
         for (_, engine_mod) in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             if let Err(e) = mod_lock.update() {
@@ -129,21 +139,25 @@ impl ModManager {
         camera: Arc<RwLock<Camera>>,
     ) -> Self {
         let engine = Engine::default();
-        let test_mod = Arc::new(RwLock::new(
-            EngineMod::new(
-                "./target/wasm32-unknown-unknown/release/example_mod.wasm".to_string(),
-                &engine,
-                gui_context.clone(),
-                pressed_keys_buffer.clone(),
-                mouse_pos.clone(),
-                object_storage.clone(),
-                camera.clone(),
-            )
-            .expect("Error loading mod"),
-        ));
         let mut mods = SlotMap::with_key();
-        mods.insert(test_mod);
-        let event_manager = Default::default();
+        let event_manager: Arc<RwLock<EventManager>> = Default::default();
+        mods.insert_with_key(|handle| {
+            Arc::new(RwLock::new(
+                EngineMod::new(
+                    "./target/wasm32-unknown-unknown/release/example_mod.wasm".into(),
+                    &engine,
+                    gui_context.clone(),
+                    pressed_keys_buffer.clone(),
+                    mouse_pos.clone(),
+                    object_storage.clone(),
+                    camera.clone(),
+                    event_manager.clone(),
+                    handle,
+                )
+                .unwrap(),
+            ))
+        });
+
         Self {
             engine,
             gui_context,

@@ -1,4 +1,5 @@
 use zurie_mod_api::camera::{get_zoom_factor, set_zoom_factor};
+use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::{Object, Vector2};
@@ -15,6 +16,7 @@ pub struct MyMod {
     i: u32,
     snake: Vec<ObjectHandle>,
     apple: ObjectHandle,
+    eat_apple_handle: EventHandle,
     direction: Vec2,
 }
 
@@ -116,8 +118,7 @@ impl Mod for MyMod {
         // Check collision with apple
         if let Some(head_pos) = self.snake[0].get_pos() {
             if head_pos == apple_pos {
-                self.apple.despawn();
-                self.apple = spawn_apple();
+                emit_event_string(self.eat_apple_handle, "Apple eated".into())
             }
         }
     }
@@ -127,7 +128,7 @@ impl Mod for MyMod {
     }
 
     fn init(&mut self) {
-        // subscribe_to_event_by_name("eat_apple");
+        self.eat_apple_handle = subscribe_to_event_by_name("eat_apple");
         info("initializing mod.....".to_string());
         subscribe_for_key_event(KeyCode::KeyW);
         subscribe_for_key_event(KeyCode::KeyA);
@@ -181,9 +182,13 @@ impl Mod for MyMod {
         info!("zoom_factor: {}", zoom_factor);
     }
 
-    // fn event(&mut self, _: EventHandle, _: &[u8]) {
-    //     todo!()
-    // }
+    fn event(&mut self, handle: EventHandle, _: &[u8]) {
+        info!("event catched: {:?}", handle);
+        if handle == self.eat_apple_handle {
+            self.apple.despawn();
+            self.apple = spawn_apple();
+        }
+    }
 }
 
 register_mod!(MyMod);

@@ -42,21 +42,22 @@ impl EventManager {
         info!("Event registered: {}", name);
         return event_handle;
     }
-    pub fn emit(&mut self, event_handle: EventHandle, data: Vec<u8>, mod_handle: ModHandle) {
+    pub fn emit(&mut self, event_handle: EventHandle, mod_handle: ModHandle, data: Vec<u8>) {
         self.event_queue.push((mod_handle, event_handle, data))
     }
-    pub fn process_events(&mut self, mods: &mut SlotMap<ModHandle, Arc<RwLock<EngineMod>>>) {
-        for (mod_sender_handle, event_handle, data) in self.event_queue.iter() {
-            for (mod_handle, engine_mod) in mods.iter() {
-                if mod_handle == *mod_sender_handle {
-                    continue;
-                }
+    pub fn process_events(
+        &mut self,
+        mods: &mut SlotMap<ModHandle, Arc<RwLock<EngineMod>>>,
+    ) -> anyhow::Result<()> {
+        for (_, event_handle, data) in self.event_queue.drain(..) {
+            for (_, engine_mod) in mods.iter() {
                 engine_mod
                     .write()
                     .unwrap()
-                    .handle_event(event_handle.clone(), data);
+                    .handle_event(event_handle.clone(), &data)?;
             }
         }
+        Ok(())
     }
 }
 
@@ -66,7 +67,14 @@ pub fn register_events_bindings(
     event_manager: Arc<RwLock<EventManager>>,
     mod_handle: ModHandle,
 ) -> anyhow::Result<()> {
-    register_subscribe_to_event_by_name(linker, store, event_manager, mod_handle)?;
+    register_subscribe_to_event_by_name(linker, store, event_manager.clone(), mod_handle.clone())?;
+    register_subscribe_to_event_by_handle(
+        linker,
+        store,
+        event_manager.clone(),
+        mod_handle.clone(),
+    )?;
+    register_emit_event(linker, store, event_manager.clone(), mod_handle.clone())?;
     Ok(())
 }
 
@@ -117,11 +125,47 @@ pub fn register_subscribe_to_event_by_handle(
             [wasmtime::ValType::I64].iter().cloned(),
             [].iter().cloned(),
         ),
-        move |mut caller, params, results| {
+        move |_, params, _| {
             let handle = KeyData::from_ffi(params[0].unwrap_i64() as u64);
 
             let mut event_manager = event_manager.write().unwrap();
-            let handle = event_manager.subscribe_by_handle(handle.into(), mod_handle);
+            event_manager.subscribe_by_handle(handle.into(), mod_handle);
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+pub fn register_emit_event(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    event_manager: Arc<RwLock<EventManager>>,
+    mod_handle: ModHandle,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "emit_event_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [
+                wasmtime::ValType::I64,
+                wasmtime::ValType::I32,
+                wasmtime::ValType::I32,
+            ]
+            .iter()
+            .cloned(),
+            [].iter().cloned(),
+        ),
+        move |mut caller, params, _| {
+            let handle = KeyData::from_ffi(params[0].unwrap_i64() as u64);
+            let (ptr, len) = (params[1].unwrap_i32() as u32, params[2].unwrap_i32() as u32);
+            let data = get_bytes_from_wasm(&mut caller, ptr, len)?;
+            let mut event_manager = event_manager.write().unwrap();
+            info!(
+                "Event emited: {}",
+                event_manager.event_storage.get(handle.into()).unwrap()
+            );
+            event_manager.emit(handle.into(), mod_handle, data);
             Ok(())
         },
     )?;
@@ -131,5 +175,5 @@ pub fn register_subscribe_to_event_by_handle(
 // extern "C" {
 //     fn subscribe_to_event_by_name_sys(ptr: u32, len: u32) -> u64;
 //     fn subscribe_to_event_by_handle_sys(handle: u64);
-//     fn send_event_sys(handle: u64, ptr: u32, len: u32);
+//     fn emit_sys(handle: u64, ptr: u32, len: u32);
 // }
