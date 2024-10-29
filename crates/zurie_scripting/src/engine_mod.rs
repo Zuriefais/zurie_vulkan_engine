@@ -2,6 +2,7 @@ use crate::{
     functions::{
         camera::register_camera_bindings,
         events::{register_events_bindings, EventHandle, EventManager},
+        file::register_file_bindings,
         game_logic::register_game_logic_bindings,
         gui::{register_gui_button, register_gui_text},
         input::{
@@ -53,6 +54,7 @@ impl EngineMod {
         let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
         info!("mod at path {} compiled", mod_path);
         let mut store = Store::new(engine, ());
+        let alloc_fn_lock = Arc::new(RwLock::new(None));
         register_utils_bindings(&mut linker, &store, mod_name.clone())?;
         register_gui_text(&mut linker, gui_context.clone())?;
         register_subscribe_for_key_event(&mut linker, mod_name.clone(), subscribed_keys.clone())?;
@@ -62,6 +64,7 @@ impl EngineMod {
         register_game_logic_bindings(&mut linker, &store, object_storage)?;
         register_camera_bindings(&mut linker, camera, &store)?;
         register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
+        register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;
         let instance = linker.instantiate(&mut store, &module)?;
         let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
@@ -75,8 +78,9 @@ impl EngineMod {
             instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
         let event_fn: TypedFunc<u64, ()> =
             instance.get_typed_func::<u64, ()>(&mut store, "event")?;
-        let alloc_fn: TypedFunc<u32, u32> =
-            instance.get_typed_func::<u32, u32>(&mut store, "alloc")?;
+        let alloc_fn = instance.get_typed_func::<u32, u32>(&mut store, "alloc")?;
+        let mut alloc_fn_lock = alloc_fn_lock.write().unwrap();
+        *alloc_fn_lock = Some(alloc_fn.clone());
         new_fn.call(&mut store, ())?;
         get_mod_name_fn.call(&mut store, ())?;
         info!("Mod name: {}", mod_name.read().unwrap());

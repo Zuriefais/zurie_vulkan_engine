@@ -1,5 +1,7 @@
+use std::str;
 use zurie_mod_api::camera::{get_zoom_factor, set_zoom_factor};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
+use zurie_mod_api::file::load_file;
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::{Object, Vector2};
@@ -58,6 +60,10 @@ fn spawn_apple() -> ObjectHandle {
 impl Mod for MyMod {
     fn update(&mut self) {
         // Add safety checks for snake array
+        info!(
+            "{}",
+            str::from_utf8(&load_file("Cargo.toml".into()).unwrap()).unwrap()
+        );
         if self.snake.is_empty() {
             return;
         }
