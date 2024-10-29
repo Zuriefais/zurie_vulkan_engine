@@ -68,14 +68,14 @@ impl State {
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.sim_clock.clock();
         self.render_state.gui.start_gui();
-        self.gui.draw_gui(
-            &mut self.sim_clock,
-            &mut self.render_state.compute,
-            &mut self.input.mouse.hover_gui,
-            &mut self.selected_cell_type,
-            self.render_state.renderer.window_size(),
-            &mut self.background_color,
-        );
+        // self.gui.draw_gui(
+        //     &mut self.sim_clock,
+        //     &mut self.render_state.compute,
+        //     &mut self.input.mouse.hover_gui,
+        //     &mut self.selected_cell_type,
+        //     self.render_state.renderer.window_size(),
+        //     &mut self.background_color,
+        // );
         self.mod_manager.update()?;
         self.render_state.render(
             &mut self.sim_clock,

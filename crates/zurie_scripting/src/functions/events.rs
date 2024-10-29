@@ -1,4 +1,4 @@
-use crate::engine_mod::{EngineMod};
+use crate::engine_mod::EngineMod;
 use crate::mod_manager::ModHandle;
 use crate::utils::{get_bytes_from_wasm, get_string_by_ptr};
 use egui::ahash::{HashSet, HashSetExt};
@@ -68,12 +68,7 @@ pub fn register_events_bindings(
     mod_handle: ModHandle,
 ) -> anyhow::Result<()> {
     register_subscribe_to_event_by_name(linker, store, event_manager.clone(), mod_handle)?;
-    register_subscribe_to_event_by_handle(
-        linker,
-        store,
-        event_manager.clone(),
-        mod_handle,
-    )?;
+    register_subscribe_to_event_by_handle(linker, store, event_manager.clone(), mod_handle)?;
     register_emit_event(linker, store, event_manager.clone(), mod_handle)?;
     Ok(())
 }
