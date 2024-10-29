@@ -61,7 +61,7 @@ impl EngineMod {
         register_gui_button(&mut linker, &store, gui_context.clone())?;
         register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
         register_request_mouse_pos(&mut linker, mouse_pos)?;
-        register_game_logic_bindings(&mut linker, &store, object_storage)?;
+        register_game_logic_bindings(&mut linker, &store, object_storage, alloc_fn_lock.clone())?;
         register_camera_bindings(&mut linker, camera, &store)?;
         register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
         register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;

@@ -1,7 +1,6 @@
-use crate::utils::{copy_to_memory, get_bytes_from_wasm, get_string_by_ptr};
+use crate::utils::{copy_to_memory, get_string_by_ptr};
 use anyhow::Ok;
-use log::{error, info, warn};
-use std::fs::File;
+use log::{error, info};
 use std::sync::Arc;
 use std::{fs, sync::RwLock};
 use wasmtime::{Linker, Store, TypedFunc, Val};

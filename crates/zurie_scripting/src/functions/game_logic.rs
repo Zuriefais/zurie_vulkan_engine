@@ -1,7 +1,7 @@
 use anyhow::Ok;
 use log::{info, warn};
 use std::sync::{Arc, RwLock};
-use wasmtime::{Linker, Store};
+use wasmtime::{Linker, Store, TypedFunc};
 use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
 use zurie_types::Object;
 
@@ -11,11 +11,12 @@ pub fn register_game_logic_bindings(
     linker: &mut Linker<()>,
     store: &Store<()>,
     object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+    alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
 ) -> anyhow::Result<()> {
     register_spawn_object(linker, store, object_storage.clone())?;
     register_despawn_object(linker, store, object_storage.clone())?;
-    register_request_object(linker, store, object_storage.clone())?;
-    register_request_object_position(linker, store, object_storage.clone())?;
+    register_request_object(linker, store, object_storage.clone(), alloc_fn.clone())?;
+    register_request_object_position(linker, store, object_storage.clone(), alloc_fn.clone())?;
     register_set_object_position(linker, store, object_storage.clone())?;
     Ok(())
 }
@@ -80,6 +81,7 @@ pub fn register_request_object(
     linker: &mut Linker<()>,
     store: &Store<()>,
     object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+    alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
@@ -96,12 +98,12 @@ pub fn register_request_object(
             let object: Option<&Object> = storage_lock.get(KeyData::from_ffi(index).into());
             if let Some(obj) = object {
                 let obj_clone = *obj;
-                let alloc_fn = caller
-                    .get_export("alloc")
-                    .and_then(|export| export.into_func())
-                    .ok_or_else(|| anyhow::anyhow!("Failed to find 'alloc' function"))?
-                    .typed::<u32, u32>(&caller)?;
-                copy_obj_to_memory(&mut caller, obj_clone, alloc_fn.clone())?;
+
+                copy_obj_to_memory(
+                    &mut caller,
+                    obj_clone,
+                    alloc_fn.read().unwrap().as_ref().unwrap().clone(),
+                )?;
                 info!("Object requested: {}. obj: {:?}", index, &obj);
             } else {
                 warn!("Object requested by: {} can't find", index,);
@@ -118,6 +120,7 @@ pub fn register_request_object_position(
     linker: &mut Linker<()>,
     store: &Store<()>,
     object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+    alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
@@ -135,12 +138,12 @@ pub fn register_request_object_position(
 
             if let Some(obj) = object {
                 let obj_clone = obj.position;
-                let alloc_fn = caller
-                    .get_export("alloc")
-                    .and_then(|export| export.into_func())
-                    .ok_or_else(|| anyhow::anyhow!("Failed to find 'alloc' function"))?
-                    .typed::<u32, u32>(&caller)?;
-                copy_obj_to_memory(&mut caller, obj_clone, alloc_fn.clone())?;
+
+                copy_obj_to_memory(
+                    &mut caller,
+                    obj_clone,
+                    alloc_fn.read().unwrap().as_ref().unwrap().clone(),
+                )?;
             }
 
             results[0] = wasmtime::Val::I32(object.is_some() as i32);

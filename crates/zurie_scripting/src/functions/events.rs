@@ -1,4 +1,4 @@
-use crate::engine_mod::{self, EngineMod};
+use crate::engine_mod::{EngineMod};
 use crate::mod_manager::ModHandle;
 use crate::utils::{get_bytes_from_wasm, get_string_by_ptr};
 use egui::ahash::{HashSet, HashSetExt};
@@ -40,7 +40,7 @@ impl EventManager {
             .unwrap_or_else(|| self.event_storage.insert(name.clone()));
         self.subscribe_by_handle(event_handle, mod_handle);
         info!("Event registered: {}", name);
-        return event_handle;
+        event_handle
     }
     pub fn emit(&mut self, event_handle: EventHandle, mod_handle: ModHandle, data: Vec<u8>) {
         self.event_queue.push((mod_handle, event_handle, data))
@@ -54,7 +54,7 @@ impl EventManager {
                 engine_mod
                     .write()
                     .unwrap()
-                    .handle_event(event_handle.clone(), &data)?;
+                    .handle_event(event_handle, &data)?;
             }
         }
         Ok(())
@@ -67,14 +67,14 @@ pub fn register_events_bindings(
     event_manager: Arc<RwLock<EventManager>>,
     mod_handle: ModHandle,
 ) -> anyhow::Result<()> {
-    register_subscribe_to_event_by_name(linker, store, event_manager.clone(), mod_handle.clone())?;
+    register_subscribe_to_event_by_name(linker, store, event_manager.clone(), mod_handle)?;
     register_subscribe_to_event_by_handle(
         linker,
         store,
         event_manager.clone(),
-        mod_handle.clone(),
+        mod_handle,
     )?;
-    register_emit_event(linker, store, event_manager.clone(), mod_handle.clone())?;
+    register_emit_event(linker, store, event_manager.clone(), mod_handle)?;
     Ok(())
 }
 
