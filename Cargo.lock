@@ -3884,6 +3884,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zurie_ecs"
+version = "0.0.0"
+dependencies = [
+ "zurie_shared",
+]
+
+[[package]]
 name = "zurie_mod_api"
 version = "0.0.0"
 dependencies = [
@@ -3926,6 +3933,7 @@ dependencies = [
  "thiserror",
  "wasmtime",
  "winit",
+ "zurie_ecs",
  "zurie_shared",
  "zurie_types",
 ]
@@ -3934,6 +3942,7 @@ dependencies = [
 name = "zurie_shared"
 version = "0.0.0"
 dependencies = [
+ "hashbrown 0.15.0",
  "log",
  "slotmap",
  "winit",

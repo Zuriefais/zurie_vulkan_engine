@@ -8,3 +8,4 @@ zurie_types = { path = "../zurie_types" }
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 log = "0.4.22"
 slotmap = "1.0.7"
+hashbrown = "0.15.0"
