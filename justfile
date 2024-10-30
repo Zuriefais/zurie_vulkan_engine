@@ -28,3 +28,6 @@ fix:
 
 dev:
     mangohud RUST_LOG=info CARGO_PROFILE_DEV_CODEGEN_BACKEND=cranelift cargo +nightly run -Zcodegen-backend
+
+test_ecs:
+    cargo test --package zurie_ecs -- --nocapture

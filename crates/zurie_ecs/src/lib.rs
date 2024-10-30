@@ -7,7 +7,7 @@ pub struct Architype {
     pub data: Vec<ComponentID>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct EntityData {
     pub data: Vec<(ComponentID, Vec<u8>)>,
 }
@@ -37,6 +37,9 @@ impl EntityStorage {
     pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<(Entity, &EntityData)> {
         let mut entities = vec![];
         'entity_loop: for (entity, data) in self.entities.iter() {
+            if data.data.len() != architype.data.len() {
+                continue 'entity_loop;
+            }
             for component in architype.data.iter() {
                 if !data.data.iter().any(|(id, _)| id == component) {
                     continue 'entity_loop;
@@ -75,7 +78,7 @@ pub mod test {
     use super::*;
 
     #[test]
-    fn test_ecs() {
+    fn test_one_entity() {
         let mut world = World::default();
         let my_component = world.register_component("my_component".into());
         let entity = world.storage.spawn_entity_with_data(EntityData {
@@ -84,6 +87,59 @@ pub mod test {
         assert_eq!(
             vec![10],
             world.storage.get_entity_data(entity).unwrap().data[0].1
+        );
+        world.storage.modify_entity(
+            entity,
+            EntityData {
+                data: vec![(my_component, vec![20])],
+            },
+        );
+        assert_eq!(
+            vec![20],
+            world.storage.get_entity_data(entity).unwrap().data[0].1
+        );
+    }
+
+    #[test]
+    fn test_multiple_entities() {
+        let mut world = World::default();
+        let my_component = world.register_component("my_component".into());
+        let my_component2 = world.register_component("my_component1".into());
+        let my_component3 = world.register_component("my_component2".into());
+
+        for num in 0..100 {
+            world.storage.spawn_entity_with_data(EntityData {
+                data: vec![(my_component, vec![num])],
+            });
+        }
+        for num in 0..100 {
+            world.storage.spawn_entity_with_data(EntityData {
+                data: vec![
+                    (my_component, vec![num]),
+                    (my_component2, vec![num]),
+                    (my_component3, vec![num]),
+                ],
+            });
+        }
+        for num in 0..100 {
+            world.storage.spawn_entity_with_data(EntityData {
+                data: vec![(my_component, vec![num]), (my_component3, vec![num])],
+            });
+        }
+        println!(
+            "{:?}",
+            world.storage.get_entities_with_arhetype(Architype {
+                data: vec![my_component, my_component3]
+            })
+        );
+        assert_eq!(
+            100,
+            world
+                .storage
+                .get_entities_with_arhetype(Architype {
+                    data: vec![my_component, my_component3]
+                })
+                .len()
         );
     }
 }
