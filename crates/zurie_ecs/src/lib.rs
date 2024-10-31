@@ -56,6 +56,16 @@ impl EntityStorage {
         }
     }
 
+    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, &mut Vec<u8>)) {
+        if let Some(entity_data) = self.entities.get_mut(entity) {
+            for (component, data) in entity_data.data.iter_mut() {
+                if *component == new_component.0 {
+                    *data = new_component.1.clone()
+                }
+            }
+        }
+    }
+
     pub fn despawn(&mut self, entity: Entity) {
         self.entities.remove(entity);
     }
@@ -103,6 +113,10 @@ impl World {
 
     pub fn despawn(&mut self, entity: Entity) {
         self.storage.despawn(entity);
+    }
+
+    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, &mut Vec<u8>)) {
+        self.storage.set_component(entity, new_component)
     }
 }
 
