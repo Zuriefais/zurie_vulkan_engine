@@ -63,13 +63,46 @@ impl EntityStorage {
 
 #[derive(Default)]
 pub struct World {
-    pub storage: EntityStorage,
-    pub registered_components: SlotMap<ComponentID, String>,
+    storage: EntityStorage,
+    registered_components: SlotMap<ComponentID, String>,
 }
 
 impl World {
     pub fn register_component(&mut self, name: String) -> ComponentID {
+        for component in self.registered_components.iter() {
+            if name == *component.1 {
+                return component.0;
+            }
+        }
         self.registered_components.insert(name)
+    }
+
+    pub fn spawn_entity(&mut self) -> Entity {
+        self.storage.spawn_entity()
+    }
+
+    pub fn spawn_entity_with_data(&mut self, data: EntityData) -> Entity {
+        self.storage.spawn_entity_with_data(data)
+    }
+
+    pub fn get_entity_data(&self, entity: Entity) -> Option<&EntityData> {
+        self.storage.get_entity_data(entity)
+    }
+
+    pub fn get_all_entities(&self) -> Vec<(Entity, &EntityData)> {
+        self.storage.get_all_entities()
+    }
+
+    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<(Entity, &EntityData)> {
+        self.storage.get_entities_with_arhetype(architype)
+    }
+
+    pub fn modify_entity(&mut self, entity: Entity, new_data: EntityData) {
+        self.storage.modify_entity(entity, new_data);
+    }
+
+    pub fn despawn(&mut self, entity: Entity) {
+        self.storage.despawn(entity);
     }
 }
 
@@ -81,23 +114,17 @@ pub mod test {
     fn test_one_entity() {
         let mut world = World::default();
         let my_component = world.register_component("my_component".into());
-        let entity = world.storage.spawn_entity_with_data(EntityData {
+        let entity = world.spawn_entity_with_data(EntityData {
             data: vec![(my_component, vec![10])],
         });
-        assert_eq!(
-            vec![10],
-            world.storage.get_entity_data(entity).unwrap().data[0].1
-        );
-        world.storage.modify_entity(
+        assert_eq!(vec![10], world.get_entity_data(entity).unwrap().data[0].1);
+        world.modify_entity(
             entity,
             EntityData {
                 data: vec![(my_component, vec![20])],
             },
         );
-        assert_eq!(
-            vec![20],
-            world.storage.get_entity_data(entity).unwrap().data[0].1
-        );
+        assert_eq!(vec![20], world.get_entity_data(entity).unwrap().data[0].1);
     }
 
     #[test]
