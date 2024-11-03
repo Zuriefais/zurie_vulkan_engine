@@ -4,15 +4,18 @@ pub mod input;
 use ecolor::hex_color;
 use gui::GameGui;
 use input::InputState;
+use log::info;
 use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
+use zurie_ecs::{Architype, ComponentID, Entity, EntityData, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_shared::{
     sim_clock::SimClock,
     slotmap::{DefaultKey, SlotMap},
 };
-use zurie_types::{camera::Camera, glam::Vec2, Object};
+use zurie_types::serde::Deserialize;
+use zurie_types::{camera::Camera, flexbuffers, glam::Vec2, Object, Vector2};
 
 pub struct State {
     gui: GameGui,
@@ -22,8 +25,11 @@ pub struct State {
     background_color: [f32; 4],
     camera: Arc<RwLock<Camera>>,
     mod_manager: ModManager,
-    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+    world: Arc<RwLock<World>>,
     render_state: RenderState,
+    pos_component: ComponentID,
+    scale_component: ComponentID,
+    color_component: ComponentID,
 }
 
 impl State {
@@ -43,12 +49,23 @@ impl State {
             Vec2::ZERO,
         )));
         let input = InputState::default();
-        let object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>> = Default::default();
+        let (world, pos_component, scale_component, color_component) = {
+            let mut world: World = Default::default();
+            let pos_component = world.register_component("position".into());
+            let scale_component = world.register_component("scale".into());
+            let color_component = world.register_component("color".into());
+            (
+                Arc::new(RwLock::new(world)),
+                pos_component,
+                scale_component,
+                color_component,
+            )
+        };
         let mod_manager = ModManager::new(
             gui_context.clone(),
             input.pressed_keys_buffer.clone(),
             input.mouse.position.clone(),
-            object_storage.clone(),
+            world.clone(),
             camera.clone(),
         );
 
@@ -60,8 +77,11 @@ impl State {
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
             camera,
             mod_manager,
-            object_storage,
+            world,
             render_state,
+            pos_component,
+            scale_component,
+            color_component,
         }
     }
 
@@ -77,6 +97,48 @@ impl State {
         //     &mut self.background_color,
         // );
         self.mod_manager.update()?;
+        let mut objects: Vec<Object> = self
+            .world
+            .read()
+            .unwrap()
+            .get_entities_with_arhetype(Architype {
+                data: vec![
+                    self.pos_component,
+                    self.scale_component,
+                    self.color_component,
+                ],
+            })
+            .iter()
+            .map(|(_, entity_data)| {
+                let mut obj = Object::default();
+                for (component_id, component_data) in entity_data.data.iter() {
+                    if *component_id == self.pos_component {
+                        obj.position = {
+                            let r =
+                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
+                            Vector2::deserialize(r).unwrap()
+                        };
+                    } else if *component_id == self.scale_component {
+                        obj.scale = {
+                            let r =
+                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
+                            <[f32; 2]>::deserialize(r).unwrap()
+                        }
+                    } else if *component_id == self.color_component {
+                        obj.color = {
+                            let r =
+                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
+                            <[f32; 4]>::deserialize(r).unwrap()
+                        }
+                    }
+                }
+                obj
+            })
+            .collect();
+        objects.push(Object::default());
+        info!("objects count, {}", objects.len());
+        let objects = Arc::new(RwLock::new(objects));
+
         self.render_state.render(
             &mut self.sim_clock,
             self.selected_cell_type,
@@ -86,7 +148,7 @@ impl State {
             self.input.mouse.hover_gui,
             self.background_color,
             &self.camera.read().unwrap(),
-            self.object_storage.clone(),
+            objects,
         )?;
         self.input.after_update();
 

@@ -8,14 +8,14 @@ use winit::{
     dpi::PhysicalPosition,
     event::{MouseScrollDelta, WindowEvent},
 };
+use zurie_ecs::World;
 use zurie_shared::slotmap::{new_key_type, DefaultKey, SlotMap};
-use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
+use zurie_types::{camera::Camera, glam::Vec2, serde, KeyCode, Object};
 
-use crate::functions::events::EventManager;
+use crate::{functions::events::EventManager, ModHandle};
 
 use super::engine_mod::EngineMod;
 
-new_key_type! { pub struct ModHandle; }
 pub struct ModManager {
     engine: Engine,
     gui_context: Context,
@@ -23,7 +23,7 @@ pub struct ModManager {
     new_mod_path: String,
     pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     mouse_pos: Arc<RwLock<Vec2>>,
-    object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+    world: Arc<RwLock<World>>,
     camera: Arc<RwLock<Camera>>,
     event_manager: Arc<RwLock<EventManager>>,
 }
@@ -90,7 +90,7 @@ impl ModManager {
                     self.gui_context.clone(),
                     self.pressed_keys_buffer.clone(),
                     self.mouse_pos.clone(),
-                    self.object_storage.clone(),
+                    self.world.clone(),
                     self.camera.clone(),
                     self.event_manager.clone(),
                     handle,
@@ -109,7 +109,7 @@ impl ModManager {
                         self.gui_context.clone(),
                         self.pressed_keys_buffer.clone(),
                         self.mouse_pos.clone(),
-                        self.object_storage.clone(),
+                        self.world.clone(),
                         self.camera.clone(),
                         event_manager,
                         handle,
@@ -135,7 +135,7 @@ impl ModManager {
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
-        object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+        world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
     ) -> Self {
         let engine = Engine::default();
@@ -149,7 +149,7 @@ impl ModManager {
                     gui_context.clone(),
                     pressed_keys_buffer.clone(),
                     mouse_pos.clone(),
-                    object_storage.clone(),
+                    world.clone(),
                     camera.clone(),
                     event_manager.clone(),
                     handle,
@@ -165,7 +165,7 @@ impl ModManager {
             new_mod_path: String::new(),
             pressed_keys_buffer,
             mouse_pos,
-            object_storage,
+            world,
             camera,
             event_manager,
         }

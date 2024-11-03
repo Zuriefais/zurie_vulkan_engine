@@ -1,3 +1,4 @@
+use log::info;
 use zurie_shared::slotmap::{new_key_type, SlotMap};
 
 new_key_type! { pub struct Entity; }
@@ -12,6 +13,13 @@ pub struct EntityData {
     pub data: Vec<(ComponentID, Vec<u8>)>,
 }
 
+impl Iterator for EntityData {
+    type Item = (ComponentID, Vec<u8>);
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
 #[derive(Default)]
 pub struct EntityStorage {
     entities: SlotMap<Entity, EntityData>,
@@ -19,15 +27,24 @@ pub struct EntityStorage {
 
 impl EntityStorage {
     pub fn spawn_entity(&mut self) -> Entity {
-        self.entities.insert(EntityData::default())
+        self.spawn_entity_with_data(EntityData::default())
     }
 
     pub fn spawn_entity_with_data(&mut self, data: EntityData) -> Entity {
+        info!(
+            "Ent spawned. Ent count: {}, component_count, {}",
+            self.entities.len(),
+            data.data.len()
+        );
         self.entities.insert(data)
     }
 
     pub fn get_entity_data(&self, entity: Entity) -> Option<&EntityData> {
         self.entities.get(entity)
+    }
+
+    pub fn get_entity_data_mut(&mut self, entity: Entity) -> Option<&mut EntityData> {
+        self.entities.get_mut(entity)
     }
 
     pub fn get_all_entities(&self) -> Vec<(Entity, &EntityData)> {
@@ -64,6 +81,38 @@ impl EntityStorage {
                 }
             }
         }
+    }
+
+    pub fn get_component(
+        &self,
+        entity: Entity,
+        requested_component: ComponentID,
+    ) -> Option<&Vec<u8>> {
+        if let Some(data) = self.get_entity_data(entity) {
+            for (component, comp_data) in data.data.iter() {
+                if *component == requested_component {
+                    return Some(comp_data);
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn get_component_mut(
+        &mut self,
+        entity: Entity,
+        requested_component: ComponentID,
+    ) -> Option<&mut Vec<u8>> {
+        if let Some(data) = self.get_entity_data_mut(entity) {
+            for (component, comp_data) in data.data.iter_mut() {
+                if *component == requested_component {
+                    return Some(comp_data);
+                }
+            }
+        }
+
+        None
     }
 
     pub fn despawn(&mut self, entity: Entity) {
@@ -117,6 +166,17 @@ impl World {
 
     pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, &mut Vec<u8>)) {
         self.storage.set_component(entity, new_component)
+    }
+
+    pub fn get_component(&self, entity: Entity, component: ComponentID) -> Option<&Vec<u8>> {
+        self.storage.get_component(entity, component)
+    }
+    pub fn get_component_mut(
+        &mut self,
+        entity: Entity,
+        component: ComponentID,
+    ) -> Option<&mut Vec<u8>> {
+        self.storage.get_component_mut(entity, component)
     }
 }
 

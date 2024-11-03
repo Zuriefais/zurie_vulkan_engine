@@ -6,7 +6,7 @@ pub use serde;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
 pub struct Object {
     pub position: Vector2,
     pub scale: [f32; 2],
@@ -31,7 +31,7 @@ pub struct KeyboardState {
     pub key_map: Vec<KeyCode>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,

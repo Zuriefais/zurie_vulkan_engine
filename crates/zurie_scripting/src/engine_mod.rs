@@ -10,7 +10,7 @@ use crate::{
         },
         utils::register_utils_bindings,
     },
-    mod_manager::ModHandle,
+    ModHandle,
 };
 use anyhow::Ok;
 use egui::Context;
@@ -19,6 +19,7 @@ use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::AsContextMut;
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
+use zurie_ecs::World;
 use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
 
@@ -43,7 +44,7 @@ impl EngineMod {
         gui_context: Context,
         pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
         mouse_pos: Arc<RwLock<Vec2>>,
-        object_storage: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+        world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
         event_manager: Arc<RwLock<EventManager>>,
         mod_handle: ModHandle,
@@ -61,7 +62,7 @@ impl EngineMod {
         register_gui_button(&mut linker, &store, gui_context.clone())?;
         register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
         register_request_mouse_pos(&mut linker, mouse_pos)?;
-        register_game_logic_bindings(&mut linker, &store, object_storage, alloc_fn_lock.clone())?;
+        register_game_logic_bindings(&mut linker, &store, world, alloc_fn_lock.clone())?;
         register_camera_bindings(&mut linker, camera, &store)?;
         register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
         register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;

@@ -50,7 +50,7 @@ impl RenderState {
         hover_gui: bool,
         background_color: [f32; 4],
         camera: &Camera,
-        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+        objects: Arc<RwLock<Vec<Object>>>,
     ) -> anyhow::Result<()> {
         if left_pressed && !hover_gui {
             self.compute

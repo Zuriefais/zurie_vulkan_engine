@@ -61,15 +61,18 @@ pub fn copy_to_memory(
     Ok(())
 }
 
+pub fn obj_to_bytes(obj: impl Serialize) -> Vec<u8> {
+    let mut serializer = flexbuffers::FlexbufferSerializer::new();
+    obj.serialize(&mut serializer).unwrap();
+    serializer.take_buffer()
+}
+
 pub fn copy_obj_to_memory(
     caller: &mut Caller<'_, ()>,
     obj: impl Serialize,
     alloc_fn: TypedFunc<u32, u32>,
 ) -> anyhow::Result<()> {
-    let mut serializer = flexbuffers::FlexbufferSerializer::new();
-    obj.serialize(&mut serializer).unwrap();
-    let bytes = serializer.take_buffer();
-
+    let bytes = obj_to_bytes(obj);
     copy_to_memory(caller, &bytes, alloc_fn)?;
     Ok(())
 }

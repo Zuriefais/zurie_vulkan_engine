@@ -59,7 +59,7 @@ impl ObjectRenderPass {
         target: Arc<ImageView>,
         background_color: [f32; 4],
         camera: &zurie_types::camera::Camera,
-        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+        objects: Arc<RwLock<Vec<Object>>>,
     ) -> Box<dyn GpuFuture>
     where
         F: GpuFuture + 'static,

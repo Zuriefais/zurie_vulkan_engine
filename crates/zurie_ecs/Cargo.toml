@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 zurie_shared = { path = "../zurie_shared" }
+serde = { workspace = true }
+log = "0.4.22"

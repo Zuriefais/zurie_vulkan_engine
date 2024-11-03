@@ -222,7 +222,7 @@ impl ObjectDrawPipeline {
         &self,
         viewport_dimensions: [u32; 2],
         camera: vs::Camera,
-        objects: Arc<RwLock<SlotMap<DefaultKey, Object>>>,
+        objects: Arc<RwLock<Vec<Object>>>,
     ) -> Arc<SecondaryAutoCommandBuffer> {
         let mut builder = AutoCommandBufferBuilder::secondary(
             self.command_buffer_allocator.as_ref(),
@@ -240,9 +240,9 @@ impl ObjectDrawPipeline {
             .unwrap()
             .iter()
             .map(|obj| InstanceData {
-                position: obj.1.position.into(),
-                scale: obj.1.scale,
-                color: obj.1.color,
+                position: obj.position.into(),
+                scale: obj.scale,
+                color: obj.color,
             })
             .collect();
 
