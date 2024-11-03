@@ -10,7 +10,6 @@ use vulkano::{
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass},
     sync::GpuFuture,
 };
-use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::Object;
 
 use super::pipeline::{self, ObjectDrawPipeline};

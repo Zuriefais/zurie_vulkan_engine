@@ -2,23 +2,19 @@ pub mod gui;
 pub mod input;
 
 use ecolor::hex_color;
-use gui::GameGui;
 use input::InputState;
 use log::info;
 use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_ecs::{Architype, ComponentID, Entity, EntityData, World};
+use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
-use zurie_shared::{
-    sim_clock::SimClock,
-    slotmap::{DefaultKey, SlotMap},
-};
+use zurie_shared::sim_clock::SimClock;
 use zurie_types::serde::Deserialize;
 use zurie_types::{camera::Camera, flexbuffers, glam::Vec2, Object, Vector2};
 
 pub struct State {
-    gui: GameGui,
+    //gui: GameGui,
     pub sim_clock: SimClock,
     input: InputState,
     selected_cell_type: CellType,
@@ -36,7 +32,7 @@ impl State {
     pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
         let render_state = RenderState::new(window, event_loop);
         let gui_context = render_state.gui.gui.context();
-        let gui = GameGui::new(gui_context.clone());
+        //let gui = GameGui::new(gui_context.clone());
 
         let sim_clock = SimClock::default();
         let size = render_state.renderer.window_size();
@@ -70,7 +66,7 @@ impl State {
         );
 
         State {
-            gui,
+            //gui,
             sim_clock,
             input,
             selected_cell_type: CellType::Sand,

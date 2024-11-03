@@ -28,7 +28,6 @@ use vulkano::{
     },
     render_pass::Subpass,
 };
-use zurie_shared::slotmap::{DefaultKey, SlotMap};
 use zurie_types::Object;
 
 #[derive(BufferContents, Vertex)]

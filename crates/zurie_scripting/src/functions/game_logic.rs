@@ -1,9 +1,9 @@
 use anyhow::Ok;
-use log::{info, warn};
+use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store, TypedFunc};
 use zurie_ecs::{ComponentID, EntityData, World};
-use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
+use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::Object;
 
 use crate::utils::{
@@ -171,7 +171,7 @@ pub fn register_request_object_position(
             if let Some(pos) = pos_component {
                 copy_to_memory(
                     &mut caller,
-                    &pos,
+                    pos,
                     alloc_fn.read().unwrap().as_ref().unwrap().clone(),
                 )?;
             }

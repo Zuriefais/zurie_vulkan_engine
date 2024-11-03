@@ -1,9 +1,6 @@
 use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_shared::{
-    sim_clock::SimClock,
-    slotmap::{DefaultKey, SlotMap},
-};
+use zurie_shared::sim_clock::SimClock;
 use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 use crate::{

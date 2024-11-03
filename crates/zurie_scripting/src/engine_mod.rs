@@ -20,8 +20,8 @@ use std::sync::{Arc, RwLock};
 use wasmtime::AsContextMut;
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
 use zurie_ecs::World;
-use zurie_shared::slotmap::{DefaultKey, Key, KeyData, SlotMap};
-use zurie_types::{camera::Camera, glam::Vec2, KeyCode, Object};
+use zurie_shared::slotmap::{Key, KeyData};
+use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
 
 pub struct EngineMod {
     pub path: String,

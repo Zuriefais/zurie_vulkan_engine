@@ -9,8 +9,8 @@ use winit::{
     event::{MouseScrollDelta, WindowEvent},
 };
 use zurie_ecs::World;
-use zurie_shared::slotmap::{new_key_type, DefaultKey, SlotMap};
-use zurie_types::{camera::Camera, glam::Vec2, serde, KeyCode, Object};
+use zurie_shared::slotmap::SlotMap;
+use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
 
 use crate::{functions::events::EventManager, ModHandle};
 
