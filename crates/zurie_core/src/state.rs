@@ -109,23 +109,20 @@ impl State {
                 let mut obj = Object::default();
                 for (component_id, component_data) in entity_data.data.iter() {
                     if *component_id == self.pos_component {
-                        obj.position = {
-                            let r =
-                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
-                            Vector2::deserialize(r).unwrap()
+                        obj.position = match component_data {
+                            zurie_ecs::ComponentData::Vector(vector2) => *vector2,
+                            _ => Vec2::ZERO.into(),
                         };
                     } else if *component_id == self.scale_component {
-                        obj.scale = {
-                            let r =
-                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
-                            <[f32; 2]>::deserialize(r).unwrap()
-                        }
+                        obj.scale = match component_data {
+                            zurie_ecs::ComponentData::Scale(scale) => *scale,
+                            _ => [1.0, 1.0],
+                        };
                     } else if *component_id == self.color_component {
-                        obj.color = {
-                            let r =
-                                flexbuffers::Reader::get_root(component_data.as_slice()).unwrap();
-                            <[f32; 4]>::deserialize(r).unwrap()
-                        }
+                        obj.color = match component_data {
+                            zurie_ecs::ComponentData::Color(color) => *color,
+                            _ => [1.0, 1.0, 1.0, 1.0],
+                        };
                     }
                 }
                 obj

@@ -1,8 +1,55 @@
 use log::info;
+use serde::{Deserialize, Serialize};
 use zurie_shared::slotmap::{new_key_type, SlotMap};
+use zurie_types::Vector2;
 
 new_key_type! { pub struct Entity; }
 new_key_type! { pub struct ComponentID; }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ComponentData {
+    String(String),
+    Vector(Vector2),
+    Color([f32; 4]),
+    Scale([f32; 2]),
+    Raw(Vec<u8>),
+}
+
+impl From<String> for ComponentData {
+    fn from(value: String) -> Self {
+        ComponentData::String(value)
+    }
+}
+
+impl From<Vector2> for ComponentData {
+    fn from(value: Vector2) -> Self {
+        ComponentData::Vector(value)
+    }
+}
+
+impl From<[f32; 4]> for ComponentData {
+    fn from(value: [f32; 4]) -> Self {
+        ComponentData::Color(value)
+    }
+}
+
+impl From<[f32; 2]> for ComponentData {
+    fn from(value: [f32; 2]) -> Self {
+        ComponentData::Scale(value)
+    }
+}
+
+impl From<Vec<u8>> for ComponentData {
+    fn from(value: Vec<u8>) -> Self {
+        ComponentData::Raw(value)
+    }
+}
+
+impl Default for ComponentData {
+    fn default() -> Self {
+        ComponentData::String(String::default())
+    }
+}
 
 pub struct Architype {
     pub data: Vec<ComponentID>,
@@ -10,7 +57,7 @@ pub struct Architype {
 
 #[derive(Default, Debug)]
 pub struct EntityData {
-    pub data: Vec<(ComponentID, Vec<u8>)>,
+    pub data: Vec<(ComponentID, ComponentData)>,
 }
 
 impl Iterator for EntityData {
@@ -73,11 +120,11 @@ impl EntityStorage {
         }
     }
 
-    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, &mut Vec<u8>)) {
+    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, ComponentData)) {
         if let Some(entity_data) = self.entities.get_mut(entity) {
             for (component, data) in entity_data.data.iter_mut() {
                 if *component == new_component.0 {
-                    *data = new_component.1.clone()
+                    *data = new_component.1.clone();
                 }
             }
         }
@@ -87,7 +134,7 @@ impl EntityStorage {
         &self,
         entity: Entity,
         requested_component: ComponentID,
-    ) -> Option<&Vec<u8>> {
+    ) -> Option<&ComponentData> {
         if let Some(data) = self.get_entity_data(entity) {
             for (component, comp_data) in data.data.iter() {
                 if *component == requested_component {
@@ -103,7 +150,7 @@ impl EntityStorage {
         &mut self,
         entity: Entity,
         requested_component: ComponentID,
-    ) -> Option<&mut Vec<u8>> {
+    ) -> Option<&mut ComponentData> {
         if let Some(data) = self.get_entity_data_mut(entity) {
             for (component, comp_data) in data.data.iter_mut() {
                 if *component == requested_component {
@@ -164,18 +211,18 @@ impl World {
         self.storage.despawn(entity);
     }
 
-    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, &mut Vec<u8>)) {
+    pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, ComponentData)) {
         self.storage.set_component(entity, new_component)
     }
 
-    pub fn get_component(&self, entity: Entity, component: ComponentID) -> Option<&Vec<u8>> {
+    pub fn get_component(&self, entity: Entity, component: ComponentID) -> Option<&ComponentData> {
         self.storage.get_component(entity, component)
     }
     pub fn get_component_mut(
         &mut self,
         entity: Entity,
         component: ComponentID,
-    ) -> Option<&mut Vec<u8>> {
+    ) -> Option<&mut ComponentData> {
         self.storage.get_component_mut(entity, component)
     }
 }
@@ -189,16 +236,22 @@ pub mod test {
         let mut world = World::default();
         let my_component = world.register_component("my_component".into());
         let entity = world.spawn_entity_with_data(EntityData {
-            data: vec![(my_component, vec![10])],
+            data: vec![(my_component, ComponentData::Raw(vec![10]))],
         });
-        assert_eq!(vec![10], world.get_entity_data(entity).unwrap().data[0].1);
+        assert_eq!(
+            ComponentData::Raw(vec![10]),
+            world.get_entity_data(entity).unwrap().data[0].1
+        );
         world.modify_entity(
             entity,
             EntityData {
-                data: vec![(my_component, vec![20])],
+                data: vec![(my_component, ComponentData::Raw(vec![20]))],
             },
         );
-        assert_eq!(vec![20], world.get_entity_data(entity).unwrap().data[0].1);
+        assert_eq!(
+            ComponentData::Raw(vec![20]),
+            world.get_entity_data(entity).unwrap().data[0].1
+        );
     }
 
     #[test]
@@ -210,21 +263,24 @@ pub mod test {
 
         for num in 0..100 {
             world.storage.spawn_entity_with_data(EntityData {
-                data: vec![(my_component, vec![num])],
+                data: vec![(my_component, ComponentData::Raw(vec![num]))],
             });
         }
         for num in 0..100 {
             world.storage.spawn_entity_with_data(EntityData {
                 data: vec![
-                    (my_component, vec![num]),
-                    (my_component2, vec![num]),
-                    (my_component3, vec![num]),
+                    (my_component, ComponentData::Raw(vec![num])),
+                    (my_component2, ComponentData::Raw(vec![num])),
+                    (my_component3, ComponentData::Raw(vec![num])),
                 ],
             });
         }
         for num in 0..100 {
             world.storage.spawn_entity_with_data(EntityData {
-                data: vec![(my_component, vec![num]), (my_component3, vec![num])],
+                data: vec![
+                    (my_component, ComponentData::Raw(vec![num])),
+                    (my_component3, ComponentData::Raw(vec![num])),
+                ],
             });
         }
         println!(

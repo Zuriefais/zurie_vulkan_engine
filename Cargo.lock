@@ -3892,6 +3892,7 @@ dependencies = [
  "log",
  "serde",
  "zurie_shared",
+ "zurie_types",
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
 use anyhow::Ok;
 use egui::{self, Context};
 use hashbrown::HashSet;
-use log::{info, warn};
+use log::{error, info, warn};
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::{
@@ -125,7 +125,7 @@ impl ModManager {
         for (_, engine_mod) in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             if let Err(e) = mod_lock.update() {
-                warn!("Error updating mod {}: {}", mod_lock.path, e);
+                error!("Error updating mod {}: {}", mod_lock.path, e);
                 continue; // Skip this mod but continue with others
             }
         }

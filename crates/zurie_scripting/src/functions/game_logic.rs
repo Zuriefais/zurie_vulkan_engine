@@ -2,9 +2,9 @@ use anyhow::Ok;
 use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store, TypedFunc};
-use zurie_ecs::{ComponentID, EntityData, World};
+use zurie_ecs::{ComponentData, ComponentID, EntityData, World};
 use zurie_shared::slotmap::{Key, KeyData};
-use zurie_types::Object;
+use zurie_types::{Object, Vector2};
 
 use crate::utils::{
     copy_obj_to_memory, copy_to_memory, get_bytes_from_wasm, get_obj_by_ptr, obj_to_bytes,
@@ -75,9 +75,9 @@ pub fn register_spawn_object(
             info!("Object spawned. obj: {:?}", &obj);
             let ent_data = EntityData {
                 data: vec![
-                    (pos_component, obj_to_bytes(obj.position)),
-                    (scale_component, obj_to_bytes(obj.scale)),
-                    (color_component, obj_to_bytes(obj.color)),
+                    (pos_component, obj.position.into()),
+                    (scale_component, obj.scale.into()),
+                    (color_component, obj.color.into()),
                 ],
             };
             let entity = world_lock.spawn_entity_with_data(ent_data);
@@ -169,11 +169,14 @@ pub fn register_request_object_position(
             //let object: Option<&Object> = storage_lock.get();
             let pos_component = world_lock.get_component(entity.into(), position_component);
             if let Some(pos) = pos_component {
-                copy_to_memory(
-                    &mut caller,
-                    pos,
-                    alloc_fn.read().unwrap().as_ref().unwrap().clone(),
-                )?;
+                match pos {
+                    ComponentData::Vector(vector2) => copy_obj_to_memory(
+                        &mut caller,
+                        vector2,
+                        alloc_fn.read().unwrap().as_ref().unwrap().clone(),
+                    )?,
+                    _ => {}
+                }
             }
 
             results[0] = wasmtime::Val::I32(pos_component.is_some() as i32);
@@ -210,12 +213,12 @@ pub fn register_set_object_position(
                 params[2].unwrap_i32() as u32,
             );
             let mut world_lock = world.write().unwrap();
-            let mut new_position = get_bytes_from_wasm(&mut caller, ptr, len)?;
+            let new_position: Vector2 = get_obj_by_ptr(&mut caller, ptr, len)?;
             //let object: Option<&mut Object> = storage_lock.get_mut(KeyData::from_ffi(index).into());
             // if let Some(obj) = object {
             //     obj.position = new_position;
             // }
-            world_lock.set_component(entity.into(), (position_component, &mut new_position));
+            world_lock.set_component(entity.into(), (position_component, new_position.into()));
             Ok(())
         },
     )?;
