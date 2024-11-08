@@ -68,7 +68,7 @@ impl ModManager {
         }
         Ok(())
     }
-    pub fn update(&mut self) -> anyhow::Result<()> {
+    fn gui(&mut self) -> anyhow::Result<(bool, bool)> {
         let mut reload_mods = false;
         let mut load_new_mod = false;
         egui::Window::new("Mods Window").show(&self.gui_context, |ui| {
@@ -76,7 +76,19 @@ impl ModManager {
             load_new_mod = ui.button("Load new mod").clicked();
             ui.label("mod path:");
             ui.text_edit_singleline(&mut self.new_mod_path);
+            ui.label("Loaded mods:");
+            for (_, loaded_mod) in self.mods.iter() {
+                ui.label(format!(
+                    "path: {}, name: {}",
+                    loaded_mod.read().unwrap().path,
+                    loaded_mod.read().unwrap().mod_name.read().unwrap()
+                ));
+            }
         });
+        Ok((reload_mods, load_new_mod))
+    }
+    pub fn update(&mut self) -> anyhow::Result<()> {
+        let (reload_mods, load_new_mod) = self.gui()?;
         if reload_mods {
             for (handle, engine_mod) in self.mods.iter_mut() {
                 let mod_path = {
