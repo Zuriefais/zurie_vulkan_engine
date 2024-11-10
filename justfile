@@ -31,3 +31,9 @@ dev:
 
 test_ecs:
     cargo test --package zurie_ecs -- --nocapture
+
+docs:
+    #!/usr/bin/env fish
+    cargo doc --no-deps --package zurie_mod_api
+    open http://0.0.0.0:8000/zurie_mod_api/index.html
+    simple-http-server target/doc/
