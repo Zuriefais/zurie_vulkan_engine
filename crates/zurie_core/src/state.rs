@@ -5,6 +5,8 @@ use ecolor::hex_color;
 use input::InputState;
 use log::info;
 use std::sync::{Arc, RwLock};
+#[cfg(target_os = "android")]
+use winit::platform::android::ActiveEventLoopExtAndroid;
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
@@ -56,12 +58,22 @@ impl State {
                 color_component,
             )
         };
+        #[cfg(not(target_os = "android"))]
         let mod_manager = ModManager::new(
             gui_context.clone(),
             input.pressed_keys_buffer.clone(),
             input.mouse.position.clone(),
             world.clone(),
             camera.clone(),
+        );
+        #[cfg(target_os = "android")]
+        let mod_manager = ModManager::new(
+            gui_context.clone(),
+            input.pressed_keys_buffer.clone(),
+            input.mouse.position.clone(),
+            world.clone(),
+            camera.clone(),
+            event_loop.android_app().clone(),
         );
 
         State {

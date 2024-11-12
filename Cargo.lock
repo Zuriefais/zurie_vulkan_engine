@@ -3887,6 +3887,7 @@ dependencies = [
  "android_logger",
  "log",
  "winit",
+ "zurie_core",
 ]
 
 [[package]]

@@ -1,14 +1,14 @@
 [unix]
 run:
     cargo fmt
-    cargo zigbuild --release --package zurie_core
+    cargo zigbuild --release --package zurie_bin
     just build_mods
     mangohud RUST_LOG=info ./target/release/zurie_engine
 
 [windows]
 run:
     cargo fmt
-    cargo zigbuild --release --package zurie_core
+    cargo zigbuild --release --package zurie_bin
     just build_mods
     RUST_LOG=info ./target/release/zurie_engine.exe
 
@@ -17,7 +17,7 @@ build_mods:
 
 
 build_windows:
-    cargo xwin build --release --target x86_64-pc-windows-msvc --package zurie_core
+    cargo xwin build --release --target x86_64-pc-windows-msvc --package zurie_bin
 
 [unix]
 editor:
@@ -39,4 +39,4 @@ docs:
     simple-http-server target/doc/
 
 run_android DEVICE:
-    x run --package zurie_android --device {{DEVICE}}
+    x run --package zurie_android --device {{DEVICE}} --release

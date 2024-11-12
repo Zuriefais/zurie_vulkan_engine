@@ -7,10 +7,10 @@ edition = "2021"
 name = "zurie_android"
 crate-type = ["staticlib", "cdylib"]
 
+
 [dependencies]
-android-activity = { version = "0.6.0", features = [
-    "native-activity",
-] } #zurie_core = { path = "../zurie_core" }
+android-activity = { version = "0.6.0", features = ["native-activity"] }
+zurie_core = { path = "../zurie_core" }
 winit = { version = "0.30.5", features = [
     "rwh_05",
     "rwh_06",
@@ -23,7 +23,7 @@ log = "0.4.22"
 [package.metadata.android]
 package = "me.zurie.zurie_engine"
 apk_name = "zurie_engine"
-assets = "../assets"
+assets = "android_assets/example_mod.wasm"
 strip = "strip"
 resources = "../build/android/res"
 build_targets = ["aarch64-linux-android"]

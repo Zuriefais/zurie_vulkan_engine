@@ -4,6 +4,8 @@ use hashbrown::HashSet;
 use log::{error, info};
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
+#[cfg(target_os = "android")]
+use winit::platform::android::activity::AndroidApp;
 use winit::{
     dpi::PhysicalPosition,
     event::{MouseScrollDelta, WindowEvent},
@@ -26,6 +28,8 @@ pub struct ModManager {
     world: Arc<RwLock<World>>,
     camera: Arc<RwLock<Camera>>,
     event_manager: Arc<RwLock<EventManager>>,
+    #[cfg(target_os = "android")]
+    app: AndroidApp,
 }
 
 impl ModManager {
@@ -87,32 +91,63 @@ impl ModManager {
         });
         Ok((reload_mods, load_new_mod))
     }
+
+    fn load_mod(
+        &self,
+        mod_path: &String,
+        handle: ModHandle,
+    ) -> anyhow::Result<Arc<RwLock<EngineMod>>> {
+        #[cfg(target_os = "android")]
+        return Ok(Arc::new(RwLock::new(EngineMod::new(
+            mod_path.clone(),
+            &self.engine,
+            self.gui_context.clone(),
+            self.pressed_keys_buffer.clone(),
+            self.mouse_pos.clone(),
+            self.world.clone(),
+            self.camera.clone(),
+            self.event_manager.clone(),
+            handle,
+            self.app.clone(),
+        )?)));
+        #[cfg(not(target_os = "android"))]
+        Ok(Arc::new(RwLock::new(EngineMod::new(
+            mod_path.clone(),
+            &self.engine,
+            self.gui_context.clone(),
+            self.pressed_keys_buffer.clone(),
+            self.mouse_pos.clone(),
+            self.world.clone(),
+            self.camera.clone(),
+            self.event_manager.clone(),
+            handle,
+        )?)))
+    }
+
     pub fn update(&mut self) -> anyhow::Result<()> {
         let (reload_mods, load_new_mod) = self.gui()?;
         if reload_mods {
-            for (handle, engine_mod) in self.mods.iter_mut() {
-                let mod_path = {
-                    let mod_lock = engine_mod.read().unwrap();
-                    mod_lock.path.clone()
-                };
+            let mod_paths: Vec<(ModHandle, String)> = self
+                .mods
+                .iter()
+                .map(|(handle, engine_mod)| {
+                    let path = engine_mod.read().unwrap().path.clone();
+                    (handle, path)
+                })
+                .collect();
+            for (handle, mod_path) in mod_paths {
+                let new_mod = self.load_mod(&mod_path, handle)?;
 
-                *engine_mod = Arc::new(RwLock::new(EngineMod::new(
-                    mod_path.clone(),
-                    &self.engine,
-                    self.gui_context.clone(),
-                    self.pressed_keys_buffer.clone(),
-                    self.mouse_pos.clone(),
-                    self.world.clone(),
-                    self.camera.clone(),
-                    self.event_manager.clone(),
-                    handle,
-                )?));
+                if let Some(engine_mod) = self.mods.get_mut(handle) {
+                    *engine_mod = new_mod;
+                }
                 info!("reloading {}", mod_path);
             }
         }
         if load_new_mod {
             info!("Loading mod at path: {}", self.new_mod_path.clone());
             let event_manager = self.event_manager.clone();
+
             self.mods.insert_with_key(|handle| {
                 Arc::new(RwLock::new(
                     EngineMod::new(
@@ -125,6 +160,8 @@ impl ModManager {
                         self.camera.clone(),
                         event_manager,
                         handle,
+                        #[cfg(target_os = "android")]
+                        self.app.clone(),
                     )
                     .unwrap(),
                 ))
@@ -149,10 +186,12 @@ impl ModManager {
         mouse_pos: Arc<RwLock<Vec2>>,
         world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
+        #[cfg(target_os = "android")] android_app: AndroidApp,
     ) -> Self {
         let engine = Engine::default();
         let mut mods = SlotMap::with_key();
         let event_manager: Arc<RwLock<EventManager>> = Default::default();
+        #[cfg(not(target_os = "android"))]
         mods.insert_with_key(|handle| {
             Arc::new(RwLock::new(
                 EngineMod::new(
@@ -169,6 +208,24 @@ impl ModManager {
                 .unwrap(),
             ))
         });
+        // #[cfg(target_os = "android")]
+        // mods.insert_with_key(|handle| {
+        //     Arc::new(RwLock::new(
+        //         EngineMod::new(
+        //             "example_mod.wasm".into(),
+        //             &engine,
+        //             gui_context.clone(),
+        //             pressed_keys_buffer.clone(),
+        //             mouse_pos.clone(),
+        //             world.clone(),
+        //             camera.clone(),
+        //             event_manager.clone(),
+        //             handle,
+        //             android_app.clone(),
+        //         )
+        //         .unwrap(),
+        //     ))
+        // });
 
         Self {
             engine,
@@ -180,6 +237,8 @@ impl ModManager {
             world,
             camera,
             event_manager,
+            #[cfg(target_os = "android")]
+            app: android_app,
         }
     }
 }

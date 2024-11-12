@@ -51,7 +51,15 @@ impl Renderer {
             },
         )
         .expect("failed to create instance");
-        let surface = Surface::from_window(instance.clone(), window.clone()).unwrap();
+        let surface = loop {
+            match Surface::from_window(instance.clone(), window.clone()) {
+                Ok(surface) => break surface,
+                Err(e) => {
+                    log::warn!("Failed to create surface: {}", e);
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        };
         let device_extensions = DeviceExtensions {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
@@ -99,7 +107,7 @@ impl Renderer {
         };
 
         let (swapchain, final_views, output_format) =
-            Self::create_swapchain(device.clone(), &window);
+            Self::create_swapchain(device.clone(), &window, surface);
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
         let descriptor_set_allocator = Arc::new(StandardDescriptorSetAllocator::new(
             device.clone(),
@@ -197,13 +205,11 @@ impl Renderer {
         (device, gfx_queue, compute_queue)
     }
 
-    /// Creates the swapchain and its images based on [`WindowDescriptor`]. The swapchain creation
-    /// can be modified with the `swapchain_create_info_modify` function passed as an input.
     fn create_swapchain(
         device: Arc<Device>,
         window: &Arc<Window>,
+        surface: Arc<Surface>,
     ) -> (Arc<Swapchain>, Vec<Arc<ImageView>>, Format) {
-        let surface = Surface::from_window(device.instance().clone(), window.clone()).unwrap();
         let surface_capabilities = device
             .physical_device()
             .surface_capabilities(&surface, Default::default())

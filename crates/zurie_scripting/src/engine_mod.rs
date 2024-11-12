@@ -16,9 +16,13 @@ use anyhow::Ok;
 use egui::Context;
 use hashbrown::HashSet;
 use log::info;
+#[cfg(target_os = "android")]
+use std::ffi::CString;
 use std::sync::{Arc, RwLock};
 use wasmtime::AsContextMut;
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
+#[cfg(target_os = "android")]
+use winit::platform::android::activity::AndroidApp;
 use zurie_ecs::World;
 use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
@@ -48,9 +52,20 @@ impl EngineMod {
         camera: Arc<RwLock<Camera>>,
         event_manager: Arc<RwLock<EventManager>>,
         mod_handle: ModHandle,
+        #[cfg(target_os = "android")] android_app: AndroidApp,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
+        #[cfg(target_os = "android")]
+        let module = {
+            let c_mod_path = CString::new(mod_path.clone())?;
+            let asset_manager = android_app.asset_manager();
+            let mut asset = asset_manager.open(&c_mod_path).unwrap();
+            let wasm_bytes = asset.buffer()?;
+            unsafe { Module::from_binary(engine, &wasm_bytes)? }
+        };
+
+        #[cfg(not(target_os = "android"))]
         let module = Module::from_file(engine, &mod_path)?;
         let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
         info!("mod at path {} compiled", mod_path);
