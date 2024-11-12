@@ -95,6 +95,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
+name = "android_log-sys"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ecc8056bf6ab9892dcd53216c83d1597487d7dacac16c8df6b877d127df9937"
+
+[[package]]
+name = "android_logger"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05b07e8e73d720a1f2e4b6014766e6039fd2e96a4fa44e2a78d0e1fa2ff49826"
+dependencies = [
+ "android_log-sys",
+ "env_filter",
+ "log",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3863,6 +3880,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "zurie_android"
+version = "0.0.0"
+dependencies = [
+ "android-activity",
+ "android_logger",
+ "log",
+ "ndk",
+ "ndk-sys",
+ "winit",
+]
+
+[[package]]
+name = "zurie_bin"
+version = "0.0.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "winit",
+ "zurie_core",
+]
+
+[[package]]
 name = "zurie_core"
 version = "0.0.0"
 dependencies = [
@@ -3889,6 +3928,7 @@ dependencies = [
 name = "zurie_ecs"
 version = "0.0.0"
 dependencies = [
+ "egui",
  "log",
  "serde",
  "zurie_shared",

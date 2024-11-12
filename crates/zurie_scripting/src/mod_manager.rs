@@ -1,7 +1,7 @@
 use anyhow::Ok;
 use egui::{self, Context};
 use hashbrown::HashSet;
-use log::{error, info, warn};
+use log::{error, info};
 use std::sync::{Arc, RwLock};
 use wasmtime::Engine;
 use winit::{

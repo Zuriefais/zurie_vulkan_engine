@@ -3,10 +3,9 @@ name = "zurie_core"
 version = "0.0.0"
 edition = "2021"
 
-[[bin]]
-name = "zurie_engine"
-path = "src/main.rs"
 
+[lib]
+name = "zurie_core"
 
 [dependencies]
 color-hex = "0.2.0"

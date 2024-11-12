@@ -1,10 +1,6 @@
-pub mod app;
-
-pub mod state;
-
-use app::App;
 use log::info;
 use winit::event_loop::EventLoop;
+use zurie_core::app::App;
 
 fn main() {
     env_logger::init();

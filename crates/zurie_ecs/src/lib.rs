@@ -1,3 +1,4 @@
+use egui::Context;
 use log::info;
 use serde::{Deserialize, Serialize};
 use zurie_shared::slotmap::{new_key_type, SlotMap};
@@ -225,6 +226,8 @@ impl World {
     ) -> Option<&mut ComponentData> {
         self.storage.get_component_mut(entity, component)
     }
+
+    pub fn inspector(&mut self, gui: Context) {}
 }
 
 #[cfg(test)]

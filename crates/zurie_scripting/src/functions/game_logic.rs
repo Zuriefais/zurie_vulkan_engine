@@ -6,9 +6,7 @@ use zurie_ecs::{ComponentData, ComponentID, EntityData, World};
 use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::{Object, Vector2};
 
-use crate::utils::{
-    copy_obj_to_memory, copy_to_memory, get_bytes_from_wasm, get_obj_by_ptr, obj_to_bytes,
-};
+use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
 
 pub fn register_game_logic_bindings(
     linker: &mut Linker<()>,
@@ -169,13 +167,12 @@ pub fn register_request_object_position(
             //let object: Option<&Object> = storage_lock.get();
             let pos_component = world_lock.get_component(entity.into(), position_component);
             if let Some(pos) = pos_component {
-                match pos {
-                    ComponentData::Vector(vector2) => copy_obj_to_memory(
+                if let ComponentData::Vector(vector2) = pos {
+                    copy_obj_to_memory(
                         &mut caller,
                         vector2,
                         alloc_fn.read().unwrap().as_ref().unwrap().clone(),
-                    )?,
-                    _ => {}
+                    )?
                 }
             }
 
