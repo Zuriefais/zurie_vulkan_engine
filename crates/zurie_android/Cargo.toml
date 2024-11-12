@@ -4,22 +4,21 @@ version = "0.0.0"
 edition = "2021"
 
 [lib]
-name = "mobile"
+name = "zurie_android"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 android-activity = { version = "0.6.0", features = [
-    "game-activity",
+    "native-activity",
 ] } #zurie_core = { path = "../zurie_core" }
 winit = { version = "0.30.5", features = [
     "rwh_05",
     "rwh_06",
-    "android-game-activity",
+    "android-native-activity",
 ] }
 android_logger = "0.14.1"
 log = "0.4.22"
-ndk-sys = "*"
-ndk = "*"
+
 
 [package.metadata.android]
 package = "me.zurie.zurie_engine"

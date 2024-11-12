@@ -37,3 +37,6 @@ docs:
     cargo doc --no-deps --package zurie_mod_api
     open http://0.0.0.0:8000/zurie_mod_api/index.html
     simple-http-server target/doc/
+
+run_android DEVICE:
+    x run --package zurie_android --device {{DEVICE}}

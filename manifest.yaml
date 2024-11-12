@@ -1,7 +1,7 @@
 android:
   gradle: true
   manifest:
-    package: "com.example.app"
+    package: "me.zurie.zurie_engine"
     version_code: 1
     application:
       label: "Zurie engine"

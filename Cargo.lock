@@ -3886,8 +3886,6 @@ dependencies = [
  "android-activity",
  "android_logger",
  "log",
- "ndk",
- "ndk-sys",
  "winit",
 ]
 
