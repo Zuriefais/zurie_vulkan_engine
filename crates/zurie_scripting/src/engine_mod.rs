@@ -58,11 +58,9 @@ impl EngineMod {
         let mod_name = Arc::new(RwLock::new("No name".to_string()));
         #[cfg(target_os = "android")]
         let module = {
-            let c_mod_path = CString::new(mod_path.clone())?;
-            let asset_manager = android_app.asset_manager();
-            let mut asset = asset_manager.open(&c_mod_path).unwrap();
-            let wasm_bytes = asset.buffer()?;
-            unsafe { Module::from_binary(engine, &wasm_bytes)? }
+            let wasm_bytes =
+                include_bytes!("../../../target/wasm32-unknown-unknown/release/example_mod.wasm");
+            unsafe { Module::from_binary(engine, wasm_bytes)? }
         };
 
         #[cfg(not(target_os = "android"))]

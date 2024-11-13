@@ -208,24 +208,24 @@ impl ModManager {
                 .unwrap(),
             ))
         });
-        // #[cfg(target_os = "android")]
-        // mods.insert_with_key(|handle| {
-        //     Arc::new(RwLock::new(
-        //         EngineMod::new(
-        //             "example_mod.wasm".into(),
-        //             &engine,
-        //             gui_context.clone(),
-        //             pressed_keys_buffer.clone(),
-        //             mouse_pos.clone(),
-        //             world.clone(),
-        //             camera.clone(),
-        //             event_manager.clone(),
-        //             handle,
-        //             android_app.clone(),
-        //         )
-        //         .unwrap(),
-        //     ))
-        // });
+        #[cfg(target_os = "android")]
+        mods.insert_with_key(|handle| {
+            Arc::new(RwLock::new(
+                EngineMod::new(
+                    "example_mod.wasm".into(),
+                    &engine,
+                    gui_context.clone(),
+                    pressed_keys_buffer.clone(),
+                    mouse_pos.clone(),
+                    world.clone(),
+                    camera.clone(),
+                    event_manager.clone(),
+                    handle,
+                    android_app.clone(),
+                )
+                .unwrap(),
+            ))
+        });
 
         Self {
             engine,
