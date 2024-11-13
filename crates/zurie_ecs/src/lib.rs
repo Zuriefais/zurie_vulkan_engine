@@ -100,18 +100,24 @@ impl EntityStorage {
     }
 
     pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<(Entity, &EntityData)> {
-        let mut entities = vec![];
+        let mut entities = Vec::with_capacity(self.entities.len() / 2);
+
+        let archetype_component_ids: std::collections::HashSet<_> =
+            architype.data.iter().copied().collect();
+
         'entity_loop: for (entity, data) in self.entities.iter() {
             if data.data.len() != architype.data.len() {
                 continue 'entity_loop;
             }
-            for component in architype.data.iter() {
-                if !data.data.iter().any(|(id, _)| id == component) {
-                    continue 'entity_loop;
-                }
+
+            let entity_component_ids: std::collections::HashSet<_> =
+                data.data.iter().map(|(id, _)| *id).collect();
+
+            if entity_component_ids == archetype_component_ids {
+                entities.push((entity, data));
             }
-            entities.push((entity, data));
         }
+
         entities
     }
 
@@ -301,5 +307,33 @@ pub mod test {
                 })
                 .len()
         );
+    }
+
+    #[test]
+    fn test_archetype_order_independence() {
+        let mut world = World::default();
+        let comp_a = world.register_component("comp_a".into());
+        let comp_b = world.register_component("comp_b".into());
+
+        world.spawn_entity_with_data(EntityData {
+            data: vec![
+                (comp_a, ComponentData::Raw(vec![1])),
+                (comp_b, ComponentData::Raw(vec![2])),
+            ],
+        });
+
+        // Create entity with components in different order
+        world.spawn_entity_with_data(EntityData {
+            data: vec![
+                (comp_b, ComponentData::Raw(vec![2])),
+                (comp_a, ComponentData::Raw(vec![1])),
+            ],
+        });
+
+        let matches = world.get_entities_with_arhetype(Architype {
+            data: vec![comp_a, comp_b],
+        });
+
+        assert_eq!(matches.len(), 2);
     }
 }
