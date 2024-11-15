@@ -1,4 +1,5 @@
 use zurie_mod_api::camera::{get_zoom_factor, set_zoom_factor};
+use zurie_mod_api::ecs::*;
 use zurie_mod_api::ecs::{register_component, spawn_entity};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
@@ -59,7 +60,6 @@ fn spawn_apple() -> ObjectHandle {
 impl Mod for MyMod {
     fn update(&mut self) {
         // Add safety checks for snake array
-
         if self.snake.is_empty() {
             return;
         }

@@ -1,9 +1,10 @@
 use crate::{
     functions::{
         camera::register_camera_bindings,
+        ecs::register_ecs_bindings,
         events::{register_events_bindings, EventHandle, EventManager},
         file::register_file_bindings,
-        game_logic::{register_ecs_bindings, register_game_logic_bindings},
+        game_logic::register_game_logic_bindings,
         gui::{register_gui_button, register_gui_text},
         input::{
             register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event,

@@ -1,13 +1,14 @@
 use crate::utils::{
     get_bytes_from_mem, get_obj_from_mem, get_string_from_mem, obj_to_pointer, string_to_pointer,
 };
+use zurie_types::serde;
 use zurie_types::{
     glam::Vec2,
     serde::{Deserialize, Serialize},
     ComponentData,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entity(u64);
 
 impl Entity {
@@ -28,8 +29,10 @@ impl Entity {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComponentID(u64);
+
+pub struct Architype(pub Vec<ComponentID>);
 
 pub fn spawn_entity() -> Entity {
     unsafe { Entity(spawn_entity_sys()) }
@@ -128,6 +131,14 @@ pub fn get_component_vec2(entity: Entity, component: ComponentID) -> Option<Vec2
     }
 }
 
+pub fn get_entities_with_architype(architype: Vec<ComponentID>) -> Vec<u64> {
+    let (ptr, len) = obj_to_pointer(&architype);
+    unsafe {
+        get_entities_with_architype_sys(ptr, len);
+        get_obj_from_mem()
+    }
+}
+
 extern "C" {
     fn spawn_entity_sys() -> u64;
     fn despawn_entity_sys(entity_id: u64);
@@ -140,4 +151,5 @@ extern "C" {
     fn get_component_raw_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_obj_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_string_sys(entity_id: u64, component_id: u64) -> i32;
+    fn get_entities_with_architype_sys(architype_ptr: u32, architype_len: u32);
 }

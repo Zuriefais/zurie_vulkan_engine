@@ -19,6 +19,7 @@ impl Display for ComponentID {
     }
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Architype {
     pub data: Vec<ComponentID>,
 }
@@ -59,7 +60,10 @@ impl EntityStorage {
         self.entities.iter().collect()
     }
 
-    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<(Entity, &EntityData)> {
+    pub fn get_entities_data_with_arhetype(
+        &self,
+        architype: Architype,
+    ) -> Vec<(Entity, &EntityData)> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
         let archetype_component_ids: std::collections::HashSet<_> =
@@ -75,6 +79,28 @@ impl EntityStorage {
 
             if entity_component_ids == archetype_component_ids {
                 entities.push((entity, data));
+            }
+        }
+
+        entities
+    }
+
+    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
+        let mut entities = Vec::with_capacity(self.entities.len() / 2);
+
+        let archetype_component_ids: std::collections::HashSet<_> =
+            architype.data.iter().copied().collect();
+
+        'entity_loop: for (entity, data) in self.entities.iter() {
+            if data.data.len() != architype.data.len() {
+                continue 'entity_loop;
+            }
+
+            let entity_component_ids: std::collections::HashSet<_> =
+                data.data.iter().map(|(id, _)| *id).collect();
+
+            if entity_component_ids == archetype_component_ids {
+                entities.push(entity);
             }
         }
 
@@ -168,7 +194,13 @@ impl World {
         self.storage.get_all_entities()
     }
 
-    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<(Entity, &EntityData)> {
+    pub fn get_entities_data_with_arhetype(
+        &self,
+        architype: Architype,
+    ) -> Vec<(Entity, &EntityData)> {
+        self.storage.get_entities_data_with_arhetype(architype)
+    }
+    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
         self.storage.get_entities_with_arhetype(architype)
     }
 

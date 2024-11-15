@@ -115,7 +115,7 @@ impl State {
             .world
             .read()
             .unwrap()
-            .get_entities_with_arhetype(Architype {
+            .get_entities_data_with_arhetype(Architype {
                 data: vec![
                     self.pos_component,
                     self.scale_component,

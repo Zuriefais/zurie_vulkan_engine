@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 zurie_types = { path = "../zurie_types" }
+serde = { workspace = true }

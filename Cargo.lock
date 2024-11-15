@@ -3939,6 +3939,7 @@ dependencies = [
 name = "zurie_mod_api"
 version = "0.0.0"
 dependencies = [
+ "serde",
  "zurie_types",
 ]
 
