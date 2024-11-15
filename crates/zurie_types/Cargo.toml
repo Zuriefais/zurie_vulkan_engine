@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-glam = { version = "0.29", features = ["mint"] }
+glam = { version = "0.29", features = ["mint", "serde"] }
 num_enum = "*"
 serde = { workspace = true }
 flexbuffers = "2.0.0"

@@ -49,12 +49,8 @@ impl ModManager {
         }
         if let WindowEvent::MouseWheel { delta, .. } = ev {
             let scroll_amount: f32 = match delta {
-                MouseScrollDelta::LineDelta(_, y) => {
-                    info!("scroll: {:?}", y);
-                    y
-                }
+                MouseScrollDelta::LineDelta(_, y) => y,
                 MouseScrollDelta::PixelDelta(pos) => {
-                    info!("scroll: {:?}", pos);
                     if pos == PhysicalPosition::new(-0.0, -0.0) {
                         0.0
                     } else {

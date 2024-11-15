@@ -1,7 +1,9 @@
 use zurie_mod_api::camera::{get_zoom_factor, set_zoom_factor};
+use zurie_mod_api::ecs::{register_component, spawn_entity};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
+use zurie_mod_api::zurie_types::ComponentData;
 use zurie_mod_api::zurie_types::{Object, Vector2};
 use zurie_mod_api::{
     gui::{gui_button, gui_text},
@@ -10,7 +12,6 @@ use zurie_mod_api::{
     zurie_types::{GuiTextMessage, KeyCode},
 };
 use zurie_mod_api::{info, register_mod};
-
 #[derive(Default)]
 pub struct MyMod {
     i: u32,
@@ -130,7 +131,12 @@ impl Mod for MyMod {
 
     fn init(&mut self) {
         self.eat_apple_handle = subscribe_to_event_by_name("eat_apple");
-
+        let component = register_component("Component");
+        let entity = spawn_entity();
+        entity.set_component(
+            component,
+            ComponentData::Vector(Vec2 { x: 10.0, y: 10.0 }.into()),
+        );
         info("initializing mod.....".to_string());
         subscribe_for_key_event(KeyCode::KeyW);
         subscribe_for_key_event(KeyCode::KeyA);

@@ -2,6 +2,7 @@ pub mod gui;
 pub mod input;
 
 use ecolor::hex_color;
+use egui_winit_vulkano::egui::Context;
 use input::InputState;
 use log::info;
 use std::sync::{Arc, RwLock};
@@ -12,7 +13,7 @@ use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_shared::sim_clock::SimClock;
-use zurie_types::{camera::Camera, glam::Vec2, Object};
+use zurie_types::{camera::Camera, glam::Vec2, ComponentData, Object};
 
 pub struct State {
     //gui: GameGui,
@@ -27,6 +28,7 @@ pub struct State {
     pos_component: ComponentID,
     scale_component: ComponentID,
     color_component: ComponentID,
+    gui_context: Context,
 }
 
 impl State {
@@ -89,6 +91,7 @@ impl State {
             pos_component,
             scale_component,
             color_component,
+            gui_context,
         }
     }
 
@@ -104,6 +107,10 @@ impl State {
         //     &mut self.background_color,
         // );
         self.mod_manager.update()?;
+        self.world
+            .write()
+            .unwrap()
+            .inspector(self.gui_context.clone());
         let mut objects: Vec<Object> = self
             .world
             .read()
@@ -121,17 +128,17 @@ impl State {
                 for (component_id, component_data) in entity_data.data.iter() {
                     if *component_id == self.pos_component {
                         obj.position = match component_data {
-                            zurie_ecs::ComponentData::Vector(vector2) => *vector2,
+                            ComponentData::Vector(vector2) => *vector2,
                             _ => Vec2::ZERO.into(),
                         };
                     } else if *component_id == self.scale_component {
                         obj.scale = match component_data {
-                            zurie_ecs::ComponentData::Scale(scale) => *scale,
+                            ComponentData::Scale(scale) => *scale,
                             _ => [1.0, 1.0],
                         };
                     } else if *component_id == self.color_component {
                         obj.color = match component_data {
-                            zurie_ecs::ComponentData::Color(color) => *color,
+                            ComponentData::Color(color) => *color,
                             _ => [1.0, 1.0, 1.0, 1.0],
                         };
                     }
@@ -140,7 +147,6 @@ impl State {
             })
             .collect();
         objects.push(Object::default());
-        info!("objects count, {}", objects.len());
         let objects = Arc::new(RwLock::new(objects));
 
         self.render_state.render(

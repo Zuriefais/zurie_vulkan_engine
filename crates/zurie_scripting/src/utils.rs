@@ -67,6 +67,15 @@ pub fn obj_to_bytes(obj: impl Serialize) -> Vec<u8> {
     serializer.take_buffer()
 }
 
+pub fn copy_string_to_memory(
+    caller: &mut Caller<'_, ()>,
+    string: &String,
+    alloc_fn: TypedFunc<u32, u32>,
+) -> anyhow::Result<()> {
+    copy_to_memory(caller, string.as_bytes(), alloc_fn)?;
+    Ok(())
+}
+
 pub fn copy_obj_to_memory(
     caller: &mut Caller<'_, ()>,
     obj: impl Serialize,

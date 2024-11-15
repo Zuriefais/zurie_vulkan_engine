@@ -1,54 +1,21 @@
-use egui::Context;
+use egui::{Context, Label};
 use log::info;
 use serde::{Deserialize, Serialize};
-use zurie_shared::slotmap::{new_key_type, SlotMap};
-use zurie_types::Vector2;
+use zurie_shared::slotmap::{new_key_type, KeyData, SlotMap};
+use zurie_types::{ComponentData, Vector2};
 
 new_key_type! { pub struct Entity; }
 new_key_type! { pub struct ComponentID; }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ComponentData {
-    String(String),
-    Vector(Vector2),
-    Color([f32; 4]),
-    Scale([f32; 2]),
-    Raw(Vec<u8>),
-}
-
-impl From<String> for ComponentData {
-    fn from(value: String) -> Self {
-        ComponentData::String(value)
+use std::fmt::Display;
+impl Display for Entity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", KeyData::as_ffi(self.0))
     }
 }
-
-impl From<Vector2> for ComponentData {
-    fn from(value: Vector2) -> Self {
-        ComponentData::Vector(value)
-    }
-}
-
-impl From<[f32; 4]> for ComponentData {
-    fn from(value: [f32; 4]) -> Self {
-        ComponentData::Color(value)
-    }
-}
-
-impl From<[f32; 2]> for ComponentData {
-    fn from(value: [f32; 2]) -> Self {
-        ComponentData::Scale(value)
-    }
-}
-
-impl From<Vec<u8>> for ComponentData {
-    fn from(value: Vec<u8>) -> Self {
-        ComponentData::Raw(value)
-    }
-}
-
-impl Default for ComponentData {
-    fn default() -> Self {
-        ComponentData::String(String::default())
+impl Display for ComponentID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", KeyData::as_ffi(self.0))
     }
 }
 
@@ -59,13 +26,6 @@ pub struct Architype {
 #[derive(Default, Debug)]
 pub struct EntityData {
     pub data: Vec<(ComponentID, ComponentData)>,
-}
-
-impl Iterator for EntityData {
-    type Item = (ComponentID, Vec<u8>);
-    fn next(&mut self) -> Option<Self::Item> {
-        None
-    }
 }
 
 #[derive(Default)]
@@ -132,8 +92,10 @@ impl EntityStorage {
             for (component, data) in entity_data.data.iter_mut() {
                 if *component == new_component.0 {
                     *data = new_component.1.clone();
+                    return;
                 }
             }
+            entity_data.data.push(new_component)
         }
     }
 
@@ -233,7 +195,55 @@ impl World {
         self.storage.get_component_mut(entity, component)
     }
 
-    pub fn inspector(&mut self, gui: Context) {}
+    pub fn inspector(&mut self, context: Context) {
+        let window = egui::Window::new("Inspector");
+        window.show(&context, |ui| {
+            // Make components list collapsible
+            egui::CollapsingHeader::new("Registered Components")
+                .default_open(true) // Optional: starts expanded
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for component in self.registered_components.iter() {
+                            ui.add(Label::new(format!(
+                                "id: {}, name: {}",
+                                component.0, component.1
+                            )));
+                        }
+                    });
+                });
+
+            egui::CollapsingHeader::new("Entities")
+                .default_open(true)
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for (entity, components) in self.storage.entities.iter() {
+                            egui::CollapsingHeader::new(format!("Entity {}", entity))
+                                .id_salt(entity.0) // Unique ID for each entity header
+                                .show(ui, |ui| {
+                                    for (component_id, component) in components.data.iter() {
+                                        let component_name =
+                                            match self.registered_components.get(*component_id) {
+                                                Some(name) => name,
+                                                None => "Unknown",
+                                            };
+                                        let text = match component {
+                                            ComponentData::String(s) => format!("String: {}", s),
+                                            ComponentData::Vector(v) => format!("Vector: {:?}", v),
+                                            ComponentData::Color(c) => format!("Color: {:?}", c),
+                                            ComponentData::Scale(s) => format!("Scale: {:?}", s),
+                                            ComponentData::Raw(r) => format!("Raw: {:?}", r),
+                                        };
+                                        ui.label(format!(
+                                            "Component {} ({}): {}",
+                                            component_id, component_name, text
+                                        ));
+                                    }
+                                });
+                        }
+                    });
+                });
+        });
+    }
 }
 
 #[cfg(test)]

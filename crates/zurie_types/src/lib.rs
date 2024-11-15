@@ -6,6 +6,51 @@ pub use serde;
 use serde::Deserialize;
 use serde::Serialize;
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ComponentData {
+    String(String),
+    Vector(Vector2),
+    Color([f32; 4]),
+    Scale([f32; 2]),
+    Raw(Vec<u8>),
+}
+
+impl From<String> for ComponentData {
+    fn from(value: String) -> Self {
+        ComponentData::String(value)
+    }
+}
+
+impl From<Vector2> for ComponentData {
+    fn from(value: Vector2) -> Self {
+        ComponentData::Vector(value)
+    }
+}
+
+impl From<[f32; 4]> for ComponentData {
+    fn from(value: [f32; 4]) -> Self {
+        ComponentData::Color(value)
+    }
+}
+
+impl From<[f32; 2]> for ComponentData {
+    fn from(value: [f32; 2]) -> Self {
+        ComponentData::Scale(value)
+    }
+}
+
+impl From<Vec<u8>> for ComponentData {
+    fn from(value: Vec<u8>) -> Self {
+        ComponentData::Raw(value)
+    }
+}
+
+impl Default for ComponentData {
+    fn default() -> Self {
+        ComponentData::String(String::default())
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
 pub struct Object {
     pub position: Vector2,

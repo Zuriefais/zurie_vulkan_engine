@@ -3,7 +3,7 @@ use crate::{
         camera::register_camera_bindings,
         events::{register_events_bindings, EventHandle, EventManager},
         file::register_file_bindings,
-        game_logic::register_game_logic_bindings,
+        game_logic::{register_ecs_bindings, register_game_logic_bindings},
         gui::{register_gui_button, register_gui_text},
         input::{
             register_key_pressed, register_request_mouse_pos, register_subscribe_for_key_event,
@@ -75,7 +75,8 @@ impl EngineMod {
         register_gui_button(&mut linker, &store, gui_context.clone())?;
         register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
         register_request_mouse_pos(&mut linker, mouse_pos)?;
-        register_game_logic_bindings(&mut linker, &store, world, alloc_fn_lock.clone())?;
+        register_game_logic_bindings(&mut linker, &store, world.clone(), alloc_fn_lock.clone())?;
+        register_ecs_bindings(&mut linker, &store, world, alloc_fn_lock.clone())?;
         register_camera_bindings(&mut linker, camera, &store)?;
         register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
         register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;

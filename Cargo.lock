@@ -1166,6 +1166,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c28091a37a5d09b555cb6628fd954da299b536433834f5b8e59eba78e0cbbf8a"
 dependencies = [
  "mint",
+ "serde",
 ]
 
 [[package]]

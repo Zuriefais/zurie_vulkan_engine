@@ -96,15 +96,21 @@ macro_rules! set_mod_name {
         }
     };
 }
-
+pub fn get_bytes_from_mem() -> Vec<u8> {
+    unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) }
+}
 pub fn get_obj_from_mem<T>() -> T
 where
     T: for<'de> Deserialize<'de>,
 {
-    let data = unsafe { Vec::from_raw_parts(PTR as *mut u8, LEN as usize, LEN as usize) };
+    let data = get_bytes_from_mem();
     let r = flexbuffers::Reader::get_root(&*data).unwrap();
     let obj = T::deserialize(r).unwrap();
     obj
+}
+pub fn get_string_from_mem() -> String {
+    let data = get_bytes_from_mem();
+    String::from_utf8(data).unwrap()
 }
 
 #[no_mangle]
