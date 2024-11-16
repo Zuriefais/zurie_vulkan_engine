@@ -6,6 +6,12 @@ pub use serde;
 use serde::Deserialize;
 use serde::Serialize;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Query {
+    pub name: String,
+    pub architypes: Vec<Vec<u64>>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ComponentData {
     String(String),

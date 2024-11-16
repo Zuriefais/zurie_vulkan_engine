@@ -4,7 +4,7 @@ use zurie_mod_api::ecs::{register_component, spawn_entity};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
 use zurie_mod_api::zurie_types::glam::Vec2;
-use zurie_mod_api::zurie_types::ComponentData;
+use zurie_mod_api::zurie_types::{ComponentData, Query};
 use zurie_mod_api::zurie_types::{Object, Vector2};
 use zurie_mod_api::{
     gui::{gui_button, gui_text},
@@ -130,6 +130,10 @@ impl Mod for MyMod {
     }
 
     fn init(&mut self) {
+        register_query(Query {
+            name: "test_query".into(),
+            architypes: vec![],
+        });
         self.eat_apple_handle = subscribe_to_event_by_name("eat_apple");
         let component = register_component("Component");
         let entity = spawn_entity();
@@ -200,3 +204,8 @@ impl Mod for MyMod {
 }
 
 register_mod!(MyMod);
+
+#[no_mangle]
+pub extern "C" fn test_query() {
+    info!("Query test")
+}

@@ -1,10 +1,10 @@
 use anyhow::Ok;
 use log::info;
 use std::sync::{Arc, RwLock};
-use wasmtime::{Linker, Store, TypedFunc};
+use wasmtime::{Func, Linker, Store, TypedFunc};
 use zurie_ecs::{Architype, ComponentID, EntityData, World};
 use zurie_shared::slotmap::{Key, KeyData};
-use zurie_types::{ComponentData, Object, Vector2};
+use zurie_types::{ComponentData, Object, Query, Vector2};
 
 use crate::utils::{
     copy_obj_to_memory, copy_string_to_memory, copy_to_memory, get_obj_by_ptr, get_string_by_ptr,
@@ -29,6 +29,7 @@ pub fn register_ecs_bindings(
     register_get_component_obj(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_string(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_entities_with_architype(linker, store, world.clone(), alloc_fn.clone())?;
+    register_register_query(linker, store, world, alloc_fn)?;
     Ok(())
 }
 
@@ -519,6 +520,38 @@ fn register_get_entities_with_architype(
             let alloc = alloc_fn.read().unwrap().as_ref().unwrap().clone();
             copy_obj_to_memory(&mut caller, entities, alloc)?;
 
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+fn register_register_query(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    _world: Arc<RwLock<World>>,
+    _alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "register_query_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [wasmtime::ValType::I32, wasmtime::ValType::I32]
+                .iter()
+                .cloned(),
+            [].iter().cloned(),
+        ),
+        move |mut caller, params, _| {
+            let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
+
+            let query: Query = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let func: Func = caller
+                .get_export(&query.name)
+                .and_then(|e| e.into_func())
+                .unwrap();
+            let func = func.typed::<(), ()>(&caller)?;
+            func.call(caller, ())?;
             Ok(())
         },
     )?;

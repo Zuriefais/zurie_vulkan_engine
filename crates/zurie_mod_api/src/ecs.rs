@@ -1,12 +1,12 @@
 use crate::utils::{
     get_bytes_from_mem, get_obj_from_mem, get_string_from_mem, obj_to_pointer, string_to_pointer,
 };
-use zurie_types::serde;
 use zurie_types::{
     glam::Vec2,
     serde::{Deserialize, Serialize},
     ComponentData,
 };
+use zurie_types::{serde, Query};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entity(u64);
@@ -139,6 +139,13 @@ pub fn get_entities_with_architype(architype: Vec<ComponentID>) -> Vec<u64> {
     }
 }
 
+pub fn register_query(query: Query) {
+    let (data_ptr, data_len) = obj_to_pointer(&query);
+    unsafe {
+        register_query_sys(data_ptr, data_len);
+    }
+}
+
 extern "C" {
     fn spawn_entity_sys() -> u64;
     fn despawn_entity_sys(entity_id: u64);
@@ -152,4 +159,15 @@ extern "C" {
     fn get_component_obj_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_string_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_entities_with_architype_sys(architype_ptr: u32, architype_len: u32);
+    fn register_query_sys(ptr: u32, len: u32);
 }
+
+// #[macro_export]
+// macro_rules! register_query {
+//     ($name:ident, $expression:expr) => {
+//         #[no_mangle]
+//         pub extern "C" fn $name() {}
+//     };
+// }
+
+// register_query!(test, {});
