@@ -60,12 +60,12 @@ impl RenderState {
         let before_pipeline_future = self.renderer.acquire()?;
 
         // Compute.
-        let after_compute = self
-            .compute
-            .compute(before_pipeline_future, sim_clock.simulate());
+        // let after_compute = self
+        //     .compute
+        //     .compute(before_pipeline_future, sim_clock.simulate());
 
         // Render.
-        let color_image = self.compute.color_image();
+        //let color_image = self.compute.color_image();
         let target_image = self.renderer.swapchain_image_view();
 
         // let after_pixels_render = self.pixels_render.render(
@@ -78,7 +78,7 @@ impl RenderState {
         // );
 
         let after_objects_render = self.objects_render.render(
-            after_compute,
+            before_pipeline_future,
             target_image.clone(),
             background_color,
             camera,

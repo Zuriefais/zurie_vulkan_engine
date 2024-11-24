@@ -13,6 +13,7 @@ use zurie_mod_api::{
     zurie_types::{GuiTextMessage, KeyCode},
 };
 use zurie_mod_api::{info, register_mod};
+
 #[derive(Default)]
 pub struct MyMod {
     i: u32,
