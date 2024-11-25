@@ -23,4 +23,4 @@ strum = "*"
 strum_macros = "*"
 zurie_types = { path = "../zurie_types" }
 anyhow = "1.0.89"
-png_pong = "0.9.3"
+asefile = { version = "*" }

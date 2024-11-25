@@ -1,4 +1,9 @@
-use std::sync::{Arc, RwLock};
+use asefile::AsepriteFile;
+use log::info;
+use std::{
+    path::Path,
+    sync::{Arc, RwLock},
+};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_shared::sim_clock::SimClock;
 use zurie_types::{camera::Camera, glam::Vec2, Object};
@@ -28,6 +33,11 @@ impl RenderState {
             renderer.gfx_queue.clone(),
             renderer.output_format,
         );
+        let asetexture = AsepriteFile::read_file(Path::new("./static/ase.aseprite")).unwrap();
+
+        info!("Size: {}x{}", asetexture.width(), asetexture.height());
+        info!("Frames: {}", asetexture.num_frames());
+        info!("Layers: {}", asetexture.num_layers());
         RenderState {
             compute: SandComputePipeline::new(&renderer),
             pixels_render: PixelsRenderPass::new(&renderer),
