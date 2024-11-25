@@ -25,7 +25,7 @@ pub struct RenderState {
 }
 
 impl RenderState {
-    pub fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> RenderState {
+    pub fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> anyhow::Result<RenderState> {
         let renderer = Renderer::new(window);
         let gui = GuiRender::new(
             event_loop,
@@ -33,18 +33,14 @@ impl RenderState {
             renderer.gfx_queue.clone(),
             renderer.output_format,
         );
-        let asetexture = AsepriteFile::read_file(Path::new("./static/ase.aseprite")).unwrap();
 
-        info!("Size: {}x{}", asetexture.width(), asetexture.height());
-        info!("Frames: {}", asetexture.num_frames());
-        info!("Layers: {}", asetexture.num_layers());
-        RenderState {
+        Ok(RenderState {
             compute: SandComputePipeline::new(&renderer),
             pixels_render: PixelsRenderPass::new(&renderer),
-            objects_render: ObjectRenderPass::new(&renderer),
+            objects_render: ObjectRenderPass::new(&renderer)?,
             renderer,
             gui,
-        }
+        })
     }
 
     pub fn render(

@@ -23,7 +23,7 @@ pub struct ObjectRenderPass {
 }
 
 impl ObjectRenderPass {
-    pub fn new(app: &Renderer) -> ObjectRenderPass {
+    pub fn new(app: &Renderer) -> anyhow::Result<ObjectRenderPass> {
         let render_pass = vulkano::single_pass_renderpass!(
             app.gfx_queue.device().clone(),
             attachments: {
@@ -41,15 +41,15 @@ impl ObjectRenderPass {
         )
         .unwrap();
         let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
-        let pixels_draw_pipeline = ObjectDrawPipeline::new(app, subpass);
+        let pixels_draw_pipeline = ObjectDrawPipeline::new(app, subpass)?;
         let gfx_queue = app.gfx_queue();
 
-        ObjectRenderPass {
+        Ok(ObjectRenderPass {
             gfx_queue,
             render_pass,
             pixels_draw_pipeline,
             command_buffer_allocator: app.command_buffer_allocator.clone(),
-        }
+        })
     }
 
     pub fn render<F>(

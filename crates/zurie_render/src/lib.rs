@@ -5,3 +5,4 @@ pub mod pixels_draw;
 pub mod render;
 pub mod render_state;
 pub use vulkano;
+pub mod sprite;

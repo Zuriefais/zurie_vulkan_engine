@@ -1,6 +1,9 @@
-use crate::render::Renderer;
+use crate::{render::Renderer, sprite::Sprite};
 
-use std::sync::{Arc, RwLock};
+use std::{
+    path::Path,
+    sync::{Arc, RwLock},
+};
 use vulkano::{
     buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
@@ -11,6 +14,7 @@ use vulkano::{
         allocator::StandardDescriptorSetAllocator, PersistentDescriptorSet, WriteDescriptorSet,
     },
     device::Queue,
+    image::sampler::{Filter, Sampler, SamplerAddressMode, SamplerCreateInfo, SamplerMipmapMode},
     memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
     pipeline::{
         graphics::{
@@ -79,10 +83,11 @@ pub struct ObjectDrawPipeline {
         >,
     >,
     vertices: Subbuffer<[TriangleVertex]>,
+    sprite: Sprite,
 }
 
 impl ObjectDrawPipeline {
-    pub fn new(app: &Renderer, subpass: Subpass) -> Self {
+    pub fn new(app: &Renderer, subpass: Subpass) -> anyhow::Result<Self> {
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(app.device.clone()));
         let command_buffer_allocator = app.command_buffer_allocator.clone();
 
@@ -133,8 +138,7 @@ impl ObjectDrawPipeline {
                 .entry_point("main")
                 .unwrap();
             let vertex_input_state = [TriangleVertex::per_vertex(), InstanceData::per_instance()]
-                .definition(&vs.info().input_interface)
-                .unwrap();
+                .definition(&vs.info().input_interface)?;
             let stages = [
                 PipelineShaderStageCreateInfo::new(vs),
                 PipelineShaderStageCreateInfo::new(fs),
@@ -142,10 +146,8 @@ impl ObjectDrawPipeline {
             let layout = PipelineLayout::new(
                 app.device.clone(),
                 PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-                    .into_pipeline_layout_create_info(app.device.clone())
-                    .unwrap(),
-            )
-            .unwrap();
+                    .into_pipeline_layout_create_info(app.device.clone())?,
+            )?;
 
             GraphicsPipeline::new(
                 app.device.clone(),
@@ -167,13 +169,18 @@ impl ObjectDrawPipeline {
                     subpass: Some(subpass.clone().into()),
                     ..GraphicsPipelineCreateInfo::layout(layout)
                 },
-            )
-            .unwrap()
+            )?
         };
 
         let gfx_queue = app.gfx_queue();
+        let sprite = Sprite::from_aseprite(
+            Path::new("static/ase.aseprite"),
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            app.gfx_queue(),
+        )?;
 
-        Self {
+        Ok(Self {
             gfx_queue,
             subpass,
             pipeline,
@@ -181,7 +188,8 @@ impl ObjectDrawPipeline {
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
             memory_allocator,
             vertices: vertex_buffer,
-        }
+            sprite,
+        })
     }
 
     fn create_descriptor(&self, camera: vs::Camera) -> Arc<PersistentDescriptorSet> {
@@ -191,6 +199,17 @@ impl ObjectDrawPipeline {
             .set_layouts()
             .first()
             .expect("No set layout found");
+        let sampler = Sampler::new(
+            self.gfx_queue.device().clone(),
+            SamplerCreateInfo {
+                mag_filter: Filter::Nearest,
+                min_filter: Filter::Nearest,
+                address_mode: [SamplerAddressMode::Repeat; 3],
+                mipmap_mode: SamplerMipmapMode::Nearest,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         let camera_buffer = Buffer::from_data(
             self.memory_allocator.clone(),
@@ -210,7 +229,11 @@ impl ObjectDrawPipeline {
         PersistentDescriptorSet::new(
             &self.descriptor_set_allocator,
             layout.clone(),
-            [WriteDescriptorSet::buffer(0, camera_buffer)],
+            [
+                WriteDescriptorSet::buffer(0, camera_buffer),
+                WriteDescriptorSet::sampler(1, sampler),
+                WriteDescriptorSet::image_view(2, self.sprite.texture()),
+            ],
             [],
         )
         .expect("Failed to create descriptor set")

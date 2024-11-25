@@ -4,7 +4,7 @@ pub mod input;
 use ecolor::hex_color;
 use egui_winit_vulkano::egui::Context;
 use input::InputState;
-use log::info;
+
 use std::sync::{Arc, RwLock};
 #[cfg(target_os = "android")]
 use winit::platform::android::ActiveEventLoopExtAndroid;
@@ -33,7 +33,8 @@ pub struct State {
 
 impl State {
     pub async fn new(window: Arc<Window>, event_loop: &ActiveEventLoop) -> State {
-        let render_state = RenderState::new(window, event_loop);
+        let render_state =
+            RenderState::new(window, event_loop).expect("error creating render state");
         let gui_context = render_state.gui.gui.context();
         //let gui = GameGui::new(gui_context.clone());
 
