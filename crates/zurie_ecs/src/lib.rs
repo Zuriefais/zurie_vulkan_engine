@@ -2,7 +2,7 @@ use egui::{Context, Label};
 use log::info;
 use serde::{Deserialize, Serialize};
 use zurie_shared::slotmap::{new_key_type, KeyData, SlotMap};
-use zurie_types::{ComponentData, Vector2};
+use zurie_types::ComponentData;
 
 new_key_type! { pub struct Entity; }
 new_key_type! { pub struct ComponentID; }
@@ -262,7 +262,6 @@ impl World {
                                             ComponentData::String(s) => format!("String: {}", s),
                                             ComponentData::Vector(v) => format!("Vector: {:?}", v),
                                             ComponentData::Color(c) => format!("Color: {:?}", c),
-                                            ComponentData::Scale(s) => format!("Scale: {:?}", s),
                                             ComponentData::Raw(r) => format!("Raw: {:?}", r),
                                         };
                                         ui.label(format!(

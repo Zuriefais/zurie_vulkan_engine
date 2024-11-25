@@ -17,7 +17,6 @@ pub enum ComponentData {
     String(String),
     Vector(Vector2),
     Color([f32; 4]),
-    Scale([f32; 2]),
     Raw(Vec<u8>),
 }
 
@@ -41,7 +40,7 @@ impl From<[f32; 4]> for ComponentData {
 
 impl From<[f32; 2]> for ComponentData {
     fn from(value: [f32; 2]) -> Self {
-        ComponentData::Scale(value)
+        ComponentData::Vector(value.into())
     }
 }
 
@@ -121,6 +120,15 @@ impl fmt::Display for Vector2 {
 impl From<glam::Vec2> for Vector2 {
     fn from(vec: glam::Vec2) -> Self {
         Vector2 { x: vec.x, y: vec.y }
+    }
+}
+
+impl From<[f32; 2]> for Vector2 {
+    fn from(vec: [f32; 2]) -> Self {
+        Vector2 {
+            x: vec[0],
+            y: vec[1],
+        }
     }
 }
 

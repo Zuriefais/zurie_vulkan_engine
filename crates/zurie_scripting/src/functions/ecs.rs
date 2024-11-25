@@ -23,7 +23,6 @@ pub fn register_ecs_bindings(
     register_set_component_raw(linker, store, world.clone())?;
     register_set_component_string(linker, store, world.clone())?;
     register_set_component_color(linker, store, world.clone())?;
-    register_set_component_scale(linker, store, world.clone())?;
     register_set_component_vec2(linker, store, world.clone())?;
     register_get_component_raw(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_obj(linker, store, world.clone(), alloc_fn.clone())?;
@@ -238,48 +237,6 @@ fn register_set_component_vec2(
     Ok(())
 }
 
-fn register_set_component_scale(
-    linker: &mut Linker<()>,
-    store: &Store<()>,
-    world: Arc<RwLock<World>>,
-) -> anyhow::Result<()> {
-    linker.func_new(
-        "env",
-        "set_component_scale_sys",
-        wasmtime::FuncType::new(
-            store.engine(),
-            [
-                wasmtime::ValType::I64, // entity id
-                wasmtime::ValType::I64, // component id
-                wasmtime::ValType::I32, // data ptr
-                wasmtime::ValType::I32, // data len
-            ]
-            .iter()
-            .cloned(),
-            [].iter().cloned(),
-        ),
-        move |mut caller, params, _| {
-            let (entity_id, component_id, data_ptr, data_len) = (
-                KeyData::from_ffi(params[0].unwrap_i64() as u64),
-                KeyData::from_ffi(params[1].unwrap_i64() as u64),
-                params[2].unwrap_i32() as u32,
-                params[3].unwrap_i32() as u32,
-            );
-
-            // Get component data from WASM memory
-            let scale: [f32; 2] = get_obj_by_ptr(&mut caller, data_ptr, data_len)?;
-
-            let mut world_lock = world.write().unwrap();
-            world_lock.set_component(
-                entity_id.into(),
-                (component_id.into(), ComponentData::Scale(scale)),
-            );
-            Ok(())
-        },
-    )?;
-    Ok(())
-}
-
 fn register_set_component_color(
     linker: &mut Linker<()>,
     store: &Store<()>,
@@ -416,15 +373,7 @@ fn register_get_component_obj(
                         results[0] = wasmtime::Val::I32(1);
                         return Ok(());
                     }
-                    ComponentData::Scale(scale) => {
-                        copy_obj_to_memory(
-                            &mut caller,
-                            scale,
-                            alloc_fn.read().unwrap().as_ref().unwrap().clone(),
-                        )?;
-                        results[0] = wasmtime::Val::I32(1);
-                        return Ok(());
-                    }
+
                     _ => {}
                 }
             }

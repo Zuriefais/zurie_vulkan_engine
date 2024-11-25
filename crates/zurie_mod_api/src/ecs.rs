@@ -67,12 +67,7 @@ pub fn set_component(entity: Entity, component: ComponentID, data: ComponentData
                 set_component_color_sys(entity.0, component.0, data_ptr, data_len);
             }
         }
-        ComponentData::Scale(scale) => {
-            let (data_ptr, data_len) = obj_to_pointer(&scale);
-            unsafe {
-                set_component_scale_sys(entity.0, component.0, data_ptr, data_len);
-            }
-        }
+
         ComponentData::Raw(raw) => {
             let (data_ptr, data_len) = (raw.as_ptr() as u32, raw.len() as u32);
             std::mem::forget(raw);

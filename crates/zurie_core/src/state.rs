@@ -133,7 +133,7 @@ impl State {
                         };
                     } else if *component_id == self.scale_component {
                         obj.scale = match component_data {
-                            ComponentData::Scale(scale) => *scale,
+                            ComponentData::Vector(scale) => Into::<[f32; 2]>::into(*scale),
                             _ => [1.0, 1.0],
                         };
                     } else if *component_id == self.color_component {
