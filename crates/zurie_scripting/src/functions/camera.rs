@@ -1,15 +1,8 @@
-// fn request_camera_sys();
-// fn set_camera_sys(ptr: u32, len: u32);
-// fn set_zoom_factor_sys(factor: f32);
-// fn get_zoom_factor_sys() -> f32;
-
-use std::sync::{Arc, RwLock};
-
+use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
 use log::info;
+use std::sync::{Arc, RwLock};
 use wasmtime::{Linker, Store};
 use zurie_types::camera::Camera;
-
-use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
 
 pub fn register_camera_bindings(
     linker: &mut Linker<()>,
