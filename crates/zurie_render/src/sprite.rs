@@ -7,6 +7,7 @@ use vulkano::command_buffer::{
     PrimaryCommandBufferAbstract,
 };
 use vulkano::device::Queue;
+use vulkano::memory::allocator::MemoryTypeFilter;
 use vulkano::sync::GpuFuture;
 use vulkano::{
     format::Format,
@@ -44,7 +45,11 @@ impl Sprite {
                 usage: BufferUsage::TRANSFER_SRC,
                 ..Default::default()
             },
-            AllocationCreateInfo::default(),
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_HOST
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
             rgba_data,
         )?;
 
@@ -58,7 +63,10 @@ impl Sprite {
                 usage: ImageUsage::TRANSFER_DST | ImageUsage::SAMPLED,
                 ..Default::default()
             },
-            AllocationCreateInfo::default(),
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
+                ..Default::default()
+            },
         )?;
 
         // Create command buffer to copy buffer to image
