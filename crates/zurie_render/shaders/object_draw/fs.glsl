@@ -9,5 +9,5 @@ layout(set = 0, binding = 2) uniform texture2D t;
 
 void main() {
     vec4 tex_color = texture(sampler2D(t, s), frag_tex_coord);
-    f_color = tex_color * frag_color;
+    f_color = frag_color * tex_color;
 }

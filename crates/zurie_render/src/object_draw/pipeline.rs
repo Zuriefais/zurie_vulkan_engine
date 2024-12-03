@@ -84,6 +84,7 @@ pub struct ObjectDrawPipeline {
     >,
     vertices: Subbuffer<[TriangleVertex]>,
     sprite: Sprite,
+    indices: Subbuffer<[u32]>,
 }
 
 impl ObjectDrawPipeline {
@@ -91,29 +92,7 @@ impl ObjectDrawPipeline {
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(app.device.clone()));
         let command_buffer_allocator = app.command_buffer_allocator.clone();
 
-        let vertices = [
-            // First triangle
-            TriangleVertex {
-                vert_position: [-0.5, -0.5],
-            },
-            TriangleVertex {
-                vert_position: [0.5, -0.5],
-            },
-            TriangleVertex {
-                vert_position: [-0.5, 0.5],
-            },
-            // Second triangle
-            TriangleVertex {
-                vert_position: [0.5, -0.5],
-            },
-            TriangleVertex {
-                vert_position: [0.5, 0.5],
-            },
-            TriangleVertex {
-                vert_position: [-0.5, 0.5],
-            },
-        ];
-        let vertex_buffer = Buffer::from_iter(
+        let vertices = Buffer::from_iter(
             memory_allocator.clone(),
             BufferCreateInfo {
                 usage: BufferUsage::VERTEX_BUFFER,
@@ -124,7 +103,35 @@ impl ObjectDrawPipeline {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            vertices,
+            [
+                // Counter-clockwise vertices for a proper square
+                TriangleVertex {
+                    vert_position: [-0.5, -0.5], // Bottom-left
+                },
+                TriangleVertex {
+                    vert_position: [-0.5, 0.5], // Top-left
+                },
+                TriangleVertex {
+                    vert_position: [0.5, 0.5], // Top-right
+                },
+                TriangleVertex {
+                    vert_position: [0.5, -0.5], // Bottom-right
+                },
+            ],
+        )
+        .unwrap();
+        let indices = Buffer::from_iter(
+            memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::INDEX_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            [0u32, 1, 2, 0, 2, 3], // Counter-clockwise triangle indices
         )
         .unwrap();
 
@@ -196,8 +203,9 @@ impl ObjectDrawPipeline {
             command_buffer_allocator,
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
             memory_allocator,
-            vertices: vertex_buffer,
+            vertices,
             sprite,
+            indices,
         })
     }
 
@@ -315,7 +323,9 @@ impl ObjectDrawPipeline {
             .unwrap()
             .bind_vertex_buffers(0, (self.vertices.clone(), instance_buffer))
             .unwrap()
-            .draw(self.vertices.len() as u32, instance_buffer_len as u32, 0, 0)
+            .bind_index_buffer(self.indices.clone())
+            .unwrap()
+            .draw_indexed(6, instance_buffer_len as u32, 0, 0, 0)
             .unwrap();
         builder.build().unwrap()
     }

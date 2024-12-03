@@ -24,3 +24,4 @@ strum_macros = "*"
 zurie_types = { path = "../zurie_types" }
 anyhow = "1.0.89"
 asefile = { version = "*" }
+slotmap = {workspace = true}

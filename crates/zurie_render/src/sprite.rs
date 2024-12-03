@@ -1,4 +1,5 @@
 use asefile::AsepriteFile;
+use slotmap::{new_key_type, SlotMap};
 use std::{path::Path, sync::Arc};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -14,11 +15,26 @@ use vulkano::{
     image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
+use zurie_shared::SpriteHandle;
+
+pub struct SpriteManager {
+    sprites: SlotMap<SpriteHandle, Sprite>,
+}
+
+impl SpriteManager {
+    pub fn get_texture(&self, handle: SpriteHandle) -> Option<Arc<ImageView>> {
+        if let Some(sprite) = self.sprites.get(handle) {
+            return Some(sprite.texture.clone());
+        }
+        None
+    }
+}
 
 pub struct Sprite {
     pub texture: Arc<ImageView>,
     pub width: u32,
     pub height: u32,
+    pub path: String,
 }
 
 impl Sprite {
@@ -28,7 +44,7 @@ impl Sprite {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<Self> {
-        let ase = AsepriteFile::read_file(path)?;
+        let ase = AsepriteFile::read_file(&path)?;
         let frame = ase.frame(0).image();
 
         let width = frame.width();
@@ -87,11 +103,12 @@ impl Sprite {
         future.then_signal_fence_and_flush()?.wait(None)?;
 
         let texture = ImageView::new_default(image)?;
-
+        let path_str = path.to_str().expect("Error getting path").to_string();
         Ok(Self {
             texture,
             width,
             height,
+            path: path_str,
         })
     }
     pub fn texture(&self) -> Arc<ImageView> {
