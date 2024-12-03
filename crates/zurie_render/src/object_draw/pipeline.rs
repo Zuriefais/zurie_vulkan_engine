@@ -154,16 +154,25 @@ impl ObjectDrawPipeline {
                 None,
                 GraphicsPipelineCreateInfo {
                     stages: stages.into_iter().collect(),
-                    // Use the implementations of the `Vertex` trait to describe to vulkano how the two vertex
-                    // types are expected to be used.
                     vertex_input_state: Some(vertex_input_state),
                     input_assembly_state: Some(InputAssemblyState::default()),
                     viewport_state: Some(ViewportState::default()),
                     rasterization_state: Some(RasterizationState::default()),
                     multisample_state: Some(MultisampleState::default()),
+                    // Modify the color blend state for transparency
                     color_blend_state: Some(ColorBlendState::with_attachment_states(
                         subpass.num_color_attachments(),
-                        ColorBlendAttachmentState::default(),
+                        ColorBlendAttachmentState {
+                            blend: Some(vulkano::pipeline::graphics::color_blend::AttachmentBlend {
+                                color_blend_op: vulkano::pipeline::graphics::color_blend::BlendOp::Add,
+                                src_color_blend_factor: vulkano::pipeline::graphics::color_blend::BlendFactor::SrcAlpha,
+                                dst_color_blend_factor: vulkano::pipeline::graphics::color_blend::BlendFactor::OneMinusSrcAlpha,
+                                alpha_blend_op: vulkano::pipeline::graphics::color_blend::BlendOp::Add,
+                                src_alpha_blend_factor: vulkano::pipeline::graphics::color_blend::BlendFactor::One,
+                                dst_alpha_blend_factor: vulkano::pipeline::graphics::color_blend::BlendFactor::OneMinusSrcAlpha,
+                            }),
+                            ..Default::default()
+                        },
                     )),
                     dynamic_state: [DynamicState::Viewport].into_iter().collect(),
                     subpass: Some(subpass.clone().into()),
