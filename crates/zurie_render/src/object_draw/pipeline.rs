@@ -1,6 +1,10 @@
-use crate::{render::Renderer, sprite::Sprite};
+use crate::{
+    render::Renderer,
+    sprite::{Sprite, SpriteManager},
+};
 
 use std::{
+    collections::HashMap,
     path::Path,
     sync::{Arc, RwLock},
 };
@@ -32,6 +36,7 @@ use vulkano::{
     },
     render_pass::Subpass,
 };
+use zurie_shared::SpriteHandle;
 use zurie_types::Object;
 
 #[derive(BufferContents, Vertex)]
@@ -83,7 +88,9 @@ pub struct ObjectDrawPipeline {
         >,
     >,
     vertices: Subbuffer<[TriangleVertex]>,
-    sprite: Sprite,
+    sprite: SpriteHandle,
+    sprite1: SpriteHandle,
+    sprite_manager: SpriteManager,
     indices: Subbuffer<[u32]>,
 }
 
@@ -189,13 +196,19 @@ impl ObjectDrawPipeline {
         };
 
         let gfx_queue = app.gfx_queue();
-        let sprite = Sprite::from_aseprite(
+        let mut sprite_manager = SpriteManager::default();
+        let sprite = sprite_manager.load_from_file(
             Path::new("static/ase.aseprite"),
             memory_allocator.clone(),
             command_buffer_allocator.clone(),
             app.gfx_queue(),
         )?;
-
+        let sprite1 = sprite_manager.load_from_file(
+            Path::new("static/ase2.aseprite"),
+            memory_allocator.clone(),
+            command_buffer_allocator.clone(),
+            app.gfx_queue(),
+        )?;
         Ok(Self {
             gfx_queue,
             subpass,
@@ -205,11 +218,17 @@ impl ObjectDrawPipeline {
             memory_allocator,
             vertices,
             sprite,
+            sprite1,
+            sprite_manager,
             indices,
         })
     }
 
-    fn create_descriptor(&self, camera: vs::Camera) -> Arc<PersistentDescriptorSet> {
+    fn create_descriptor(
+        &self,
+        camera: vs::Camera,
+        sprite: SpriteHandle,
+    ) -> Arc<PersistentDescriptorSet> {
         let layout = self
             .pipeline
             .layout()
@@ -249,7 +268,7 @@ impl ObjectDrawPipeline {
             [
                 WriteDescriptorSet::buffer(0, camera_buffer),
                 WriteDescriptorSet::sampler(1, sampler),
-                WriteDescriptorSet::image_view(2, self.sprite.texture()),
+                WriteDescriptorSet::image_view(2, self.sprite_manager.get_texture(sprite).unwrap()),
             ],
             [],
         )
@@ -273,61 +292,76 @@ impl ObjectDrawPipeline {
             },
         )
         .unwrap();
-        let desc_set = self.create_descriptor(camera);
-        let instance_data: Vec<InstanceData> = objects
-            .read()
-            .unwrap()
-            .iter()
-            .map(|obj| InstanceData {
-                position: obj.position.into(),
-                scale: obj.scale,
-                color: obj.color,
-            })
-            .collect();
+        let mut objects_by_texture: HashMap<SpriteHandle, Vec<InstanceData>> = Default::default();
+        for obj in objects.read().unwrap().iter() {
+            objects_by_texture
+                .entry(if obj.position.x % 2.0 == 0.0 {
+                    self.sprite
+                } else {
+                    self.sprite1
+                })
+                .or_default()
+                .push(InstanceData {
+                    position: obj.position.into(),
+                    scale: obj.scale,
+                    color: obj.color,
+                });
+        }
+        for (sprite, objects) in objects_by_texture {
+            let desc_set = self.create_descriptor(camera, sprite);
+            let instance_data: Vec<InstanceData> = objects
+                .iter()
+                .map(|obj| InstanceData {
+                    position: obj.position.into(),
+                    scale: obj.scale,
+                    color: obj.color,
+                })
+                .collect();
 
-        let instance_buffer = Buffer::from_iter(
-            self.memory_allocator.clone(),
-            BufferCreateInfo {
-                usage: BufferUsage::VERTEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                ..Default::default()
-            },
-            instance_data,
-        )
-        .unwrap();
-        let instance_buffer_len = instance_buffer.len();
-        builder
-            .set_viewport(
-                0,
-                [Viewport {
-                    offset: [0.0, 0.0],
-                    extent: [viewport_dimensions[0] as f32, viewport_dimensions[1] as f32],
-                    depth_range: 0.0..=1.0,
-                }]
-                .into_iter()
-                .collect(),
+            let instance_buffer = Buffer::from_iter(
+                self.memory_allocator.clone(),
+                BufferCreateInfo {
+                    usage: BufferUsage::VERTEX_BUFFER,
+                    ..Default::default()
+                },
+                AllocationCreateInfo {
+                    memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                        | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                    ..Default::default()
+                },
+                instance_data,
             )
-            .unwrap()
-            .bind_pipeline_graphics(self.pipeline.clone())
-            .unwrap()
-            .bind_descriptor_sets(
-                PipelineBindPoint::Graphics,
-                self.pipeline.layout().clone(),
-                0,
-                desc_set,
-            )
-            .unwrap()
-            .bind_vertex_buffers(0, (self.vertices.clone(), instance_buffer))
-            .unwrap()
-            .bind_index_buffer(self.indices.clone())
-            .unwrap()
-            .draw_indexed(6, instance_buffer_len as u32, 0, 0, 0)
             .unwrap();
-        builder.build().unwrap()
+            let instance_buffer_len = instance_buffer.len();
+            builder
+                .set_viewport(
+                    0,
+                    [Viewport {
+                        offset: [0.0, 0.0],
+                        extent: [viewport_dimensions[0] as f32, viewport_dimensions[1] as f32],
+                        depth_range: 0.0..=1.0,
+                    }]
+                    .into_iter()
+                    .collect(),
+                )
+                .unwrap()
+                .bind_pipeline_graphics(self.pipeline.clone())
+                .unwrap()
+                .bind_descriptor_sets(
+                    PipelineBindPoint::Graphics,
+                    self.pipeline.layout().clone(),
+                    0,
+                    desc_set,
+                )
+                .unwrap()
+                .bind_vertex_buffers(0, (self.vertices.clone(), instance_buffer))
+                .unwrap()
+                .bind_index_buffer(self.indices.clone())
+                .unwrap()
+                .draw_indexed(6, instance_buffer_len as u32, 0, 0, 0)
+                .unwrap();
+        }
+        return builder.build().unwrap();
     }
 }
 
