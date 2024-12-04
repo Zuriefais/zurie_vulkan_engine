@@ -1,11 +1,17 @@
+#[cfg(target_os = "android")]
 use android_activity::{
     input::{InputEvent, KeyAction, KeyEvent, KeyMapChar, MotionAction},
     AndroidApp, InputStatus, MainEvent, PollEvent,
 };
+#[cfg(target_os = "android")]
 use log::info;
+#[cfg(target_os = "android")]
 use std::time::Duration;
+#[cfg(target_os = "android")]
 use winit::event_loop::{EventLoop, EventLoopBuilder};
+#[cfg(target_os = "android")]
 use winit::platform::android::EventLoopBuilderExtAndroid;
+#[cfg(target_os = "android")]
 use zurie_core::app::App;
 
 #[cfg(target_os = "android")]

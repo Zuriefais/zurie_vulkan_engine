@@ -1,12 +1,12 @@
 use crate::utils::{
     get_bytes_from_mem, get_obj_from_mem, get_string_from_mem, obj_to_pointer, string_to_pointer,
 };
+use zurie_types::Query;
 use zurie_types::{
     glam::Vec2,
     serde::{Deserialize, Serialize},
     ComponentData,
 };
-use zurie_types::{serde, Query};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entity(u64);
@@ -148,7 +148,6 @@ extern "C" {
     fn set_component_raw_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_string_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_vec_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
-    fn set_component_scale_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_color_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn get_component_raw_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_obj_sys(entity_id: u64, component_id: u64) -> i32;

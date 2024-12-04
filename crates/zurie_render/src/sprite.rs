@@ -1,5 +1,5 @@
 use asefile::AsepriteFile;
-use slotmap::{new_key_type, SlotMap};
+use slotmap::SlotMap;
 use std::{path::Path, sync::Arc};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -44,7 +44,7 @@ impl Sprite {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<Self> {
-        let ase = AsepriteFile::read_file(&path)?;
+        let ase = AsepriteFile::read_file(path)?;
         let frame = ase.frame(0).image();
 
         let width = frame.width();

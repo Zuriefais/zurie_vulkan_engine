@@ -1,15 +1,11 @@
 use anyhow::Ok;
-use log::info;
 use std::sync::{Arc, RwLock};
 use wasmtime::{Func, Linker, Store, TypedFunc};
-use zurie_ecs::{Architype, ComponentID, EntityData, World};
+use zurie_ecs::{Architype, ComponentID, World};
 use zurie_shared::slotmap::{Key, KeyData};
-use zurie_types::{ComponentData, Object, Query, Vector2};
+use zurie_types::{ComponentData, Query, Vector2};
 
-use crate::utils::{
-    copy_obj_to_memory, copy_string_to_memory, copy_to_memory, get_obj_by_ptr, get_string_by_ptr,
-    obj_to_bytes,
-};
+use crate::utils::{copy_obj_to_memory, copy_string_to_memory, get_obj_by_ptr, get_string_by_ptr};
 
 pub fn register_ecs_bindings(
     linker: &mut Linker<()>,
@@ -415,7 +411,7 @@ fn register_get_component_string(
             if let Some(ComponentData::String(string)) = component {
                 copy_string_to_memory(
                     &mut caller,
-                    &string,
+                    string,
                     alloc_fn.read().unwrap().as_ref().unwrap().clone(),
                 )?;
                 results[0] = wasmtime::Val::I32(1);

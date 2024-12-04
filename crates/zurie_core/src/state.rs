@@ -12,12 +12,9 @@ use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
-use zurie_shared::sim_clock::SimClock;
 use zurie_types::{camera::Camera, glam::Vec2, ComponentData, Object};
 
 pub struct State {
-    //gui: GameGui,
-    pub sim_clock: SimClock,
     input: InputState,
     selected_cell_type: CellType,
     background_color: [f32; 4],
@@ -36,9 +33,7 @@ impl State {
         let render_state =
             RenderState::new(window, event_loop).expect("error creating render state");
         let gui_context = render_state.gui.gui.context();
-        //let gui = GameGui::new(gui_context.clone());
 
-        let sim_clock = SimClock::default();
         let size = render_state.renderer.window_size();
         let camera = Arc::new(RwLock::new(Camera::create_camera_from_screen_size(
             size[0] as f32,
@@ -80,8 +75,6 @@ impl State {
         );
 
         State {
-            //gui,
-            sim_clock,
             input,
             selected_cell_type: CellType::Sand,
             background_color: hex_color!("#8FA3B3").to_normalized_gamma_f32(),
@@ -97,7 +90,6 @@ impl State {
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
-        self.sim_clock.clock();
         self.render_state.gui.start_gui();
         // self.gui.draw_gui(
         //     &mut self.sim_clock,
@@ -151,7 +143,6 @@ impl State {
         let objects = Arc::new(RwLock::new(objects));
 
         self.render_state.render(
-            &mut self.sim_clock,
             self.selected_cell_type,
             &self.input.mouse.position.read().unwrap(),
             self.input.mouse.left_pressed,

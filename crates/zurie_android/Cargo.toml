@@ -8,7 +8,7 @@ name = "zurie_android"
 crate-type = ["staticlib", "cdylib"]
 
 
-[dependencies]
+[target.'cfg(android)'.dependencies]
 android-activity = { version = "0.6.0", features = ["native-activity"] }
 zurie_core = { path = "../zurie_core" }
 winit = { version = "0.30.5", features = [

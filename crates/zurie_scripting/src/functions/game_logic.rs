@@ -6,7 +6,7 @@ use zurie_ecs::{ComponentID, EntityData, World};
 use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::{ComponentData, Object, Vector2};
 
-use crate::utils::{copy_obj_to_memory, copy_string_to_memory, get_obj_by_ptr, get_string_by_ptr};
+use crate::utils::{copy_obj_to_memory, get_obj_by_ptr};
 
 pub fn register_game_logic_bindings(
     linker: &mut Linker<()>,

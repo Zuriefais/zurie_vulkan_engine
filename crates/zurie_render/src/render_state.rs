@@ -1,11 +1,5 @@
-use asefile::AsepriteFile;
-use log::info;
-use std::{
-    path::Path,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_shared::sim_clock::SimClock;
 use zurie_types::{camera::Camera, glam::Vec2, Object};
 
 use crate::{
@@ -45,7 +39,6 @@ impl RenderState {
 
     pub fn render(
         &mut self,
-        sim_clock: &mut SimClock,
         selected_cell_type: CellType,
         mouse_pos: &Vec2,
         left_pressed: bool,
