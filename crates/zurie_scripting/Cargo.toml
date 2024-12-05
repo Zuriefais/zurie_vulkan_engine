@@ -17,3 +17,4 @@ rand = "0.8.5"
 zurie_types = { path = "../zurie_types" }
 zurie_ecs = { path = "../zurie_ecs" }
 zurie_shared = { path = "../zurie_shared" }
+zurie_render  = { path = "../zurie_render"}

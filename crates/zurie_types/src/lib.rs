@@ -5,6 +5,9 @@ pub use flexbuffers;
 pub use serde;
 use serde::Deserialize;
 use serde::Serialize;
+use slotmap::new_key_type;
+
+new_key_type! { pub struct SpriteHandle; }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Query {
@@ -18,6 +21,8 @@ pub enum ComponentData {
     Vector(Vector2),
     Color([f32; 4]),
     Raw(Vec<u8>),
+    Sprite(u64),
+    None,
 }
 
 impl From<String> for ComponentData {
@@ -61,6 +66,7 @@ pub struct Object {
     pub position: Vector2,
     pub scale: [f32; 2],
     pub color: [f32; 4],
+    pub sprite: u64,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

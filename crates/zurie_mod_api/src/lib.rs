@@ -7,3 +7,4 @@ pub mod camera;
 pub mod ecs;
 pub mod events;
 pub mod file;
+pub mod sprite;

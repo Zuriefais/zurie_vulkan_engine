@@ -11,6 +11,7 @@ use winit::{
     event::{MouseScrollDelta, WindowEvent},
 };
 use zurie_ecs::World;
+use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::SlotMap;
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
 
@@ -28,6 +29,7 @@ pub struct ModManager {
     world: Arc<RwLock<World>>,
     camera: Arc<RwLock<Camera>>,
     event_manager: Arc<RwLock<EventManager>>,
+    sprite_manager: Arc<RwLock<SpriteManager>>,
     #[cfg(target_os = "android")]
     app: AndroidApp,
 }
@@ -117,6 +119,7 @@ impl ModManager {
             self.camera.clone(),
             self.event_manager.clone(),
             handle,
+            self.sprite_manager.clone(),
         )?)))
     }
 
@@ -156,6 +159,7 @@ impl ModManager {
                         self.camera.clone(),
                         event_manager,
                         handle,
+                        self.sprite_manager.clone(),
                         #[cfg(target_os = "android")]
                         self.app.clone(),
                     )
@@ -182,6 +186,7 @@ impl ModManager {
         mouse_pos: Arc<RwLock<Vec2>>,
         world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
+        sprite_manager: Arc<RwLock<SpriteManager>>,
         #[cfg(target_os = "android")] android_app: AndroidApp,
     ) -> Self {
         let engine = Engine::default();
@@ -200,6 +205,7 @@ impl ModManager {
                     camera.clone(),
                     event_manager.clone(),
                     handle,
+                    sprite_manager.clone(),
                 )
                 .unwrap(),
             ))
@@ -233,6 +239,7 @@ impl ModManager {
             world,
             camera,
             event_manager,
+            sprite_manager,
             #[cfg(target_os = "android")]
             app: android_app,
         }

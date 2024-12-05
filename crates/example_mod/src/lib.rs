@@ -3,6 +3,7 @@ use zurie_mod_api::ecs::*;
 use zurie_mod_api::ecs::{register_component, spawn_entity};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
+use zurie_mod_api::sprite::load_sprite_from_file;
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::{ComponentData, Query};
 use zurie_mod_api::zurie_types::{Object, Vector2};
@@ -21,9 +22,17 @@ pub struct MyMod {
     apple: ObjectHandle,
     eat_apple_handle: EventHandle,
     direction: Vec2,
+    snake_sprite: u64,
+    apple_sprite: u64,
 }
 
-fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2, i: &mut u32, apple_pos: Vec2) {
+fn move_snake(
+    snake: &mut Vec<ObjectHandle>,
+    direction: Vec2,
+    i: &mut u32,
+    apple_pos: Vec2,
+    snake_sprite: u64,
+) {
     *i += 1;
     if *i == 10 {
         // Get head position safely
@@ -40,6 +49,7 @@ fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2, i: &mut u32, apple
                     position: Vector2::new(new_pos.x, new_pos.y),
                     scale: [1.0, 1.0],
                     color: [1.0, 0.0, 1.0, 1.0],
+                    sprite: snake_sprite,
                 });
                 snake.insert(0, new_obj);
             }
@@ -48,13 +58,14 @@ fn move_snake(snake: &mut Vec<ObjectHandle>, direction: Vec2, i: &mut u32, apple
     }
 }
 
-fn spawn_apple() -> ObjectHandle {
+fn spawn_apple(sprite: u64) -> ObjectHandle {
     let (x, y): (i32, i32) = (get_rand_i32(-10, 10), get_rand_i32(-10, 10));
     let position = Vector2::new(x as f32, y as f32);
     spawn_object(Object {
         position,
         scale: [1.0, 1.0],
         color: [1.0, 1.0, 1.0, 1.0],
+        sprite,
     })
 }
 
@@ -116,7 +127,13 @@ impl Mod for MyMod {
             self.direction = Vec2 { x: 1.0, y: 0.0 };
         }
 
-        move_snake(&mut self.snake, self.direction, &mut self.i, apple_pos);
+        move_snake(
+            &mut self.snake,
+            self.direction,
+            &mut self.i,
+            apple_pos,
+            self.snake_sprite,
+        );
 
         // Check collision with apple
         if let Some(head_pos) = self.snake[0].get_pos() {
@@ -131,6 +148,8 @@ impl Mod for MyMod {
     }
 
     fn init(&mut self) {
+        let snake_sprite = load_sprite_from_file("static/ase.aseprite".into());
+        let apple_sprite = load_sprite_from_file("static/ase2.aseprite".into());
         register_query(Query {
             name: "test_query".into(),
             architypes: vec![],
@@ -151,18 +170,22 @@ impl Mod for MyMod {
             position: Vector2::new(0.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
+            sprite: snake_sprite,
         }));
         self.snake.push(spawn_object(Object {
             position: Vector2::new(1.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
+            sprite: snake_sprite,
         }));
         self.snake.push(spawn_object(Object {
             position: Vector2::new(2.0, 0.0),
             scale: [1.0, 1.0],
             color: [1.0, 0.0, 1.0, 1.0],
+            sprite: snake_sprite,
         }));
-        self.apple = spawn_apple();
+        self.apple = spawn_apple(apple_sprite);
+        self.apple_sprite = apple_sprite;
     }
 
     fn get_mod_name(&self) -> String {
@@ -199,7 +222,7 @@ impl Mod for MyMod {
         info!("event catched: {:?}", handle);
         if handle == self.eat_apple_handle {
             self.apple.despawn();
-            self.apple = spawn_apple();
+            self.apple = spawn_apple(self.apple_sprite);
         }
     }
 }

@@ -263,6 +263,8 @@ impl World {
                                             ComponentData::Vector(v) => format!("Vector: {:?}", v),
                                             ComponentData::Color(c) => format!("Color: {:?}", c),
                                             ComponentData::Raw(r) => format!("Raw: {:?}", r),
+                                            ComponentData::None => format!("None"),
+                                            ComponentData::Sprite(h) => format!("Sprite: {h}"),
                                         };
                                         ui.label(format!(
                                             "Component {} ({}): {}",

@@ -8,6 +8,7 @@ use crate::{
     object_draw::render_pass::ObjectRenderPass,
     pixels_draw::render_pass::PixelsRenderPass,
     render::Renderer,
+    sprite::SpriteManager,
 };
 
 pub struct RenderState {
@@ -16,6 +17,7 @@ pub struct RenderState {
     pub objects_render: ObjectRenderPass,
     pub renderer: Renderer,
     pub gui: GuiRender,
+    pub sprite_manager: Arc<RwLock<SpriteManager>>,
 }
 
 impl RenderState {
@@ -27,13 +29,15 @@ impl RenderState {
             renderer.gfx_queue.clone(),
             renderer.output_format,
         );
+        let sprite_manager: Arc<RwLock<SpriteManager>> = Default::default();
 
         Ok(RenderState {
             compute: SandComputePipeline::new(&renderer),
             pixels_render: PixelsRenderPass::new(&renderer),
-            objects_render: ObjectRenderPass::new(&renderer)?,
+            objects_render: ObjectRenderPass::new(&renderer, sprite_manager.clone())?,
             renderer,
             gui,
+            sprite_manager,
         })
     }
 
@@ -56,6 +60,11 @@ impl RenderState {
             self.compute
                 .draw(*mouse_pos, self.renderer.window_size(), CellType::Empty);
         }
+        self.sprite_manager.write().unwrap().process_queue(
+            self.renderer.memory_allocator.clone(),
+            self.renderer.command_buffer_allocator.clone(),
+            self.renderer.gfx_queue.clone(),
+        )?;
         let before_pipeline_future = self.renderer.acquire()?;
 
         // Compute.

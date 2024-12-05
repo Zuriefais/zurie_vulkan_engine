@@ -1,5 +1,8 @@
+use anyhow::Ok;
 use asefile::AsepriteFile;
+use log::info;
 use slotmap::SlotMap;
+use std::thread::spawn;
 use std::{path::Path, sync::Arc};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -15,19 +18,103 @@ use vulkano::{
     image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
-use zurie_shared::SpriteHandle;
+use zurie_types::SpriteHandle;
 
-#[derive(Default)]
+#[derive(Debug)]
+pub enum LoadSpriteInfo {
+    Path(Box<Path>),
+    Buffer(Vec<u8>),
+}
+
 pub struct SpriteManager {
-    sprites: SlotMap<SpriteHandle, Sprite>,
+    sprites: SlotMap<SpriteHandle, Option<Sprite>>,
+    to_load_queue: Vec<(SpriteHandle, LoadSpriteInfo)>,
+    error_sprite: SpriteHandle,
+}
+
+impl Default for SpriteManager {
+    fn default() -> Self {
+        let mut sprites: SlotMap<SpriteHandle, Option<Sprite>> = Default::default();
+        let error_sprite = sprites.insert(None);
+        Self {
+            sprites,
+            to_load_queue: vec![(
+                error_sprite,
+                LoadSpriteInfo::Buffer(include_bytes!("../../../static/error.aseprite").to_vec()),
+            )],
+            error_sprite,
+        }
+    }
 }
 
 impl SpriteManager {
-    pub fn get_texture(&self, handle: SpriteHandle) -> Option<Arc<ImageView>> {
-        if let Some(sprite) = self.sprites.get(handle) {
-            return Some(sprite.texture.clone());
+    pub fn push_to_load_queue(&mut self, to_load: LoadSpriteInfo) -> SpriteHandle {
+        let handle = self.sprites.insert(None);
+        info!("Sprite added to load queue, {:?}", to_load);
+        self.to_load_queue.push((handle, to_load));
+
+        handle
+    }
+
+    pub fn process_queue(
+        &mut self,
+        memory_allocator: Arc<StandardMemoryAllocator>,
+        command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+        queue: Arc<Queue>,
+    ) -> anyhow::Result<()> {
+        if self.to_load_queue.len() > 0 {
+            info!("starting processing sprites from queue");
         }
-        None
+        for (handle, to_load) in self.to_load_queue.drain(..) {
+            if let Some(slot) = self.sprites.get_mut(handle) {
+                *slot = match to_load {
+                    LoadSpriteInfo::Path(path) => {
+                        info!("processing {:?}", handle);
+                        Some(Sprite::from_file(
+                            &path,
+                            memory_allocator.clone(),
+                            command_buffer_allocator.clone(),
+                            queue.clone(),
+                        )?)
+                    }
+                    LoadSpriteInfo::Buffer(buf) => Some(Sprite::from_buffer(
+                        &buf,
+                        memory_allocator.clone(),
+                        command_buffer_allocator.clone(),
+                        queue.clone(),
+                    )?),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn get_texture(&self, handle: SpriteHandle) -> Option<Arc<ImageView>> {
+        let sprite = self.sprites.get(handle);
+        if sprite.is_none() {
+            log::warn!("Failed to get sprite for handle {:?}", handle);
+        }
+        let result = sprite
+            .and_then(|sprite| sprite.as_ref())
+            .map(|sprite| sprite.texture.clone());
+
+        if result.is_none() {
+            log::warn!("Failed to get texture for sprite handle {:?}", handle);
+            return self
+                .sprites
+                .get(self.error_sprite)
+                .and_then(|sprite| sprite.as_ref())
+                .map(|sprite| sprite.texture.clone());
+        }
+
+        result
+    }
+
+    pub fn get_sprite(&self, handle: SpriteHandle) -> &Option<Sprite> {
+        if let Some(sprite) = self.sprites.get(handle) {
+            return sprite;
+        }
+        &None
     }
 
     pub fn load_from_file(
@@ -37,12 +124,12 @@ impl SpriteManager {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<SpriteHandle> {
-        Ok(self.sprites.insert(Sprite::from_file(
+        Ok(self.sprites.insert(Some(Sprite::from_file(
             path,
             memory_allocator,
             command_buffer_allocator,
             queue,
-        )?))
+        )?)))
     }
 
     pub fn load_from_buffer(
@@ -52,12 +139,12 @@ impl SpriteManager {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<SpriteHandle> {
-        Ok(self.sprites.insert(Sprite::from_buffer(
+        Ok(self.sprites.insert(Some(Sprite::from_buffer(
             buffer,
             memory_allocator,
             command_buffer_allocator,
             queue,
-        )?))
+        )?)))
     }
 
     pub fn reload_sprites(
@@ -67,13 +154,15 @@ impl SpriteManager {
         queue: Arc<Queue>,
     ) -> anyhow::Result<()> {
         for sprite in self.sprites.iter_mut() {
-            if let Some(path) = sprite.1.path.clone() {
-                *sprite.1 = Sprite::from_file(
-                    Path::new(&path),
-                    memory_allocator.clone(),
-                    command_buffer_allocator.clone(),
-                    queue.clone(),
-                )?;
+            if let Some(sprite_data) = sprite.1.as_ref() {
+                if let Some(path) = &sprite_data.path {
+                    *sprite.1 = Some(Sprite::from_file(
+                        Path::new(path),
+                        memory_allocator.clone(),
+                        command_buffer_allocator.clone(),
+                        queue.clone(),
+                    )?);
+                }
             }
         }
         Ok(())
@@ -110,11 +199,13 @@ impl Sprite {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<Self> {
+        info!("Loading sprite from {:?}", path);
         let ase = AsepriteFile::read_file(path)?;
 
         let path_str = path.to_str().expect("Error getting path").to_string();
         let (texture, width, height) =
             texture_from_ase(ase, memory_allocator, command_buffer_allocator, queue)?;
+        info!("sprite loaded");
         Ok(Self {
             texture,
             width,

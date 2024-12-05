@@ -25,6 +25,7 @@ pub struct State {
     pos_component: ComponentID,
     scale_component: ComponentID,
     color_component: ComponentID,
+    sprite_component: ComponentID,
     gui_context: Context,
 }
 
@@ -44,16 +45,18 @@ impl State {
             Vec2::ZERO,
         )));
         let input = InputState::default();
-        let (world, pos_component, scale_component, color_component) = {
+        let (world, pos_component, scale_component, color_component, sprite_component) = {
             let mut world: World = Default::default();
             let pos_component = world.register_component("position".into());
             let scale_component = world.register_component("scale".into());
             let color_component = world.register_component("color".into());
+            let sprite_component = world.register_component("sprite".into());
             (
                 Arc::new(RwLock::new(world)),
                 pos_component,
                 scale_component,
                 color_component,
+                sprite_component,
             )
         };
         #[cfg(not(target_os = "android"))]
@@ -63,6 +66,7 @@ impl State {
             input.mouse.position.clone(),
             world.clone(),
             camera.clone(),
+            render_state.sprite_manager.clone(),
         );
         #[cfg(target_os = "android")]
         let mod_manager = ModManager::new(
@@ -71,6 +75,7 @@ impl State {
             input.mouse.position.clone(),
             world.clone(),
             camera.clone(),
+            render_state.sprite_manager.clone(),
             event_loop.android_app().clone(),
         );
 
@@ -85,6 +90,7 @@ impl State {
             pos_component,
             scale_component,
             color_component,
+            sprite_component,
             gui_context,
         }
     }
@@ -133,6 +139,11 @@ impl State {
                         obj.color = match component_data {
                             ComponentData::Color(color) => *color,
                             _ => [1.0, 1.0, 1.0, 1.0],
+                        };
+                    } else if *component_id == self.sprite_component {
+                        obj.sprite = match component_data {
+                            ComponentData::Sprite(handle) => *handle,
+                            _ => 0,
                         };
                     }
                 }

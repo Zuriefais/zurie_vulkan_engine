@@ -75,6 +75,12 @@ pub fn set_component(entity: Entity, component: ComponentID, data: ComponentData
                 set_component_raw_sys(entity.0, component.0, data_ptr, data_len);
             }
         }
+        ComponentData::None => unsafe {
+            set_component_none_sys(entity.0, component.0);
+        },
+        ComponentData::Sprite(handle) => unsafe {
+            set_component_sprite_sys(entity.0, handle);
+        },
     }
 }
 
@@ -149,6 +155,8 @@ extern "C" {
     fn set_component_string_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_vec_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_color_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
+    fn set_component_none_sys(entity_id: u64, component_id: u64);
+    fn set_component_sprite_sys(entity_id: u64, handle: u64);
     fn get_component_raw_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_obj_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_string_sys(entity_id: u64, component_id: u64) -> i32;

@@ -5,4 +5,5 @@ pub mod file;
 pub mod game_logic;
 pub mod gui;
 pub mod input;
+pub mod sprite;
 pub mod utils;

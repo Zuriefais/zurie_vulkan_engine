@@ -3,6 +3,7 @@ use crate::{
     sprite::{Sprite, SpriteManager},
 };
 
+use slotmap::KeyData;
 use std::{
     collections::HashMap,
     path::Path,
@@ -36,8 +37,8 @@ use vulkano::{
     },
     render_pass::Subpass,
 };
-use zurie_shared::SpriteHandle;
 use zurie_types::Object;
+use zurie_types::SpriteHandle;
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -88,14 +89,16 @@ pub struct ObjectDrawPipeline {
         >,
     >,
     vertices: Subbuffer<[TriangleVertex]>,
-    sprite: SpriteHandle,
-    sprite1: SpriteHandle,
-    sprite_manager: SpriteManager,
+    sprite_manager: Arc<RwLock<SpriteManager>>,
     indices: Subbuffer<[u32]>,
 }
 
 impl ObjectDrawPipeline {
-    pub fn new(app: &Renderer, subpass: Subpass) -> anyhow::Result<Self> {
+    pub fn new(
+        app: &Renderer,
+        subpass: Subpass,
+        sprite_manager: Arc<RwLock<SpriteManager>>,
+    ) -> anyhow::Result<Self> {
         let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(app.device.clone()));
         let command_buffer_allocator = app.command_buffer_allocator.clone();
 
@@ -196,19 +199,7 @@ impl ObjectDrawPipeline {
         };
 
         let gfx_queue = app.gfx_queue();
-        let mut sprite_manager = SpriteManager::default();
-        let sprite = sprite_manager.load_from_file(
-            Path::new("static/ase.aseprite"),
-            memory_allocator.clone(),
-            command_buffer_allocator.clone(),
-            app.gfx_queue(),
-        )?;
-        let sprite1 = sprite_manager.load_from_file(
-            Path::new("static/ase2.aseprite"),
-            memory_allocator.clone(),
-            command_buffer_allocator.clone(),
-            app.gfx_queue(),
-        )?;
+
         Ok(Self {
             gfx_queue,
             subpass,
@@ -217,8 +208,7 @@ impl ObjectDrawPipeline {
             descriptor_set_allocator: app.descriptor_set_allocator.clone(),
             memory_allocator,
             vertices,
-            sprite,
-            sprite1,
+
             sprite_manager,
             indices,
         })
@@ -268,7 +258,14 @@ impl ObjectDrawPipeline {
             [
                 WriteDescriptorSet::buffer(0, camera_buffer),
                 WriteDescriptorSet::sampler(1, sampler),
-                WriteDescriptorSet::image_view(2, self.sprite_manager.get_texture(sprite).unwrap()),
+                WriteDescriptorSet::image_view(
+                    2,
+                    self.sprite_manager
+                        .write()
+                        .expect("Failed to acquire sprite manager lock")
+                        .get_texture(sprite)
+                        .expect("Failed to get sprite texture"),
+                ),
             ],
             [],
         )
@@ -295,11 +292,7 @@ impl ObjectDrawPipeline {
         let mut objects_by_texture: HashMap<SpriteHandle, Vec<InstanceData>> = Default::default();
         for obj in objects.read().unwrap().iter() {
             objects_by_texture
-                .entry(if obj.position.x % 2.0 == 0.0 {
-                    self.sprite
-                } else {
-                    self.sprite1
-                })
+                .entry(KeyData::from_ffi(obj.sprite).into())
                 .or_default()
                 .push(InstanceData {
                     position: obj.position.into(),

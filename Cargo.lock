@@ -4002,6 +4002,7 @@ dependencies = [
  "wasmtime",
  "winit",
  "zurie_ecs",
+ "zurie_render",
  "zurie_shared",
  "zurie_types",
 ]
@@ -4025,4 +4026,5 @@ dependencies = [
  "glam",
  "num_enum 0.7.3",
  "serde",
+ "slotmap",
 ]

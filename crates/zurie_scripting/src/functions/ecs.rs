@@ -13,6 +13,7 @@ pub fn register_ecs_bindings(
     world: Arc<RwLock<World>>,
     alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
 ) -> anyhow::Result<()> {
+    let sprite_component = world.write().unwrap().register_component("sprite".into());
     register_spawn_entity(linker, store, world.clone())?;
     register_despawn_entity(linker, store, world.clone())?;
     register_register_component(linker, store, world.clone())?;
@@ -20,6 +21,8 @@ pub fn register_ecs_bindings(
     register_set_component_string(linker, store, world.clone())?;
     register_set_component_color(linker, store, world.clone())?;
     register_set_component_vec2(linker, store, world.clone())?;
+    register_set_component_none(linker, store, world.clone())?;
+    register_set_component_sprite(linker, store, world.clone(), sprite_component)?;
     register_get_component_raw(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_obj(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_string(linker, store, world.clone(), alloc_fn.clone())?;
@@ -145,6 +148,71 @@ fn register_set_component_raw(
                 entity_id.into(),
                 (component_id.into(), ComponentData::Raw(buffer)),
             );
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+fn register_set_component_none(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    world: Arc<RwLock<World>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "set_component_none_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [
+                wasmtime::ValType::I64, // entity id
+                wasmtime::ValType::I64, // component id
+            ]
+            .iter()
+            .cloned(),
+            [].iter().cloned(),
+        ),
+        move |_, params, _| {
+            let (entity_id, component_id) = (
+                KeyData::from_ffi(params[0].unwrap_i64() as u64),
+                KeyData::from_ffi(params[1].unwrap_i64() as u64),
+            );
+
+            let mut world_lock = world.write().unwrap();
+            world_lock.set_component(entity_id.into(), (component_id.into(), ComponentData::None));
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+fn register_set_component_sprite(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    world: Arc<RwLock<World>>,
+    sprite_id: ComponentID,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "set_component_sprite_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [
+                wasmtime::ValType::I64, // entity id
+                wasmtime::ValType::I64, // sprite handle
+            ]
+            .iter()
+            .cloned(),
+            [].iter().cloned(),
+        ),
+        move |_, params, _| {
+            let (entity_id, handle) = (
+                KeyData::from_ffi(params[0].unwrap_i64() as u64),
+                params[0].unwrap_i64() as u64,
+            );
+
+            let mut world_lock = world.write().unwrap();
+            world_lock.set_component(entity_id.into(), (sprite_id, ComponentData::Sprite(handle)));
             Ok(())
         },
     )?;
