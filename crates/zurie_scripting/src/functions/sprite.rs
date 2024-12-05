@@ -20,8 +20,8 @@ pub fn setup_sprite_bindings(
     store: &Store<()>,
     sprite_manager: Arc<RwLock<SpriteManager>>,
 ) -> anyhow::Result<()> {
-    register_load_sprite_from_file(linker, store, sprite_manager)?;
-
+    register_load_sprite_from_file(linker, store, sprite_manager.clone())?;
+    register_load_sprite_from_buffer(linker, store, sprite_manager.clone())?;
     Ok(())
 }
 

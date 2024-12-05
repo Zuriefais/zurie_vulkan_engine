@@ -3,7 +3,7 @@ use zurie_mod_api::ecs::*;
 use zurie_mod_api::ecs::{register_component, spawn_entity};
 use zurie_mod_api::events::{emit_event_string, subscribe_to_event_by_name, EventHandle};
 use zurie_mod_api::game_logic::{spawn_object, ObjectHandle};
-use zurie_mod_api::sprite::load_sprite_from_file;
+use zurie_mod_api::sprite::{load_sprite_from_buffer, load_sprite_from_file};
 use zurie_mod_api::zurie_types::glam::Vec2;
 use zurie_mod_api::zurie_types::{ComponentData, Query};
 use zurie_mod_api::zurie_types::{Object, Vector2};
@@ -148,8 +148,10 @@ impl Mod for MyMod {
     }
 
     fn init(&mut self) {
-        let snake_sprite = load_sprite_from_file("static/ase.aseprite".into());
+        let snake_sprite =
+            load_sprite_from_buffer(&include_bytes!("../../../static/ase.aseprite").to_vec());
         let apple_sprite = load_sprite_from_file("static/ase2.aseprite".into());
+        self.snake_sprite = snake_sprite;
         register_query(Query {
             name: "test_query".into(),
             architypes: vec![],

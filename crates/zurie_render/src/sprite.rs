@@ -18,6 +18,8 @@ use vulkano::{
     image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
+use zurie_shared::slotmap::Key;
+use zurie_shared::slotmap::KeyData;
 use zurie_types::SpriteHandle;
 
 #[derive(Debug)]
@@ -50,7 +52,11 @@ impl Default for SpriteManager {
 impl SpriteManager {
     pub fn push_to_load_queue(&mut self, to_load: LoadSpriteInfo) -> SpriteHandle {
         let handle = self.sprites.insert(None);
-        info!("Sprite added to load queue, {:?}", to_load);
+        info!(
+            "Sprite added to load queue, {:?} {}",
+            to_load,
+            handle.data().as_ffi()
+        );
         self.to_load_queue.push((handle, to_load));
 
         handle
@@ -91,15 +97,15 @@ impl SpriteManager {
 
     pub fn get_texture(&self, handle: SpriteHandle) -> Option<Arc<ImageView>> {
         let sprite = self.sprites.get(handle);
-        if sprite.is_none() {
-            log::warn!("Failed to get sprite for handle {:?}", handle);
-        }
         let result = sprite
             .and_then(|sprite| sprite.as_ref())
             .map(|sprite| sprite.texture.clone());
 
         if result.is_none() {
-            log::warn!("Failed to get texture for sprite handle {:?}", handle);
+            log::warn!(
+                "Failed to get texture for sprite handle {:?}",
+                handle.data().as_ffi()
+            );
             return self
                 .sprites
                 .get(self.error_sprite)
