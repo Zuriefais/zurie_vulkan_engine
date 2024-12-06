@@ -119,6 +119,7 @@ impl State {
                     self.pos_component,
                     self.scale_component,
                     self.color_component,
+                    self.sprite_component,
                 ],
             })
             .iter()

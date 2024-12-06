@@ -14,12 +14,13 @@ pub fn register_game_logic_bindings(
     world: Arc<RwLock<World>>,
     alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
 ) -> anyhow::Result<()> {
-    let (pos_component, scale_component, color_component) = {
+    let (pos_component, scale_component, color_component, sprite_component) = {
         let mut world = world.write().unwrap();
         (
             world.register_component("position".into()),
             world.register_component("scale".into()),
             world.register_component("color".into()),
+            world.register_component("sprite".into()),
         )
     };
 
@@ -30,6 +31,7 @@ pub fn register_game_logic_bindings(
         pos_component,
         scale_component,
         color_component,
+        sprite_component,
     )?;
     register_despawn_object(linker, store, world.clone())?;
     register_request_object(linker, store, world.clone(), alloc_fn.clone())?;
@@ -51,6 +53,7 @@ pub fn register_spawn_object(
     pos_component: ComponentID,
     scale_component: ComponentID,
     color_component: ComponentID,
+    sprite_component: ComponentID,
 ) -> anyhow::Result<()> {
     linker.func_new(
         "env",
@@ -76,6 +79,7 @@ pub fn register_spawn_object(
                     (pos_component, obj.position.into()),
                     (scale_component, obj.scale.into()),
                     (color_component, obj.color.into()),
+                    (sprite_component, ComponentData::Sprite(obj.sprite)),
                 ],
             };
             let entity = world_lock.spawn_entity_with_data(ent_data);
