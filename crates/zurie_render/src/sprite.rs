@@ -54,9 +54,9 @@ impl SpriteManager {
     pub fn gui(&mut self) {
         egui::Window::new("Sprite manager").show(&self.egui_context, |ctx| {
             for sprite in self.sprites.iter() {
-                ctx.image(SizedTexture::from_handle(
-                    &sprite.1.as_ref().unwrap().egui_texture_handle,
-                ));
+                if let Some(sprite) = &sprite.1.as_ref() {
+                    ctx.image(SizedTexture::from_handle(&sprite.egui_texture_handle));
+                }
             }
         });
     }
