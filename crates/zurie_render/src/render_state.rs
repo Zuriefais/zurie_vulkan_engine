@@ -29,7 +29,9 @@ impl RenderState {
             renderer.gfx_queue.clone(),
             renderer.output_format,
         );
-        let sprite_manager: Arc<RwLock<SpriteManager>> = Default::default();
+
+        let sprite_manager: Arc<RwLock<SpriteManager>> =
+            Arc::new(RwLock::new(SpriteManager::new(gui.gui.context())));
 
         Ok(RenderState {
             compute: SandComputePipeline::new(&renderer),
@@ -60,11 +62,16 @@ impl RenderState {
             self.compute
                 .draw(*mouse_pos, self.renderer.window_size(), CellType::Empty);
         }
-        self.sprite_manager.write().unwrap().process_queue(
-            self.renderer.memory_allocator.clone(),
-            self.renderer.command_buffer_allocator.clone(),
-            self.renderer.gfx_queue.clone(),
-        )?;
+        {
+            let mut sprite_manager = self.sprite_manager.write().unwrap();
+            sprite_manager.process_queue(
+                self.renderer.memory_allocator.clone(),
+                self.renderer.command_buffer_allocator.clone(),
+                self.renderer.gfx_queue.clone(),
+            )?;
+            sprite_manager.gui();
+        }
+
         let before_pipeline_future = self.renderer.acquire()?;
 
         // Compute.

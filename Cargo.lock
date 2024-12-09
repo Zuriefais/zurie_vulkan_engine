@@ -3975,6 +3975,7 @@ dependencies = [
  "egui_winit_vulkano",
  "env_logger",
  "fastrand",
+ "image",
  "log",
  "naga",
  "pollster",

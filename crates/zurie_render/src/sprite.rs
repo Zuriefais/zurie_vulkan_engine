@@ -1,5 +1,7 @@
 use anyhow::Ok;
 use asefile::AsepriteFile;
+use egui_winit_vulkano::egui::load::{ImageLoader, SizedTexture};
+use egui_winit_vulkano::egui::{self, ColorImage, Context, ImageSource, TextureHandle, TextureId};
 use log::info;
 use slotmap::SlotMap;
 use std::thread::spawn;
@@ -32,10 +34,11 @@ pub struct SpriteManager {
     sprites: SlotMap<SpriteHandle, Option<Sprite>>,
     to_load_queue: Vec<(SpriteHandle, LoadSpriteInfo)>,
     error_sprite: SpriteHandle,
+    egui_context: Context,
 }
 
-impl Default for SpriteManager {
-    fn default() -> Self {
+impl SpriteManager {
+    pub fn new(egui_context: Context) -> Self {
         let mut sprites: SlotMap<SpriteHandle, Option<Sprite>> = Default::default();
         let error_sprite = sprites.insert(None);
         Self {
@@ -45,11 +48,19 @@ impl Default for SpriteManager {
                 LoadSpriteInfo::Buffer(include_bytes!("../../../static/error.aseprite").to_vec()),
             )],
             error_sprite,
+            egui_context,
         }
     }
-}
+    pub fn gui(&mut self) {
+        egui::Window::new("Sprite manager").show(&self.egui_context, |ctx| {
+            for sprite in self.sprites.iter() {
+                ctx.image(SizedTexture::from_handle(
+                    &sprite.1.as_ref().unwrap().egui_texture_handle,
+                ));
+            }
+        });
+    }
 
-impl SpriteManager {
     pub fn push_to_load_queue(&mut self, to_load: LoadSpriteInfo) -> SpriteHandle {
         let handle = self.sprites.insert(None);
         info!(
@@ -81,6 +92,7 @@ impl SpriteManager {
                             memory_allocator.clone(),
                             command_buffer_allocator.clone(),
                             queue.clone(),
+                            self.egui_context.clone(),
                         )?)
                     }
                     LoadSpriteInfo::Buffer(buf) => Some(Sprite::from_buffer(
@@ -88,6 +100,7 @@ impl SpriteManager {
                         memory_allocator.clone(),
                         command_buffer_allocator.clone(),
                         queue.clone(),
+                        self.egui_context.clone(),
                     )?),
                 }
             }
@@ -135,6 +148,7 @@ impl SpriteManager {
             memory_allocator,
             command_buffer_allocator,
             queue,
+            self.egui_context.clone(),
         )?)))
     }
 
@@ -150,6 +164,7 @@ impl SpriteManager {
             memory_allocator,
             command_buffer_allocator,
             queue,
+            self.egui_context.clone(),
         )?)))
     }
 
@@ -167,6 +182,7 @@ impl SpriteManager {
                         memory_allocator.clone(),
                         command_buffer_allocator.clone(),
                         queue.clone(),
+                        self.egui_context.clone(),
                     )?);
                 }
             }
@@ -180,6 +196,7 @@ pub struct Sprite {
     pub width: u32,
     pub height: u32,
     pub path: Option<String>,
+    pub egui_texture_handle: TextureHandle,
 }
 
 impl Sprite {
@@ -188,15 +205,17 @@ impl Sprite {
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
+        ctx: Context,
     ) -> anyhow::Result<Self> {
         let ase = AsepriteFile::read(buffer)?;
-        let (texture, width, height) =
-            texture_from_ase(ase, memory_allocator, command_buffer_allocator, queue)?;
+        let (texture, width, height, handle) =
+            texture_from_ase(ase, memory_allocator, command_buffer_allocator, queue, ctx)?;
         Ok(Self {
             texture,
             width,
             height,
             path: None,
+            egui_texture_handle: handle,
         })
     }
     pub fn from_file(
@@ -204,19 +223,21 @@ impl Sprite {
         memory_allocator: Arc<StandardMemoryAllocator>,
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
+        ctx: Context,
     ) -> anyhow::Result<Self> {
         info!("Loading sprite from {:?}", path);
         let ase = AsepriteFile::read_file(path)?;
 
         let path_str = path.to_str().expect("Error getting path").to_string();
-        let (texture, width, height) =
-            texture_from_ase(ase, memory_allocator, command_buffer_allocator, queue)?;
+        let (texture, width, height, handle) =
+            texture_from_ase(ase, memory_allocator, command_buffer_allocator, queue, ctx)?;
         info!("sprite loaded");
         Ok(Self {
             texture,
             width,
             height,
             path: Some(path_str),
+            egui_texture_handle: handle,
         })
     }
     pub fn texture(&self) -> Arc<ImageView> {
@@ -229,7 +250,8 @@ fn texture_from_ase(
     memory_allocator: Arc<StandardMemoryAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     queue: Arc<Queue>,
-) -> anyhow::Result<(Arc<ImageView>, u32, u32)> {
+    ctx: Context,
+) -> anyhow::Result<(Arc<ImageView>, u32, u32, TextureHandle)> {
     let frame = ase.frame(0).image();
 
     let width = frame.width();
@@ -238,7 +260,14 @@ fn texture_from_ase(
         .pixels()
         .flat_map(|p| [p[0], p[1], p[2], p[3]])
         .collect();
-
+    let egui_handle = ctx.load_texture(
+        "",
+        ColorImage::from_rgba_unmultiplied(
+            [frame.width() as usize, frame.height() as usize],
+            &rgba_data,
+        ),
+        Default::default(),
+    );
     // Create a buffer with the pixel data
     let upload_buffer = Buffer::from_iter(
         memory_allocator.clone(),
@@ -289,5 +318,5 @@ fn texture_from_ase(
 
     let texture = ImageView::new_default(image)?;
 
-    Ok((texture, width, height))
+    Ok((texture, width, height, egui_handle))
 }

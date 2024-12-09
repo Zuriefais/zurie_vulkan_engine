@@ -28,6 +28,7 @@ impl GuiRender {
                 samples: vulkano::image::SampleCount::Sample1,
             },
         );
+
         GuiRender { gui }
     }
 
