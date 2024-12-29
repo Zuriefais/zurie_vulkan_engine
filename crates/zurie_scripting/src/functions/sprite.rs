@@ -1,19 +1,15 @@
-use crate::utils::{copy_to_memory, get_bytes_from_wasm, get_string_by_ptr};
+use crate::utils::{get_bytes_from_wasm, get_string_by_ptr};
 use anyhow::Ok;
-use log::{error, info};
 use std::{
     path::Path,
     sync::{Arc, RwLock},
 };
-use zurie_render::{
-    sprite::{LoadSpriteInfo, Sprite, SpriteManager},
-    vulkano::VulkanObject,
-};
+use zurie_render::sprite::{LoadSpriteInfo, SpriteManager};
 use zurie_shared::slotmap::Key;
 use zurie_shared::slotmap::KeyData;
 use zurie_types::SpriteHandle;
 
-use wasmtime::{Linker, Store, TypedFunc, Val};
+use wasmtime::{Linker, Store, Val};
 
 pub fn setup_sprite_bindings(
     linker: &mut Linker<()>,

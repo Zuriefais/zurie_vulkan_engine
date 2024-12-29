@@ -1,10 +1,9 @@
 use anyhow::Ok;
 use asefile::AsepriteFile;
-use egui_winit_vulkano::egui::load::{ImageLoader, SizedTexture};
-use egui_winit_vulkano::egui::{self, ColorImage, Context, ImageSource, TextureHandle, TextureId};
+use egui_winit_vulkano::egui::load::SizedTexture;
+use egui_winit_vulkano::egui::{self, ColorImage, Context, TextureHandle};
 use log::info;
 use slotmap::SlotMap;
-use std::thread::spawn;
 use std::{path::Path, sync::Arc};
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
@@ -21,7 +20,6 @@ use vulkano::{
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
 use zurie_shared::slotmap::Key;
-use zurie_shared::slotmap::KeyData;
 use zurie_types::SpriteHandle;
 
 #[derive(Debug)]
@@ -79,7 +77,7 @@ impl SpriteManager {
         command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
         queue: Arc<Queue>,
     ) -> anyhow::Result<()> {
-        if self.to_load_queue.len() > 0 {
+        if !self.to_load_queue.is_empty() {
             info!("starting processing sprites from queue");
         }
         for (handle, to_load) in self.to_load_queue.drain(..) {

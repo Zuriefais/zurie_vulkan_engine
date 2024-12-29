@@ -70,6 +70,7 @@ pub fn register_spawn_object(
                 &mut caller,
                 params[0].unwrap_i32() as u32,
                 params[1].unwrap_i32() as u32,
+                "for spawning object",
             )?;
 
             let mut world_lock = world.write().unwrap();
@@ -214,7 +215,8 @@ pub fn register_set_object_position(
                 params[2].unwrap_i32() as u32,
             );
             let mut world_lock = world.write().unwrap();
-            let new_position: Vector2 = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let new_position: Vector2 =
+                get_obj_by_ptr(&mut caller, ptr, len, "for setting obj pos")?;
             //let object: Option<&mut Object> = storage_lock.get_mut(KeyData::from_ffi(index).into());
             // if let Some(obj) = object {
             //     obj.position = new_position;

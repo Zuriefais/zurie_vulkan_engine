@@ -21,10 +21,11 @@ impl Display for ComponentID {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Architype {
-    pub data: Vec<ComponentID>,
+    pub required: Vec<ComponentID>,
+    pub optional: Vec<ComponentID>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct EntityData {
     pub data: Vec<(ComponentID, ComponentData)>,
 }
@@ -66,20 +67,30 @@ impl EntityStorage {
     ) -> Vec<(Entity, &EntityData)> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let archetype_component_ids: std::collections::HashSet<_> =
-            architype.data.iter().copied().collect();
+        let required_component_ids: std::collections::HashSet<_> =
+            architype.required.iter().copied().collect();
+        let optional_component_ids: std::collections::HashSet<_> =
+            architype.optional.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
-            if data.data.len() != architype.data.len() {
-                continue 'entity_loop;
-            }
-
             let entity_component_ids: std::collections::HashSet<_> =
                 data.data.iter().map(|(id, _)| *id).collect();
 
-            if entity_component_ids == archetype_component_ids {
-                entities.push((entity, data));
+            // Check if all required components are present
+            if !required_component_ids.is_subset(&entity_component_ids) {
+                continue 'entity_loop;
             }
+
+            // Check if any non-required/non-optional components are present
+            for component_id in entity_component_ids.iter() {
+                if !required_component_ids.contains(component_id)
+                    && !optional_component_ids.contains(component_id)
+                {
+                    continue 'entity_loop;
+                }
+            }
+
+            entities.push((entity, data));
         }
 
         entities
@@ -88,20 +99,30 @@ impl EntityStorage {
     pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let archetype_component_ids: std::collections::HashSet<_> =
-            architype.data.iter().copied().collect();
+        let required_component_ids: std::collections::HashSet<_> =
+            architype.required.iter().copied().collect();
+        let optional_component_ids: std::collections::HashSet<_> =
+            architype.optional.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
-            if data.data.len() != architype.data.len() {
-                continue 'entity_loop;
-            }
-
             let entity_component_ids: std::collections::HashSet<_> =
                 data.data.iter().map(|(id, _)| *id).collect();
 
-            if entity_component_ids == archetype_component_ids {
-                entities.push(entity);
+            // Check if all required components are present
+            if !required_component_ids.is_subset(&entity_component_ids) {
+                continue 'entity_loop;
             }
+
+            // Check if any non-required/non-optional components are present
+            for component_id in entity_component_ids.iter() {
+                if !required_component_ids.contains(component_id)
+                    && !optional_component_ids.contains(component_id)
+                {
+                    continue 'entity_loop;
+                }
+            }
+
+            entities.push(entity);
         }
 
         entities
@@ -263,8 +284,10 @@ impl World {
                                             ComponentData::Vector(v) => format!("Vector: {:?}", v),
                                             ComponentData::Color(c) => format!("Color: {:?}", c),
                                             ComponentData::Raw(r) => format!("Raw: {:?}", r),
-                                            ComponentData::None => format!("None"),
+                                            ComponentData::None => "None".to_string(),
                                             ComponentData::Sprite(h) => format!("Sprite: {h}"),
+                                            ComponentData::I32(i) => format!("I32: {i}"),
+                                            ComponentData::I64(i) => format!("I64: {i}"),
                                         };
                                         ui.label(format!(
                                             "Component {} ({}): {}",
@@ -338,7 +361,8 @@ pub mod test {
         println!(
             "{:?}",
             world.storage.get_entities_with_arhetype(Architype {
-                data: vec![my_component, my_component3]
+                required: vec![my_component, my_component3],
+                optional: vec![]
             })
         );
         assert_eq!(
@@ -346,7 +370,8 @@ pub mod test {
             world
                 .storage
                 .get_entities_with_arhetype(Architype {
-                    data: vec![my_component, my_component3]
+                    required: vec![my_component, my_component3],
+                    optional: vec![]
                 })
                 .len()
         );
@@ -374,7 +399,8 @@ pub mod test {
         });
 
         let matches = world.get_entities_with_arhetype(Architype {
-            data: vec![comp_a, comp_b],
+            required: vec![comp_a, comp_b],
+            optional: vec![],
         });
 
         assert_eq!(matches.len(), 2);

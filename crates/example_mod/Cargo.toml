@@ -8,3 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 zurie_mod_api = { path = "../zurie_mod_api" }
+serde = {workspace = true}

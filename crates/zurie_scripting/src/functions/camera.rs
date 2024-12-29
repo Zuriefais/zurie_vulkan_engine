@@ -59,7 +59,7 @@ fn register_set_camera(
         ),
         move |mut caller, params, _| {
             let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
-            let new_camera: Camera = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let new_camera: Camera = get_obj_by_ptr(&mut caller, ptr, len, "for setting camera")?;
             *camera.write().unwrap() = new_camera;
             Ok(())
         },
@@ -151,7 +151,7 @@ pub fn register_set_object_position(
         move |mut caller, params, _| {
             let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
             let mut camera = camera.write().unwrap();
-            let new_position = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let new_position = get_obj_by_ptr(&mut caller, ptr, len, "for setting camera pos")?;
             info!("new camera position: {}", new_position);
             camera.position = new_position;
             Ok(())

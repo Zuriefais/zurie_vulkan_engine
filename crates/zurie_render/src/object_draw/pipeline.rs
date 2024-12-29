@@ -1,12 +1,8 @@
-use crate::{
-    render::Renderer,
-    sprite::{Sprite, SpriteManager},
-};
+use crate::{render::Renderer, sprite::SpriteManager};
 
 use slotmap::KeyData;
 use std::{
     collections::HashMap,
-    path::Path,
     sync::{Arc, RwLock},
 };
 use vulkano::{
@@ -305,7 +301,7 @@ impl ObjectDrawPipeline {
             let instance_data: Vec<InstanceData> = objects
                 .iter()
                 .map(|obj| InstanceData {
-                    position: obj.position.into(),
+                    position: obj.position,
                     scale: obj.scale,
                     color: obj.color,
                 })
@@ -354,7 +350,7 @@ impl ObjectDrawPipeline {
                 .draw_indexed(6, instance_buffer_len as u32, 0, 0, 0)
                 .unwrap();
         }
-        return builder.build().unwrap();
+        builder.build().unwrap()
     }
 }
 

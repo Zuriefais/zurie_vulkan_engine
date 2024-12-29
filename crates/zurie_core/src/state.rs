@@ -115,8 +115,8 @@ impl State {
             .read()
             .unwrap()
             .get_entities_data_with_arhetype(Architype {
-                data: vec![
-                    self.pos_component,
+                required: vec![self.pos_component],
+                optional: vec![
                     self.scale_component,
                     self.color_component,
                     self.sprite_component,

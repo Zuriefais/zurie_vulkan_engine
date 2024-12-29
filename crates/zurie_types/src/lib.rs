@@ -15,14 +15,25 @@ pub struct Query {
     pub architypes: Vec<Vec<u64>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ComponentData {
+    I32(i32),
+    I64(i64),
     String(String),
     Vector(Vector2),
     Color([f32; 4]),
     Raw(Vec<u8>),
     Sprite(u64),
     None,
+}
+
+impl ComponentData {
+    pub fn from_custom<T: Serialize>(custom: T) -> ComponentData {
+        let mut serializer = flexbuffers::FlexbufferSerializer::new();
+        custom.serialize(&mut serializer).unwrap();
+        let message_bin = serializer.take_buffer();
+        ComponentData::Raw(message_bin)
+    }
 }
 
 impl From<String> for ComponentData {

@@ -26,6 +26,7 @@ pub fn register_gui_button(
                 &mut caller,
                 params[0].unwrap_i32() as u32,
                 params[1].unwrap_i32() as u32,
+                "for button",
             )?;
             let mut clicked = 0;
             let window = egui::Window::new(obj.window_title);
@@ -43,7 +44,7 @@ pub fn register_gui_text(linker: &mut Linker<()>, gui_context: Context) -> anyho
         "env",
         "gui_text_sys",
         move |mut caller: Caller<'_, ()>, ptr: u32, len: u32| -> anyhow::Result<()> {
-            match get_obj_by_ptr::<GuiTextMessage>(&mut caller, ptr, len) {
+            match get_obj_by_ptr::<GuiTextMessage>(&mut caller, ptr, len, "for text") {
                 std::result::Result::Ok(obj) => {
                     let window = egui::Window::new(obj.window_title);
                     window.show(&gui_context, |ui| ui.label(obj.label_text));

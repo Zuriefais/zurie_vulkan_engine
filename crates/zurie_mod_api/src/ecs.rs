@@ -1,7 +1,7 @@
 use crate::utils::{
     get_bytes_from_mem, get_obj_from_mem, get_string_from_mem, obj_to_pointer, string_to_pointer,
 };
-use zurie_types::Query;
+use zurie_types::{flexbuffers, Query};
 use zurie_types::{
     glam::Vec2,
     serde::{Deserialize, Serialize},
@@ -9,7 +9,7 @@ use zurie_types::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Entity(u64);
+pub struct Entity(pub u64);
 
 impl Entity {
     pub fn despawn(self) {
@@ -17,6 +17,11 @@ impl Entity {
     }
     pub fn set_component(self, component: ComponentID, data: ComponentData) {
         set_component(self, component, data);
+    }
+    pub fn set_sprite(self, sprite: u64) {
+        unsafe {
+            set_component_sprite_sys(self.0, sprite);
+        }
     }
     pub fn get_component_string(self, component: ComponentID) -> Option<String> {
         get_component_string(self, component)
@@ -27,9 +32,25 @@ impl Entity {
     pub fn get_component_scale(self, component: ComponentID) -> Option<[f32; 2]> {
         get_component_scale(self, component)
     }
+    pub fn get_component_vec2(self, component: ComponentID) -> Option<Vec2> {
+        get_component_vec2(self, component)
+    }
+
+    pub fn get_component_custom<T: for<'de> Deserialize<'de>>(
+        &self,
+        component: ComponentID,
+    ) -> Option<T> {
+        match self.get_component_raw(component) {
+            Some(bytes) => {
+                let r = flexbuffers::Reader::get_root(&*bytes).unwrap();
+                T::deserialize(r).ok()
+            }
+            None => None,
+        }
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ComponentID(u64);
 
 pub struct Architype(pub Vec<ComponentID>);
@@ -80,6 +101,12 @@ pub fn set_component(entity: Entity, component: ComponentID, data: ComponentData
         },
         ComponentData::Sprite(handle) => unsafe {
             set_component_sprite_sys(entity.0, handle);
+        },
+        ComponentData::I32(i) => unsafe {
+            set_component_i32_sys(entity.0, component.0, i);
+        },
+        ComponentData::I64(i) => unsafe {
+            set_component_i64_sys(entity.0, component.0, i);
         },
     }
 }
@@ -132,10 +159,27 @@ pub fn get_component_vec2(entity: Entity, component: ComponentID) -> Option<Vec2
     }
 }
 
+pub fn get_component_i32(entity: Entity, component: ComponentID) -> Option<i32> {
+    unsafe {
+        if get_component_obj_sys(entity.0, component.0) == 1 {
+            Some(get_obj_from_mem())
+        } else {
+            None
+        }
+    }
+}
+
 pub fn get_entities_with_architype(architype: Vec<ComponentID>) -> Vec<u64> {
     let (ptr, len) = obj_to_pointer(&architype);
     unsafe {
         get_entities_with_architype_sys(ptr, len);
+        get_obj_from_mem()
+    }
+}
+
+pub fn get_entities_with_component(component: ComponentID) -> Vec<u64> {
+    unsafe {
+        get_entities_with_component_sys(component.0);
         get_obj_from_mem()
     }
 }
@@ -157,10 +201,13 @@ extern "C" {
     fn set_component_color_sys(entity_id: u64, component_id: u64, data_ptr: u32, data_len: u32);
     fn set_component_none_sys(entity_id: u64, component_id: u64);
     fn set_component_sprite_sys(entity_id: u64, handle: u64);
+    fn set_component_i32_sys(entity_id: u64, component_id: u64, i: i32);
+    fn set_component_i64_sys(entity_id: u64, component_id: u64, i: i64);
     fn get_component_raw_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_obj_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_component_string_sys(entity_id: u64, component_id: u64) -> i32;
     fn get_entities_with_architype_sys(architype_ptr: u32, architype_len: u32);
+    fn get_entities_with_component_sys(component_id: u64);
     fn register_query_sys(ptr: u32, len: u32);
 }
 

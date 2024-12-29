@@ -1,4 +1,5 @@
 use anyhow::Ok;
+use log::info;
 use wasmtime::{Caller, Extern, Memory, TypedFunc};
 use zurie_types::{
     flexbuffers,
@@ -18,7 +19,9 @@ pub fn get_obj_by_ptr<T: for<'a> Deserialize<'a>>(
     caller: &mut Caller<'_, ()>,
     ptr: u32,
     len: u32,
+    reason: &str,
 ) -> anyhow::Result<T> {
+    info!("trying get object by pointer {}", reason);
     let data = get_bytes_from_wasm(caller, ptr, len)?;
     let r = flexbuffers::Reader::get_root(data.as_slice()).unwrap();
     let obj = T::deserialize(r).unwrap();

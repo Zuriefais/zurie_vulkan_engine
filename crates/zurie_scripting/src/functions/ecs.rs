@@ -23,10 +23,13 @@ pub fn register_ecs_bindings(
     register_set_component_vec2(linker, store, world.clone())?;
     register_set_component_none(linker, store, world.clone())?;
     register_set_component_sprite(linker, store, world.clone(), sprite_component)?;
+    register_set_component_i32(linker, store, world.clone())?;
+    register_set_component_i64(linker, store, world.clone())?;
     register_get_component_raw(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_obj(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_component_string(linker, store, world.clone(), alloc_fn.clone())?;
     register_get_entities_with_architype(linker, store, world.clone(), alloc_fn.clone())?;
+    register_get_entities_with_component(linker, store, world.clone(), alloc_fn.clone())?;
     register_register_query(linker, store, world, alloc_fn)?;
     Ok(())
 }
@@ -288,7 +291,12 @@ fn register_set_component_vec2(
             );
 
             // Get component data from WASM memory
-            let vec2: Vector2 = get_obj_by_ptr(&mut caller, data_ptr, data_len)?;
+            let vec2: Vector2 = get_obj_by_ptr(
+                &mut caller,
+                data_ptr,
+                data_len,
+                "for setting vec2 component",
+            )?;
 
             let mut world_lock = world.write().unwrap();
             world_lock.set_component(
@@ -330,12 +338,94 @@ fn register_set_component_color(
             );
 
             // Get component data from WASM memory
-            let color: [f32; 4] = get_obj_by_ptr(&mut caller, data_ptr, data_len)?;
+            let color: [f32; 4] = get_obj_by_ptr(
+                &mut caller,
+                data_ptr,
+                data_len,
+                "for setting color component",
+            )?;
 
             let mut world_lock = world.write().unwrap();
             world_lock.set_component(
                 entity_id.into(),
                 (component_id.into(), ComponentData::Color(color)),
+            );
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+fn register_set_component_i32(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    world: Arc<RwLock<World>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "set_component_i32_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [
+                wasmtime::ValType::I64, // entity id
+                wasmtime::ValType::I64, // component id
+                wasmtime::ValType::I32, // i32
+            ]
+            .iter()
+            .cloned(),
+            [].iter().cloned(),
+        ),
+        move |_, params, _| {
+            let (entity_id, component_id, i32) = (
+                KeyData::from_ffi(params[0].unwrap_i64() as u64),
+                KeyData::from_ffi(params[1].unwrap_i64() as u64),
+                params[2].unwrap_i32(),
+            );
+
+            // Get component data from WASM memory
+
+            let mut world_lock = world.write().unwrap();
+            world_lock.set_component(
+                entity_id.into(),
+                (component_id.into(), ComponentData::I32(i32)),
+            );
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+fn register_set_component_i64(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    world: Arc<RwLock<World>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "set_component_i64_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [
+                wasmtime::ValType::I64, // entity id
+                wasmtime::ValType::I64, // component id
+                wasmtime::ValType::I64, // i32
+            ]
+            .iter()
+            .cloned(),
+            [].iter().cloned(),
+        ),
+        move |_, params, _| {
+            let (entity_id, component_id, i64) = (
+                KeyData::from_ffi(params[0].unwrap_i64() as u64),
+                KeyData::from_ffi(params[1].unwrap_i64() as u64),
+                params[2].unwrap_i64(),
+            );
+
+            // Get component data from WASM memory
+
+            let mut world_lock = world.write().unwrap();
+            world_lock.set_component(
+                entity_id.into(),
+                (component_id.into(), ComponentData::I64(i64)),
             );
             Ok(())
         },
@@ -512,10 +602,17 @@ fn register_get_entities_with_architype(
             let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
 
             // Get the architype components from WASM memory
-            let architype: Vec<u64> = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let architype: (Vec<u64>, Vec<u64>) =
+                get_obj_by_ptr(&mut caller, ptr, len, "for getting entities with architype")?;
 
             // Convert the raw component IDs to ComponentID
-            let components: Vec<ComponentID> = architype
+            let required_components: Vec<ComponentID> = architype
+                .0
+                .into_iter()
+                .map(|id| KeyData::from_ffi(id).into())
+                .collect();
+            let optional_components: Vec<ComponentID> = architype
+                .1
                 .into_iter()
                 .map(|id| KeyData::from_ffi(id).into())
                 .collect();
@@ -523,7 +620,49 @@ fn register_get_entities_with_architype(
             let entities = {
                 let world = world.read().unwrap();
                 world
-                    .get_entities_with_arhetype(Architype { data: components })
+                    .get_entities_with_arhetype(Architype {
+                        required: required_components,
+                        optional: optional_components,
+                    })
+                    .iter()
+                    .map(|entity| entity.data().as_ffi())
+                    .collect::<Vec<u64>>()
+            };
+
+            // Copy the result back to WASM memory
+            let alloc = alloc_fn.read().unwrap().as_ref().unwrap().clone();
+            copy_obj_to_memory(&mut caller, entities, alloc)?;
+
+            Ok(())
+        },
+    )?;
+    Ok(())
+}
+
+fn register_get_entities_with_component(
+    linker: &mut Linker<()>,
+    store: &Store<()>,
+    world: Arc<RwLock<World>>,
+    alloc_fn: Arc<RwLock<Option<TypedFunc<u32, u32>>>>,
+) -> anyhow::Result<()> {
+    linker.func_new(
+        "env",
+        "get_entities_with_component_sys",
+        wasmtime::FuncType::new(
+            store.engine(),
+            [wasmtime::ValType::I64].iter().cloned(),
+            [].iter().cloned(),
+        ),
+        move |mut caller, params, _| {
+            let component_id = params[0].unwrap_f64() as u64;
+
+            let entities = {
+                let world = world.read().unwrap();
+                world
+                    .get_entities_with_arhetype(Architype {
+                        required: vec![KeyData::from_ffi(component_id).into()],
+                        optional: vec![],
+                    })
                     .iter()
                     .map(|entity| entity.data().as_ffi())
                     .collect::<Vec<u64>>()
@@ -558,7 +697,7 @@ fn register_register_query(
         move |mut caller, params, _| {
             let (ptr, len) = (params[0].unwrap_i32() as u32, params[1].unwrap_i32() as u32);
 
-            let query: Query = get_obj_by_ptr(&mut caller, ptr, len)?;
+            let query: Query = get_obj_by_ptr(&mut caller, ptr, len, "for registering query")?;
             let func: Func = caller
                 .get_export(&query.name)
                 .and_then(|e| e.into_func())
