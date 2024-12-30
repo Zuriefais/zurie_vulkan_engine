@@ -1,27 +1,24 @@
-# Game engine made on vulkan
-#Currently changing engine direction to wasm 2d engine
+# Game engine that uses wasm for code execution
+
+## How to use
+First of all you need to create a new rust project and there zurie_mod_api crate from GitHub
+
 
 ## Dependencies
 
-> cargo, cargo-zigbuild, mangohud, vulkan
+> cargo, cargo-zigbuild, mangohud, vulkan, xbuild
 
-## Run
+## Supported platforms
+- Windows 
+- Linux
+- Mac os(maybe)
+- Android(troubles with file API but works)
+## Run on Desktop
 
 >`just`
 
-## Showcase
+## Run on Android
 
-### Latest
-
-![latest](./static/Latest.png)
-
-### Magic bugs from my game
-
-![magic](./static/Game.png)
-
-![](https://www.youtube.com/watch?v=l_o-6ujMl60)
-[![Magic](https://i.ytimg.com/vi/l_o-6ujMl60/maxresdefault.jpg)](https://www.youtube.com/watch?v=l_o-6ujMl60)
-
-
+>  x run
 ## Docs
 [wasm docs](https://component-model.bytecodealliance.org/)
