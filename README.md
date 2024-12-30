@@ -1,7 +1,7 @@
 # Game engine that uses wasm for code execution
 
 ## How to use
-First of all you need to create a new rust project and there zurie_mod_api crate from GitHub
+First of all you need to create a new rust project and add zurie_mod_api crate from this repo
 
 
 ## Dependencies
