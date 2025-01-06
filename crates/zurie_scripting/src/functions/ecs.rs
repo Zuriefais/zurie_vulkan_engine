@@ -654,15 +654,12 @@ fn register_get_entities_with_component(
             [].iter().cloned(),
         ),
         move |mut caller, params, _| {
-            let component_id = params[0].unwrap_f64() as u64;
+            let component_id = params[0].unwrap_i64() as u64;
 
             let entities = {
                 let world = world.read().unwrap();
                 world
-                    .get_entities_with_arhetype(Architype {
-                        required: vec![KeyData::from_ffi(component_id).into()],
-                        optional: vec![],
-                    })
+                    .get_entities_with_component(KeyData::from_ffi(component_id).into())
                     .iter()
                     .map(|entity| entity.data().as_ffi())
                     .collect::<Vec<u64>>()

@@ -128,6 +128,19 @@ impl EntityStorage {
         entities
     }
 
+    pub fn get_entities_with_component(&self, component: ComponentID) -> Vec<Entity> {
+        let mut entities = Vec::with_capacity(self.entities.len() / 2);
+
+        for (entity, data) in self.entities.iter() {
+            // Check if the entity has the component we're looking for
+            if data.data.iter().any(|(comp_id, _)| *comp_id == component) {
+                entities.push(entity);
+            }
+        }
+
+        entities
+    }
+
     pub fn modify_entity(&mut self, entity: Entity, new_data: EntityData) {
         if let Some(data) = self.entities.get_mut(entity) {
             *data = new_data
@@ -142,7 +155,8 @@ impl EntityStorage {
                     return;
                 }
             }
-            entity_data.data.push(new_component)
+            info!("setting component: {:?}", &new_component);
+            entity_data.data.push(new_component);
         }
     }
 
@@ -223,6 +237,10 @@ impl World {
     }
     pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
         self.storage.get_entities_with_arhetype(architype)
+    }
+
+    pub fn get_entities_with_component(&self, component: ComponentID) -> Vec<Entity> {
+        self.storage.get_entities_with_component(component)
     }
 
     pub fn modify_entity(&mut self, entity: Entity, new_data: EntityData) {
