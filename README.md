@@ -6,10 +6,10 @@ First of all you need to create a new rust project and add zurie_mod_api crate f
 
 ## Dependencies
 
-> cargo, cargo-zigbuild, mangohud, vulkan, xbuild
+> rust lang, [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild), [mangohud](## "only for linux debug"), vulkan, [xbuild](https://github.com/rust-mobile/xbuild), cmake, ninja
 
 ## Supported platforms
-- Windows 
+- Windows
 - Linux
 - Mac os(maybe)
 - Android(troubles with file API but works)
@@ -18,7 +18,6 @@ First of all you need to create a new rust project and add zurie_mod_api crate f
 >`just`
 
 ## Run on Android
-
->  x run
+>  `x run --device #Your device# --package zurie_android`
 ## Docs
 [wasm docs](https://component-model.bytecodealliance.org/)
