@@ -14,6 +14,7 @@ run:
 
 build_mods:
     cargo build --package example_mod --target wasm32-unknown-unknown --release
+    cargo build --package vampire_like_demo --target wasm32-unknown-unknown --release
 
 
 build_windows:

@@ -1,4 +1,5 @@
 pub use glam;
+use glam::Vec2;
 use num_enum::TryFromPrimitive;
 pub mod camera;
 pub use flexbuffers;
@@ -72,12 +73,23 @@ impl Default for ComponentData {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
     pub position: Vector2,
     pub scale: [f32; 2],
     pub color: [f32; 4],
     pub sprite: u64,
+}
+
+impl Default for Object {
+    fn default() -> Self {
+        Self {
+            position: Vec2::ZERO.into(),
+            scale: [1.0, 1.0],
+            color: [1.0, 1.0, 1.0, 1.0],
+            sprite: 0,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
