@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 kira = "0.10.0"
-
-log = "0.4.22"
+slotmap = {workspace = true}
+log = {workspace = true}
+anyhow = {workspace = true}
 
 [[bin]]
 name = "zurie_audio_test"

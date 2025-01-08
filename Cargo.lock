@@ -4848,8 +4848,10 @@ dependencies = [
 name = "zurie_audio"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "kira",
  "log",
+ "slotmap",
 ]
 
 [[package]]

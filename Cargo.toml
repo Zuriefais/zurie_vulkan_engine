@@ -5,3 +5,5 @@ members = ["crates/*"]
 [workspace.dependencies]
 serde = { version = "1.0.213", features = ["derive"] }
 slotmap = { version = "1.0.7", features = ["serde"] }
+anyhow = "1.0.89"
+log = "0.4.22"
