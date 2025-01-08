@@ -1,0 +1,13 @@
+[package]
+name = "zurie_audio"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+kira = "0.10.0"
+
+log = "0.4.22"
+
+[[bin]]
+name = "zurie_audio_test"
+path = "src/main.rs"

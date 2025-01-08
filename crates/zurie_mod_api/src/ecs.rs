@@ -8,6 +8,10 @@ use zurie_types::{
     ComponentData,
 };
 
+pub fn register_pos_component() -> ComponentID {
+    register_component("position")
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entity(pub u64);
 
