@@ -3,6 +3,7 @@ pub mod gui;
 pub mod input;
 pub mod utils;
 pub use zurie_types;
+pub mod audio;
 pub mod camera;
 pub mod ecs;
 pub mod events;

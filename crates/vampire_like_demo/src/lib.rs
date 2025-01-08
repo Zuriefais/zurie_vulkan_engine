@@ -1,5 +1,8 @@
+use zurie_mod_api::audio::{load_sound, play_sound};
+use zurie_mod_api::input::key_presed;
 use zurie_mod_api::sprite::load_sprite_from_file;
 use zurie_mod_api::utils::MOD;
+use zurie_mod_api::zurie_types::SoundHandle;
 use zurie_mod_api::{
     ecs::{register_pos_component, spawn_entity},
     register_mod,
@@ -7,9 +10,16 @@ use zurie_mod_api::{
     zurie_types::{glam::Vec2, ComponentData},
 };
 
-pub struct VampireMod {}
+#[derive(Default)]
+pub struct VampireMod {
+    sound: SoundHandle,
+}
 impl Mod for VampireMod {
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        if key_presed(zurie_mod_api::zurie_types::KeyCode::Enter) {
+            play_sound(self.sound);
+        }
+    }
 
     fn key_event(&mut self, key: zurie_mod_api::zurie_types::KeyCode) {}
 
@@ -24,6 +34,7 @@ impl Mod for VampireMod {
             ComponentData::Vector(Vec2::new(0.0, 0.0).into()),
         );
         entity.set_sprite(sprite);
+        self.sound = load_sound("static/sound.wav".into());
     }
 
     fn event(&mut self, handle: zurie_mod_api::events::EventHandle, data: &[u8]) {}
@@ -32,7 +43,7 @@ impl Mod for VampireMod {
     where
         Self: Sized,
     {
-        Self {}
+        Default::default()
     }
 
     fn get_mod_name(&self) -> String {

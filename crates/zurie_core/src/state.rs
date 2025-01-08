@@ -151,7 +151,9 @@ impl State {
                 obj
             })
             .collect();
-        objects.push(Object::default());
+        if objects.len() == 0 {
+            objects.push(Object::default())
+        };
         let objects = Arc::new(RwLock::new(objects));
 
         self.render_state.render(

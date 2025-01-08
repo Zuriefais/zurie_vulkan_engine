@@ -9,7 +9,7 @@ use serde::Serialize;
 use slotmap::new_key_type;
 
 new_key_type! { pub struct SpriteHandle; }
-
+new_key_type! { pub struct SoundHandle; }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Query {
     pub name: String,

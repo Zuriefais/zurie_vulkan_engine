@@ -10,6 +10,7 @@ use winit::{
     dpi::PhysicalPosition,
     event::{MouseScrollDelta, WindowEvent},
 };
+use zurie_audio::AudioManager;
 use zurie_ecs::World;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::SlotMap;
@@ -30,6 +31,7 @@ pub struct ModManager {
     camera: Arc<RwLock<Camera>>,
     event_manager: Arc<RwLock<EventManager>>,
     sprite_manager: Arc<RwLock<SpriteManager>>,
+    audio_manager: AudioManager,
     #[cfg(target_os = "android")]
     app: AndroidApp,
 }
@@ -120,6 +122,7 @@ impl ModManager {
             self.event_manager.clone(),
             handle,
             self.sprite_manager.clone(),
+            self.audio_manager.clone(),
         )?)))
     }
 
@@ -160,6 +163,7 @@ impl ModManager {
                         event_manager,
                         handle,
                         self.sprite_manager.clone(),
+                        self.audio_manager.clone(),
                         #[cfg(target_os = "android")]
                         self.app.clone(),
                     )
@@ -192,6 +196,7 @@ impl ModManager {
         let engine = Engine::default();
         let mut mods = SlotMap::with_key();
         let event_manager: Arc<RwLock<EventManager>> = Default::default();
+        let audio_manager = AudioManager::new();
         #[cfg(not(target_os = "android"))]
         mods.insert_with_key(|handle| {
             Arc::new(RwLock::new(
@@ -206,6 +211,7 @@ impl ModManager {
                     event_manager.clone(),
                     handle,
                     sprite_manager.clone(),
+                    audio_manager.clone(),
                 )
                 .unwrap(),
             ))
@@ -240,6 +246,7 @@ impl ModManager {
             camera,
             event_manager,
             sprite_manager,
+            audio_manager,
             #[cfg(target_os = "android")]
             app: android_app,
         }

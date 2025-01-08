@@ -14,14 +14,16 @@ use std::sync::mpsc::Sender;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use zurie_types::SoundHandle;
 
 #[derive(Debug)]
 pub enum AudioCommand {
     Play(SoundHandle),
-    Load(Box<Path>, Sender<SoundHandle>),
+    Load(String, Sender<SoundHandle>),
     Stop,
 }
 
+#[derive(Clone)]
 pub struct AudioManager {
     manager: Sender<AudioCommand>,
 }
@@ -36,7 +38,7 @@ impl AudioManager {
         AudioManager { manager: sender }
     }
 
-    pub fn load_sound(&self, path: Box<Path>) -> SoundHandle {
+    pub fn load_sound(&self, path: String) -> SoundHandle {
         let (sender, receiver) = channel();
         self.manager.send(AudioCommand::Load(path, sender));
         receiver.recv().unwrap()
@@ -46,8 +48,6 @@ impl AudioManager {
         self.manager.send(AudioCommand::Play(sound)).unwrap();
     }
 }
-
-new_key_type! { pub struct SoundHandle; }
 
 pub struct AudioThread {
     kira_manager: kira::AudioManager,
@@ -74,9 +74,10 @@ impl AudioThread {
         }
     }
 
-    fn load_sound(&mut self, path: Box<Path>, sender: Sender<SoundHandle>) {
+    fn load_sound(&mut self, path: String, sender: Sender<SoundHandle>) {
         self.sound_storage.insert_with_key(|key| {
             sender.send(key);
+            info!("Loading sound with handle: {:?}", key);
             StaticSoundData::from_file(path).expect("error loading file")
         });
     }

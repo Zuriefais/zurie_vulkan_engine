@@ -4852,6 +4852,7 @@ dependencies = [
  "kira",
  "log",
  "slotmap",
+ "zurie_types",
 ]
 
 [[package]]
@@ -4903,6 +4904,7 @@ name = "zurie_mod_api"
 version = "0.0.0"
 dependencies = [
  "serde",
+ "slotmap",
  "zurie_types",
 ]
 
@@ -4945,6 +4947,7 @@ dependencies = [
  "thiserror",
  "wasmtime",
  "winit",
+ "zurie_audio",
  "zurie_ecs",
  "zurie_render",
  "zurie_shared",

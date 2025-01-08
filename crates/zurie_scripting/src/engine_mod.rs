@@ -1,5 +1,6 @@
 use crate::{
     functions::{
+        audio::register_audio_bindings,
         camera::register_camera_bindings,
         ecs::register_ecs_bindings,
         events::{register_events_bindings, EventHandle, EventManager},
@@ -25,6 +26,7 @@ use wasmtime::AsContextMut;
 use wasmtime::{Engine, Instance, Linker, Module, Store, TypedFunc};
 #[cfg(target_os = "android")]
 use winit::platform::android::activity::AndroidApp;
+use zurie_audio::AudioManager;
 use zurie_ecs::World;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::{Key, KeyData};
@@ -56,6 +58,7 @@ impl EngineMod {
         event_manager: Arc<RwLock<EventManager>>,
         mod_handle: ModHandle,
         sprite_manager: Arc<RwLock<SpriteManager>>,
+        audio_manager: AudioManager,
         #[cfg(target_os = "android")] android_app: AndroidApp,
     ) -> anyhow::Result<Self> {
         let mut linker: Linker<()> = Linker::new(engine);
@@ -85,6 +88,8 @@ impl EngineMod {
         register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
         register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;
         setup_sprite_bindings(&mut linker, &store, sprite_manager)?;
+        register_audio_bindings(&mut linker, &store, audio_manager)?;
+
         let instance = linker.instantiate(&mut store, &module)?;
         let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
         let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;

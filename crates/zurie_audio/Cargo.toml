@@ -8,7 +8,7 @@ kira = "0.10.0"
 slotmap = {workspace = true}
 log = {workspace = true}
 anyhow = {workspace = true}
-
+zurie_types = {path = "../zurie_types"}
 [[bin]]
 name = "zurie_audio_test"
 path = "src/main.rs"
