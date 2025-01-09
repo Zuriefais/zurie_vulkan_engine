@@ -1,23 +1,81 @@
-# Game engine that uses wasm for code execution
+# Zurie Vulkan Engine
 
-## How to use
-First of all you need to create a new rust project and add zurie_mod_api crate from this repo
+A modern game engine powered by WebAssembly for code execution and Vulkan for rendering.
 
+## Features
 
-## Dependencies
+- WASM-based modding system
+- Vulkan rendering backend
+- Entity Component System (ECS)
+- Cross-platform support
+- Sprite rendering system
 
-> rust lang, [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild), [mangohud](## "only for linux debug"), vulkan, [xbuild](https://github.com/rust-mobile/xbuild), cmake, ninja
+## Project Status
 
-## Supported platforms
-- Windows
-- Linux
-- Mac os(maybe)
-- Android(troubles with file API but works)
-## Run on Desktop
+### Completed ✅
+- [x] Sprite rendering system
+- [x] Entity Component System (ECS)
 
->`just`
+### In Progress 🚧
+- [ ] WASM component model migration
+- [ ] Demo game (Vampire Survivors-like)
+- [ ] Snake game implementation
+- [ ] Sprite animation system
+- [ ] Full Android support
+- [ ] Migration to standard logging crate
 
-## Run on Android
->  `x run --device #Your device# --package zurie_android`
-## Docs
-[wasm docs](https://component-model.bytecodealliance.org/)
+## Getting Started
+
+### Prerequisites
+
+- Rust toolchain
+- [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild)
+- [mangohud](https://github.com/flightlessmango/MangoHud) (Linux debug only)
+- Vulkan SDK
+- [xbuild](https://github.com/rust-mobile/xbuild)
+- CMake
+- Ninja
+
+### Creating a Mod
+
+1. Create a new Rust project
+2. Add `zurie_mod_api` to your dependencies:
+   ```toml
+   [dependencies]
+   zurie_mod_api = "0.1.0"
+   ```
+3. Implement the `Mod` trait
+4. Compile your mod
+5. Launch the engine
+6. Load your mod into the engine
+
+## Platform Support
+
+| Platform | Status |
+|----------|---------|
+| Windows  | ✅ Supported |
+| Linux    | ✅ Supported |
+| macOS    | ⚠️ Experimental |
+| Android  | 🚧 In Progress |
+
+## Running the Engine
+
+### Desktop
+```bash
+just
+```
+
+### Android
+```bash
+x run --device <device-id> --package zurie_android
+```
+
+## Documentation
+
+- [WASM Component Model](https://component-model.bytecodealliance.org/)
+- [Rust Documentation](https://www.rust-lang.org/learn)
+- [Wasmtime Documentation](https://docs.wasmtime.dev/)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
