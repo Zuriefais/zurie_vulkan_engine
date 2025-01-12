@@ -1,0 +1,95 @@
+package zurie:engine@0.1.0;
+
+interface core {
+    record vec2 {
+        x: f32,
+        y: f32
+    }
+
+    record color {
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32
+    }
+
+    type entity-id = u64;
+    type component-id = u64;
+    type event-handle = u64;
+    type sprite-handle = u64;
+    type sound-handle = u64;
+
+    info: func(text: string);
+    warn: func(text: string);
+    error: func(text: string);
+    debug: func(text: string);
+    trace: func(text: string);
+}
+
+interface audio {
+    use core.{sound-handle};
+
+    load-sound: func(path: string) -> sound-handle;
+    play-sound: func(handle: sound-handle);
+}
+
+interface camera {
+    use core.{vec2};
+
+    record camera {
+        position: vec2,
+        zoom-factor: f32
+    }
+
+    get-camera: func() -> camera;
+    set-camera: func(camera: camera);
+    set-zoom: func(factor: f32);
+    get-zoom: func() -> f32;
+    set-position: func(position: vec2);
+    get-position: func() -> vec2;
+}
+
+interface ecs {
+    use core.{entity-id, component-id, vec2, color};
+
+
+    variant component-data {
+        none,
+        str(string),
+        vec2(vec2),
+        color(color),
+        raw(list<u8>),
+        i32(s32),
+        i64(s64)
+    }
+
+    spawn-entity: func() -> entity-id;
+    despawn-entity: func(entity: entity-id);
+    register-component: func(name: string) -> component-id;
+    set-component: func(entity: entity-id, component: component-id, data: component-data);
+    get-component: func(entity: entity-id, component: component-id) -> option<component-data>;
+}
+
+interface events {
+    use core.{event-handle};
+
+    subscribe-by-name: func(name: string) -> event-handle;
+    subscribe-by-handle: func(handle: event-handle);
+    emit: func(handle: event-handle, data: list<u8>);
+}
+
+world zurie-mod {
+    import core;
+    import audio;
+    import camera;
+    import ecs;
+    import events;
+
+    use core.{event-handle};
+
+    export init: func();
+    export update: func();
+    export key-event: func(key-code: u32);
+    export scroll: func(amount: f32);
+    export event: func(handle: event-handle, data: list<u8>);
+}

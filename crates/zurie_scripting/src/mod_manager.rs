@@ -201,7 +201,7 @@ impl ModManager {
         mods.insert_with_key(|handle| {
             Arc::new(RwLock::new(
                 EngineMod::new(
-                    "./target/wasm32-unknown-unknown/release/vampire_like_demo.wasm".into(),
+                    "./target/wasm32-wasip2/release/vampire_like_demo.wasm".into(),
                     &engine,
                     gui_context.clone(),
                     pressed_keys_buffer.clone(),

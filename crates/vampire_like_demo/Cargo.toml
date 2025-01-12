@@ -1,14 +1,10 @@
 [package]
 name = "vampire_like_demo"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-zurie_mod_api = { path = "../zurie_mod_api" }
-serde = {workspace = true}
-
-[build]
-target = "wasm32-unknown-unknown"
+zurie_mod_interface = {path ="../zurie_mod_interface"}

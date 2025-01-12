@@ -4,7 +4,7 @@ A modern game engine powered by WebAssembly for code execution and Vulkan for re
 
 ## Features
 
-- WASM-based modding system
+- WASI-based modding system
 - Vulkan rendering backend
 - Entity Component System (ECS)
 - Cross-platform support
@@ -15,9 +15,11 @@ A modern game engine powered by WebAssembly for code execution and Vulkan for re
 ### Completed ✅
 - [x] Sprite rendering system
 - [x] Entity Component System (ECS)
+- [x] Basic code execution
+
 
 ### In Progress 🚧
-- [ ] WASM component model migration
+- [ ] WASI component model migration
 - [ ] Demo game (Vampire Survivors-like)
 - [ ] Snake game implementation
 - [ ] Sprite animation system

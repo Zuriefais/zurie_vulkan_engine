@@ -4,7 +4,9 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-wasmtime = "28.0.0"
+wasmtime = {version = "28.0.0", features = ["component-model"]}
+wit-parser = "0.223.0"
+
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"
@@ -14,8 +16,11 @@ log = "0.4.22"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 rand = "0.8.5"
 
+#Engine modules
 zurie_types = { path = "../zurie_types" }
 zurie_ecs = { path = "../zurie_ecs" }
 zurie_shared = { path = "../zurie_shared" }
 zurie_render  = { path = "../zurie_render"}
 zurie_audio = {path = "../zurie_audio"}
+wit-component = "0.223.0"
+wasmtime-wasi = "28.0.0"

@@ -1,0 +1,16 @@
+[package]
+name = "zurie_mod_interface"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = {workspace = true, features = ["std"]}
+glam = "0.29.2"
+wit-bindgen = "0.36.0"
+num_enum = "*"
+once_cell = "1.20.2"
+ctor = "0.2.9"
+
+[lib]
+name = "zurie_mod_interface"
+crate-type = ["cdylib", "lib"]
