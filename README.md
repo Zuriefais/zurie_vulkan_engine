@@ -16,15 +16,14 @@ A modern game engine powered by WebAssembly for code execution and Vulkan for re
 - [x] Sprite rendering system
 - [x] Entity Component System (ECS)
 - [x] Basic code execution
-
+- [x] WASI component model migration
+- [x] Migration to standard logging crate
 
 ### In Progress 🚧
-- [ ] WASI component model migration
 - [ ] Demo game (Vampire Survivors-like)
 - [ ] Snake game implementation
 - [ ] Sprite animation system
 - [ ] Full Android support
-- [ ] Migration to standard logging crate
 
 ## Getting Started
 

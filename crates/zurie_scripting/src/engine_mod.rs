@@ -76,20 +76,15 @@ impl EngineMod {
             audio_manager,
             wasi_ctx: wasi,
             resource_table: ResourceTable::new(),
+            pressed_keys_buffer: pressed_keys_buffer.clone(),
+            subscribed_keys: Default::default(),
+            mouse_pos: mouse_pos.clone(),
         };
 
         let mut store = Store::new(&engine, scripting_state);
-        // let instance = linker.instantiate(&mut store, &component)?;
-
-        // // Get and call the initialization function
-        // let init_fn = instance
-        //     .get_typed_func::<(), ()>(&mut store, "zurie_init")
-        //     .map_err(|_| anyhow::anyhow!("Failed to find __initialize_zurie_mod function"))?;
-
-        // // Call the initialization function
-        // init_fn.call(&mut store, ())?;
 
         let bindings = ZurieMod::instantiate(&mut store, &component, &linker)?;
+
         bindings.call_init(&mut store)?;
         Ok(Self {
             path: mod_path,
@@ -98,68 +93,6 @@ impl EngineMod {
             mod_name: Default::default(),
             subscribed_keys: Default::default(),
         })
-        // let mut linker: Linker<()> = Linker::new(engine);
-        // let mod_name = Arc::new(RwLock::new("No name".to_string()));
-        // #[cfg(target_os = "android")]
-        // let module = {
-        //     let wasm_bytes =
-        //         include_bytes!("../../../target/wasm32-unknown-unknown/release/example_mod.wasm");
-        //     unsafe { Module::from_binary(engine, wasm_bytes)? }
-        // };
-
-        // #[cfg(not(target_os = "android"))]
-        // let module = Module::from_file(engine, &mod_path)?;
-        // let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
-        // info!("mod at path {} compiled", mod_path);
-        // let mut store = Store::new(engine, ());
-        // let alloc_fn_lock = Arc::new(RwLock::new(None));
-        // register_utils_bindings(&mut linker, &store, mod_name.clone())?;
-        // register_gui_text(&mut linker, gui_context.clone())?;
-        // register_subscribe_for_key_event(&mut linker, mod_name.clone(), subscribed_keys.clone())?;
-        // register_gui_button(&mut linker, &store, gui_context.clone())?;
-        // register_key_pressed(&mut linker, pressed_keys_buffer, &store)?;
-        // register_request_mouse_pos(&mut linker, mouse_pos)?;
-        // register_game_logic_bindings(&mut linker, &store, world.clone(), alloc_fn_lock.clone())?;
-        // register_ecs_bindings(&mut linker, &store, world, alloc_fn_lock.clone())?;
-        // register_camera_bindings(&mut linker, camera, &store)?;
-        // register_events_bindings(&mut linker, &store, event_manager, mod_handle)?;
-        // register_file_bindings(&mut linker, &store, alloc_fn_lock.clone())?;
-        // setup_sprite_bindings(&mut linker, &store, sprite_manager)?;
-        // register_audio_bindings(&mut linker, &store, audio_manager)?;
-
-        // let instance = linker.instantiate(&mut store, &module)?;
-        // let new_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "new")?;
-        // let init_fn: TypedFunc<(), ()> = instance.get_typed_func::<(), ()>(&mut store, "init")?;
-        // let update_fn: TypedFunc<(), ()> =
-        //     instance.get_typed_func::<(), ()>(&mut store, "update")?;
-        // let key_event_fn: TypedFunc<u32, ()> =
-        //     instance.get_typed_func::<u32, ()>(&mut store, "key_event")?;
-        // let scroll_fn: TypedFunc<f32, ()> =
-        //     instance.get_typed_func::<f32, ()>(&mut store, "scroll")?;
-        // let get_mod_name_fn: TypedFunc<(), ()> =
-        //     instance.get_typed_func::<(), ()>(&mut store, "get_mod_name")?;
-        // let event_fn: TypedFunc<u64, ()> =
-        //     instance.get_typed_func::<u64, ()>(&mut store, "event")?;
-        // let alloc_fn = instance.get_typed_func::<u32, u32>(&mut store, "alloc")?;
-        // let mut alloc_fn_lock = alloc_fn_lock.write().unwrap();
-        // *alloc_fn_lock = Some(alloc_fn.clone());
-        // new_fn.call(&mut store, ())?;
-        // get_mod_name_fn.call(&mut store, ())?;
-        // info!("Mod name: {}", mod_name.read().unwrap());
-        // init_fn.call(&mut store, ())?;
-        // Ok(Self {
-        //     path: mod_path,
-        //     module,
-        //     instance,
-        //     store,
-        //     update_fn,
-        //     event_fn,
-        //     key_event_fn,
-        //     scroll_fn,
-        //     mod_name,
-        //     alloc_fn,
-        //     subscribed_keys,
-        // })
     }
 
     pub fn update(&mut self) -> anyhow::Result<()> {
@@ -168,10 +101,11 @@ impl EngineMod {
     }
 
     pub fn key_event(&mut self, key_code: KeyCode) -> anyhow::Result<()> {
-        // let keys_lock = self.subscribed_keys.read().unwrap();
-        // if keys_lock.contains(&key_code) {
-        //     self.key_event_fn.call(&mut self.store, key_code as u32)?;
-        // }
+        let keys_lock = self.subscribed_keys.read().unwrap();
+        if keys_lock.contains(&key_code) {
+            self.bindings
+                .call_key_event(&mut self.store, key_code as u32)?
+        }
         Ok(())
     }
 

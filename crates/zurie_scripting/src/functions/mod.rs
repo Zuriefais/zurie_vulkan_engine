@@ -1,4 +1,9 @@
+use std::sync::Arc;
+use std::sync::RwLock;
+
 use crate::functions::zurie::engine::audio::SoundHandle;
+
+use hashbrown::HashSet;
 use wasmtime::component::bindgen;
 use wasmtime::component::ResourceTable;
 use wasmtime_wasi::WasiCtx;
@@ -15,11 +20,18 @@ pub mod input;
 pub mod sprite;
 pub mod utils;
 use wasmtime_wasi::WasiView;
+use zurie_types::glam::Vec2;
+use zurie_types::KeyCode;
 
 bindgen!("zurie-mod" in "zurie_engine.wit");
 
 pub struct ScriptingState {
     pub audio_manager: AudioManager,
+
+    //Input
+    pub pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
+    pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
+    pub mouse_pos: Arc<RwLock<Vec2>>,
 
     //Wasi spacific fields
     pub wasi_ctx: WasiCtx,
