@@ -82,11 +82,21 @@ interface ecs {
 }
 
 interface events {
-    use core.{event-handle};
+    use core.{event-handle, entity-id, component-id, vec2, color};
 
     subscribe-by-name: func(name: string) -> event-handle;
     subscribe-by-handle: func(handle: event-handle);
-    emit: func(handle: event-handle, data: list<u8>);
+    emit: func(handle: event-handle, data: event-data);
+
+    variant event-data {
+        none,
+        str(string),
+        vec2(vec2),
+        color(color),
+        raw(list<u8>),
+        i32(s32),
+        i64(s64)
+    }
 }
 
 world zurie-mod {
@@ -98,10 +108,11 @@ world zurie-mod {
     import input;
 
     use core.{event-handle};
+    use events.{event-data};
 
     export init: func();
     export update: func();
     export key-event: func(key-code: u32);
     export scroll: func(amount: f32);
-    export event: func(handle: event-handle, data: list<u8>);
+    export event: func(handle: event-handle, data: event-data);
 }

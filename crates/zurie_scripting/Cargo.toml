@@ -4,13 +4,17 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+#Wasmtime
 wasmtime = {version = "28.0.0", features = ["component-model"]}
 wit-parser = "0.223.0"
+wit-component = "0.223.0"
+wasmtime-wasi = "28.0.0"
+
 
 thiserror = "1.0.63"
 anyhow = "1.0.89"
 crossbeam = "0.8.4"
-hashbrown = "0.15.0"
+hashbrown = {workspace = true}
 egui = { version = "0.29.1" }
 log = "0.4.22"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
@@ -22,5 +26,4 @@ zurie_ecs = { path = "../zurie_ecs" }
 zurie_shared = { path = "../zurie_shared" }
 zurie_render  = { path = "../zurie_render"}
 zurie_audio = {path = "../zurie_audio"}
-wit-component = "0.223.0"
-wasmtime-wasi = "28.0.0"
+zurie_event = {path = "../zurie_event"}

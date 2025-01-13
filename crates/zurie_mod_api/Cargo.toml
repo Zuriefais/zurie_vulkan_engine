@@ -1,9 +1,0 @@
-[package]
-name = "zurie_mod_api"
-version = "0.0.0"
-edition = "2021"
-
-[dependencies]
-zurie_types = { path = "../zurie_types" }
-serde = { workspace = true }
-slotmap = {workspace = true}

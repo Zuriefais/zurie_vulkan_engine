@@ -18,11 +18,12 @@
 // };
 // use wasmtime_wasi::bindings::sync::Command;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
+use zurie_event::{EventManager, ModEventQueue};
+use zurie_types::ModHandle;
 
-use crate::functions::events::EventManager;
 use crate::functions::zurie::engine::core::EventHandle;
-use crate::functions::ZurieMod;
-use crate::ModHandle;
+use crate::functions::{EventData, ZurieMod};
+
 use crate::ScriptingState;
 use anyhow::Ok;
 use egui::Context;
@@ -37,6 +38,7 @@ use wasmtime::{Engine, Store};
 use winit::platform::android::activity::AndroidApp;
 use zurie_audio::AudioManager;
 use zurie_ecs::World;
+use zurie_event::EventData as EngineEventData;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
@@ -46,6 +48,7 @@ pub struct EngineMod {
     pub store: Store<ScriptingState>,
     pub mod_name: Arc<RwLock<String>>,
     pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
+    pub event_queue: ModEventQueue,
 }
 
 impl EngineMod {
@@ -79,6 +82,9 @@ impl EngineMod {
             pressed_keys_buffer: pressed_keys_buffer.clone(),
             subscribed_keys: Default::default(),
             mouse_pos: mouse_pos.clone(),
+            camera,
+            event_manager,
+            mod_handle,
         };
 
         let mut store = Store::new(&engine, scripting_state);
@@ -92,11 +98,20 @@ impl EngineMod {
             store,
             mod_name: Default::default(),
             subscribed_keys: Default::default(),
+            event_queue: Default::default(),
         })
     }
 
     pub fn update(&mut self) -> anyhow::Result<()> {
-        // self.update_fn.call(&mut self.store, ())?;
+        //Proccesing events
+        for event in self.event_queue.drain().iter() {
+            self.bindings.call_event(
+                &mut self.store,
+                KeyData::as_ffi(event.handle.data()),
+                &EventData::from(event.data.clone()),
+            )?;
+        }
+        self.bindings.call_update(&mut self.store)?;
         Ok(())
     }
 
@@ -109,26 +124,12 @@ impl EngineMod {
         Ok(())
     }
 
-    pub fn scroll(&mut self, scroll: f32) -> anyhow::Result<()> {
-        // self.scroll_fn.call(&mut self.store, scroll)?;
+    pub fn scroll(&mut self, amount: f32) -> anyhow::Result<()> {
+        self.bindings.call_scroll(&mut self.store, amount)?;
         Ok(())
     }
 
-    pub fn handle_event(&mut self, event_handle: EventHandle, data: &[u8]) -> anyhow::Result<()> {
-        // let mut store_mut = self.store.as_context_mut();
-        // let memory = self
-        //     .instance
-        //     .get_memory(&mut store_mut, "memory")
-        //     .ok_or_else(|| anyhow::anyhow!("failed to get memory"))?;
-        // let ptr = self.alloc_fn.call(&mut self.store, data.len() as u32)? as usize;
-        // memory
-        //     .data_mut(&mut self.store)
-        //     .get_mut(ptr..)
-        //     .and_then(|slice| slice.get_mut(..data.len()))
-        //     .ok_or_else(|| anyhow::anyhow!("failed to write to memory"))?
-        //     .copy_from_slice(data);
-        // self.event_fn
-        //     .call(&mut self.store, KeyData::as_ffi(event_handle.data()))?;
-        Ok(())
+    pub fn get_event_queue(&self) -> ModEventQueue {
+        self.event_queue.clone()
     }
 }

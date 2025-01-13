@@ -8,30 +8,40 @@ use wasmtime::component::bindgen;
 use wasmtime::component::ResourceTable;
 use wasmtime_wasi::WasiCtx;
 use zurie_audio::AudioManager;
+use zurie_event::EventManager;
 use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 pub mod audio;
 pub mod camera;
 pub mod ecs;
 pub mod events;
-pub mod file;
 pub mod game_logic;
 pub mod gui;
 pub mod input;
 pub mod sprite;
 pub mod utils;
 use wasmtime_wasi::WasiView;
+use zurie_types::camera::Camera;
 use zurie_types::glam::Vec2;
 use zurie_types::KeyCode;
+use zurie_types::ModHandle;
 
 bindgen!("zurie-mod" in "zurie_engine.wit");
 
 pub struct ScriptingState {
+    //Audio
     pub audio_manager: AudioManager,
 
     //Input
     pub pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
     pub mouse_pos: Arc<RwLock<Vec2>>,
+
+    //Camera
+    pub camera: Arc<RwLock<Camera>>,
+
+    //Event
+    pub event_manager: Arc<RwLock<EventManager>>,
+    pub mod_handle: ModHandle,
 
     //Wasi spacific fields
     pub wasi_ctx: WasiCtx,
@@ -44,28 +54,5 @@ impl WasiView for ScriptingState {
     }
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.wasi_ctx
-    }
-}
-
-use crate::Host;
-use log::{debug, error, info, trace, warn};
-
-impl Host for ScriptingState {
-    fn info(&mut self, text: String) {
-        info!("{}", text)
-    }
-    fn warn(&mut self, text: String) {
-        warn!("{}", text)
-    }
-    fn error(&mut self, text: String) {
-        error!("{}", text)
-    }
-
-    fn debug(&mut self, text: String) {
-        debug!("{}", text)
-    }
-
-    fn trace(&mut self, text: String) {
-        trace!("{}", text)
     }
 }

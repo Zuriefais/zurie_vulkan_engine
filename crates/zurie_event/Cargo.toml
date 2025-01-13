@@ -1,0 +1,12 @@
+[package]
+name = "zurie_event"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+slotmap = {workspace = true}
+log = {workspace = true}
+hashbrown = {workspace = true}
+anyhow = {workspace = true}
+
+zurie_types = { path = "../zurie_types" }

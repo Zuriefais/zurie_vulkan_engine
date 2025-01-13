@@ -112,7 +112,7 @@ dependencies = [
  "ndk 0.9.0",
  "ndk-context",
  "ndk-sys 0.6.0+11769913",
- "num_enum 0.7.3",
+ "num_enum",
  "thiserror",
 ]
 
@@ -1295,16 +1295,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
-name = "erased-serde"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24e2389d65ab4fab27dc2a5de7b191e1f6617d1f1c8855c0dc569c94a4cbb18d"
-dependencies = [
- "serde",
- "typeid",
-]
-
-[[package]]
 name = "errno"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1325,7 +1315,6 @@ name = "example_mod"
 version = "0.1.0"
 dependencies = [
  "serde",
- "zurie_mod_api",
 ]
 
 [[package]]
@@ -1389,19 +1378,6 @@ checksum = "c936bfdafb507ebbf50b8074c54fa31c5be9a1e7e5f467dd659697041407d07c"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
-]
-
-[[package]]
-name = "flexbuffers"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15d14128f06405808ce75bfebe11e9b0f9da18719ede6d7bdb1702d6bfe0f7e8"
-dependencies = [
- "bitflags 1.3.2",
- "byteorder",
- "num_enum 0.5.11",
- "serde",
- "serde_derive",
 ]
 
 [[package]]
@@ -2286,7 +2262,7 @@ dependencies = [
  "jni-sys",
  "log",
  "ndk-sys 0.5.0+25.2.9519653",
- "num_enum 0.7.3",
+ "num_enum",
  "thiserror",
 ]
 
@@ -2300,7 +2276,7 @@ dependencies = [
  "jni-sys",
  "log",
  "ndk-sys 0.6.0+11769913",
- "num_enum 0.7.3",
+ "num_enum",
  "raw-window-handle 0.5.2",
  "raw-window-handle 0.6.2",
  "thiserror",
@@ -2416,32 +2392,11 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f646caf906c20226733ed5b1374287eb97e3c2a5c227ce668c1f2ce20ae57c9"
-dependencies = [
- "num_enum_derive 0.5.11",
-]
-
-[[package]]
-name = "num_enum"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e613fc340b2220f734a8595782c551f1250e969d87d3be1ae0579e8d4065179"
 dependencies = [
- "num_enum_derive 0.7.3",
-]
-
-[[package]]
-name = "num_enum_derive"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcbff9bc912032c62bf65ef1d5aea88983b420f4f839db1e9b0c281a25c9c799"
-dependencies = [
- "proc-macro-crate 1.3.1",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
+ "num_enum_derive",
 ]
 
 [[package]]
@@ -3884,12 +3839,6 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
-
-[[package]]
-name = "typeid"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e13db2e0ccd5e14a544e8a246ba2312cd25223f616442d7f2cb0e3db614236e"
 
 [[package]]
 name = "typenum"
@@ -5598,10 +5547,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "zurie_mod_api"
-version = "0.0.0"
+name = "zurie_event"
+version = "0.1.0"
 dependencies = [
- "serde",
+ "anyhow",
+ "hashbrown 0.15.2",
+ "log",
  "slotmap",
  "zurie_types",
 ]
@@ -5613,7 +5564,7 @@ dependencies = [
  "ctor",
  "glam",
  "log",
- "num_enum 0.7.3",
+ "num_enum",
  "once_cell",
  "wit-bindgen",
 ]
@@ -5662,6 +5613,7 @@ dependencies = [
  "wit-parser 0.223.0",
  "zurie_audio",
  "zurie_ecs",
+ "zurie_event",
  "zurie_render",
  "zurie_shared",
  "zurie_types",
@@ -5682,10 +5634,8 @@ dependencies = [
 name = "zurie_types"
 version = "0.0.0"
 dependencies = [
- "erased-serde",
- "flexbuffers",
  "glam",
- "num_enum 0.7.3",
+ "num_enum",
  "serde",
  "slotmap",
 ]

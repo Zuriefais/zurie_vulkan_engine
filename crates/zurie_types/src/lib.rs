@@ -2,7 +2,6 @@ pub use glam;
 use glam::Vec2;
 use num_enum::TryFromPrimitive;
 pub mod camera;
-pub use flexbuffers;
 pub use serde;
 use serde::Deserialize;
 use serde::Serialize;
@@ -10,6 +9,10 @@ use slotmap::new_key_type;
 
 new_key_type! { pub struct SpriteHandle; }
 new_key_type! { pub struct SoundHandle; }
+new_key_type! {
+    pub struct ModHandle;
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Query {
     pub name: String,
@@ -26,15 +29,6 @@ pub enum ComponentData {
     Raw(Vec<u8>),
     Sprite(u64),
     None,
-}
-
-impl ComponentData {
-    pub fn from_custom<T: Serialize>(custom: T) -> ComponentData {
-        let mut serializer = flexbuffers::FlexbufferSerializer::new();
-        custom.serialize(&mut serializer).unwrap();
-        let message_bin = serializer.take_buffer();
-        ComponentData::Raw(message_bin)
-    }
 }
 
 impl From<String> for ComponentData {

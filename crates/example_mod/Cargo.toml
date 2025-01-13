@@ -7,5 +7,5 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-zurie_mod_api = { path = "../zurie_mod_api" }
+#zurie_mod_api = { path = "../zurie_mod_api" }
 serde = {workspace = true}

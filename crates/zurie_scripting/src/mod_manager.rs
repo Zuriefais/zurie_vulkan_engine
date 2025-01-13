@@ -12,11 +12,10 @@ use winit::{
 };
 use zurie_audio::AudioManager;
 use zurie_ecs::World;
+use zurie_event::EventManager;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::SlotMap;
-use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
-
-use crate::{functions::events::EventManager, ModHandle};
+use zurie_types::{camera::Camera, glam::Vec2, KeyCode, ModHandle};
 
 use super::engine_mod::EngineMod;
 
@@ -151,30 +150,29 @@ impl ModManager {
             let event_manager = self.event_manager.clone();
 
             self.mods.insert_with_key(|handle| {
-                Arc::new(RwLock::new(
-                    EngineMod::new(
-                        self.new_mod_path.clone(),
-                        &self.engine,
-                        self.gui_context.clone(),
-                        self.pressed_keys_buffer.clone(),
-                        self.mouse_pos.clone(),
-                        self.world.clone(),
-                        self.camera.clone(),
-                        event_manager,
-                        handle,
-                        self.sprite_manager.clone(),
-                        self.audio_manager.clone(),
-                        #[cfg(target_os = "android")]
-                        self.app.clone(),
-                    )
-                    .unwrap(),
-                ))
+                let engine_mod = EngineMod::new(
+                    self.new_mod_path.clone(),
+                    &self.engine,
+                    self.gui_context.clone(),
+                    self.pressed_keys_buffer.clone(),
+                    self.mouse_pos.clone(),
+                    self.world.clone(),
+                    self.camera.clone(),
+                    event_manager,
+                    handle,
+                    self.sprite_manager.clone(),
+                    self.audio_manager.clone(),
+                    #[cfg(target_os = "android")]
+                    self.app.clone(),
+                )
+                .unwrap();
+                self.event_manager
+                    .write()
+                    .unwrap()
+                    .mod_subscribe(engine_mod.get_event_queue(), handle);
+                Arc::new(RwLock::new(engine_mod))
             });
         }
-        self.event_manager
-            .write()
-            .unwrap()
-            .process_events(&mut self.mods)?;
         for (_, engine_mod) in self.mods.iter() {
             let mut mod_lock = engine_mod.write().unwrap();
             if let Err(e) = mod_lock.update() {

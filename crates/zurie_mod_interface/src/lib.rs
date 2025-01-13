@@ -63,8 +63,8 @@ impl Guest for APIWraper {
         zurie_mod().scroll(amount);
     }
 
-    fn event(handle: EventHandle, data: Vec<u8>) {
-        zurie_mod().event(handle, &data);
+    fn event(handle: EventHandle, data: EventData) {
+        zurie_mod().event(handle, data);
     }
 }
 fn zurie_mod() -> impl DerefMut<Target = Box<dyn ZurieMod>> {
@@ -110,7 +110,7 @@ pub trait ZurieMod: Send + Sync {
     fn init(&mut self) {
         warn!("Init is't implamented")
     }
-    fn event(&mut self, handle: EventHandle, data: &[u8]) {
+    fn event(&mut self, handle: EventHandle, data: EventData) {
         warn!("Generic event handler is't implamented")
     }
     fn get_mod_name(&self) -> String;
