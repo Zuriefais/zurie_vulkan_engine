@@ -29,7 +29,7 @@ A modern game engine powered by WebAssembly for code execution and Vulkan for re
 
 ### Prerequisites
 
-- Rust toolchain
+- Nightly rust toolchain and wasm32-wasip2 target
 - [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild)
 - [mangohud](https://github.com/flightlessmango/MangoHud) (Linux debug only)
 - Vulkan SDK

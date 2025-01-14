@@ -75,12 +75,13 @@ impl EngineMod {
         wasmtime_wasi::add_to_linker_sync(&mut linker)?;
         ZurieMod::add_to_linker(&mut linker, |state: &mut ScriptingState| state)?;
         let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_args().build();
+        let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
         let scripting_state = ScriptingState {
             audio_manager,
             wasi_ctx: wasi,
             resource_table: ResourceTable::new(),
             pressed_keys_buffer: pressed_keys_buffer.clone(),
-            subscribed_keys: Default::default(),
+            subscribed_keys: subscribed_keys.clone(),
             mouse_pos: mouse_pos.clone(),
             camera,
             event_manager,
@@ -97,7 +98,7 @@ impl EngineMod {
             bindings,
             store,
             mod_name: Default::default(),
-            subscribed_keys: Default::default(),
+            subscribed_keys,
             event_queue: Default::default(),
         })
     }
@@ -117,9 +118,13 @@ impl EngineMod {
 
     pub fn key_event(&mut self, key_code: KeyCode) -> anyhow::Result<()> {
         let keys_lock = self.subscribed_keys.read().unwrap();
+        info!("key clicked {:?}", &key_code);
         if keys_lock.contains(&key_code) {
+            info!("calling key event fn in module for {:?}", &key_code);
             self.bindings
                 .call_key_event(&mut self.store, key_code as u32)?
+        } else {
+            info!("{:?}", &keys_lock)
         }
         Ok(())
     }
