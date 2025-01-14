@@ -76,6 +76,7 @@ x run --device <device-id> --package zurie_android
 - [WASM Component Model](https://component-model.bytecodealliance.org/)
 - [Rust Documentation](https://www.rust-lang.org/learn)
 - [Wasmtime Documentation](https://docs.wasmtime.dev/)
+- [Wasm component API](zurie-mod.md)
 
 ## Contributing
 
