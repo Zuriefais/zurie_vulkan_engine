@@ -1,5 +1,3 @@
-use zurie_types::Vector2;
-
 use super::ScriptingState;
 use crate::functions::zurie::engine::camera;
 
@@ -19,7 +17,7 @@ impl camera::Host for ScriptingState {
     fn set_camera(&mut self, camera: camera::Camera) -> () {
         let mut engine_camera = self.camera.write().unwrap();
         engine_camera.zoom_factor = camera.zoom_factor;
-        engine_camera.position = Vector2 {
+        engine_camera.position = zurie_types::glam::Vec2 {
             x: camera.position.x,
             y: camera.position.y,
         };
@@ -35,7 +33,7 @@ impl camera::Host for ScriptingState {
     }
 
     fn set_position(&mut self, position: Vec2) -> () {
-        self.camera.write().unwrap().position = Vector2 {
+        self.camera.write().unwrap().position = zurie_types::glam::Vec2 {
             x: position.x,
             y: position.y,
         }

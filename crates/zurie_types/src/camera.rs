@@ -1,5 +1,3 @@
-use crate::Vector2;
-
 use super::glam::{Mat4, Vec2};
 use super::serde::{Deserialize, Serialize};
 
@@ -19,7 +17,7 @@ pub struct Camera {
 
     pub zoom_factor: f32,
 
-    pub position: Vector2,
+    pub position: Vec2,
 }
 
 impl Camera {

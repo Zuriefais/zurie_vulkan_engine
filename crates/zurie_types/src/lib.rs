@@ -24,7 +24,7 @@ pub enum ComponentData {
     I32(i32),
     I64(i64),
     String(String),
-    Vector(Vector2),
+    Vector(Vec2),
     Color([f32; 4]),
     Raw(Vec<u8>),
     Sprite(u64),
@@ -37,8 +37,8 @@ impl From<String> for ComponentData {
     }
 }
 
-impl From<Vector2> for ComponentData {
-    fn from(value: Vector2) -> Self {
+impl From<Vec2> for ComponentData {
+    fn from(value: Vec2) -> Self {
         ComponentData::Vector(value)
     }
 }
@@ -69,7 +69,7 @@ impl Default for ComponentData {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
-    pub position: Vector2,
+    pub position: Vec2,
     pub scale: [f32; 2],
     pub color: [f32; 4],
     pub sprite: u64,
@@ -94,7 +94,7 @@ pub struct GuiTextMessage {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct MouseState {
-    pub position: Vector2,
+    pub position: Vec2,
     pub left_pressed: bool,
     pub right_pressed: bool,
 }
@@ -102,63 +102,6 @@ pub struct MouseState {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct KeyboardState {
     pub key_map: Vec<KeyCode>,
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
-pub struct Vector2 {
-    pub x: f32,
-    pub y: f32,
-}
-impl Vector2 {
-    pub fn new(x: f32, y: f32) -> Vector2 {
-        Vector2 { x, y }
-    }
-}
-
-impl From<Vector2> for [f32; 2] {
-    fn from(val: Vector2) -> Self {
-        [val.x, val.y]
-    }
-}
-impl Div<f32> for Vector2 {
-    type Output = Vector2;
-
-    fn div(self, num: f32) -> Self::Output {
-        Vector2 {
-            x: self.x / num,
-            y: self.y / num,
-        }
-    }
-}
-
-use std::fmt;
-use std::ops::Div;
-
-impl fmt::Display for Vector2 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Vector2 {{ x: {}, y: {} }}", self.x, self.y)
-    }
-}
-
-impl From<glam::Vec2> for Vector2 {
-    fn from(vec: glam::Vec2) -> Self {
-        Vector2 { x: vec.x, y: vec.y }
-    }
-}
-
-impl From<[f32; 2]> for Vector2 {
-    fn from(vec: [f32; 2]) -> Self {
-        Vector2 {
-            x: vec[0],
-            y: vec[1],
-        }
-    }
-}
-
-impl From<Vector2> for glam::Vec2 {
-    fn from(vec: Vector2) -> Self {
-        glam::Vec2::new(vec.x, vec.y)
-    }
 }
 
 #[repr(u32)]

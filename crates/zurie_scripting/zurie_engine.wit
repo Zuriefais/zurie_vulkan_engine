@@ -71,7 +71,8 @@ interface ecs {
         color(color),
         raw(list<u8>),
         i32(s32),
-        i64(s64)
+        i64(s64),
+        sprite(u64)
     }
 
     spawn-entity: func() -> entity-id;
@@ -79,6 +80,9 @@ interface ecs {
     register-component: func(name: string) -> component-id;
     set-component: func(entity: entity-id, component: component-id, data: component-data);
     get-component: func(entity: entity-id, component: component-id) -> option<component-data>;
+
+    get-entities-with-component: func(component: component-id) -> list<entity-id>;
+    get-entities-with-components: func(required: list<component-id>, optional: list<component-id>) -> list<entity-id>;
 }
 
 interface events {
