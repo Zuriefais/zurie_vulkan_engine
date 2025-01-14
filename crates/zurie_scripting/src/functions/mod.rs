@@ -8,6 +8,7 @@ use wasmtime::component::bindgen;
 use wasmtime::component::ResourceTable;
 use wasmtime_wasi::WasiCtx;
 use zurie_audio::AudioManager;
+use zurie_ecs::World;
 use zurie_event::EventManager;
 use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 pub mod audio;
@@ -28,6 +29,9 @@ use zurie_types::ModHandle;
 bindgen!("zurie-mod" in "zurie_engine.wit");
 
 pub struct ScriptingState {
+    //ECS
+    pub world: Arc<RwLock<World>>,
+
     //Audio
     pub audio_manager: AudioManager,
 

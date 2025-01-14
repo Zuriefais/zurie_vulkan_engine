@@ -77,6 +77,7 @@ impl EngineMod {
         let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_args().build();
         let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
         let scripting_state = ScriptingState {
+            world,
             audio_manager,
             wasi_ctx: wasi,
             resource_table: ResourceTable::new(),

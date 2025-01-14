@@ -26,12 +26,16 @@ impl log::Log for EngineLogger {
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
             let message = record.args().to_string();
+            let module_path = record
+                .module_path()
+                .unwrap_or_else(|| "zurie_mod_interface");
+
             match record.level() {
-                log::Level::Error => error(&message),
-                log::Level::Warn => warn(&message),
-                log::Level::Info => info(&message),
-                log::Level::Debug => debug(&message),
-                log::Level::Trace => trace(&message),
+                log::Level::Error => error(module_path, &message),
+                log::Level::Warn => warn(module_path, &message),
+                log::Level::Info => info(module_path, &message),
+                log::Level::Debug => debug(module_path, &message),
+                log::Level::Trace => trace(module_path, &message),
             }
         }
     }

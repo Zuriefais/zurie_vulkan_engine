@@ -707,21 +707,26 @@
 //     Ok(())
 // }
 
+use zurie_shared::slotmap::{Key, KeyData};
+
 use super::ScriptingState;
 
 use crate::functions::zurie::engine::ecs;
 use crate::functions::zurie::engine::ecs::*;
 impl ecs::Host for ScriptingState {
     fn spawn_entity(&mut self) -> EntityId {
-        todo!()
+        KeyData::as_ffi(self.world.write().unwrap().spawn_entity().data())
     }
 
     fn despawn_entity(&mut self, entity: EntityId) -> () {
-        todo!()
+        self.world
+            .write()
+            .unwrap()
+            .despawn(KeyData::from_ffi(entity).into());
     }
 
-    fn register_component(&mut self, name: wasmtime::component::__internal::String) -> ComponentId {
-        todo!()
+    fn register_component(&mut self, name: String) -> ComponentId {
+        KeyData::as_ffi(self.world.write().unwrap().register_component(name).data())
     }
 
     fn set_component(

@@ -19,11 +19,11 @@ interface core {
     type sprite-handle = u64;
     type sound-handle = u64;
 
-    info: func(text: string);
-    warn: func(text: string);
-    error: func(text: string);
-    debug: func(text: string);
-    trace: func(text: string);
+    info: func(module-path: string, text: string);
+    warn: func(module-path: string, text: string);
+    error: func(module-path: string, text: string);
+    debug: func(module-path: string, text: string);
+    trace: func(module-path: string, text: string);
 }
 
 interface audio {
