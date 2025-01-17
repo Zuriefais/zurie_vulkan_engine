@@ -4,6 +4,7 @@ use zurie_mod_interface::{
     engine::{
         audio::{load_sound, play_sound},
         ecs::{ComponentData, register_component, spawn_entity},
+        gui::{Widget, WidgetResponse, create_window},
     },
     glam::{self, Vec2},
     input::{key_clicked, subscribe_to_key_event},
@@ -76,6 +77,16 @@ impl ZurieMod for Game {
 
             self.player
                 .set_component(self.pos_component, ComponentData::Vec2(new_pos.into()));
+        }
+        let widgets = vec![
+            Widget::Label("My custom label in window".into()),
+            Widget::Button("My custom button. Try to click me".into()),
+        ];
+        let responces = create_window("My window", &widgets);
+        if let Some(WidgetResponse::Clicked(clicked)) = responces.get(1) {
+            if *clicked {
+                info!("Mouse clicked")
+            }
         }
     }
 }

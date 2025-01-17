@@ -18,6 +18,7 @@ interface core {
     type event-handle = u64;
     type sprite-handle = u64;
     type sound-handle = u64;
+    type window-handle = u64;
 
     info: func(module-path: string, text: string);
     warn: func(module-path: string, text: string);
@@ -103,6 +104,26 @@ interface events {
     }
 }
 
+interface gui {
+    use core.{window-handle};
+
+    variant widget {
+        label(string),
+        button(string),
+        input(string),
+        checkbox(tuple<bool, string>)
+    }
+
+    variant widget-response {
+        input(string),
+        checked(bool),
+        clicked(bool)
+    }
+
+    //window handle only valid for one frame
+    create-window: func(title: string, widgets: list<widget>) -> list<widget-response>;
+}
+
 world zurie-mod {
     import core;
     import audio;
@@ -110,6 +131,7 @@ world zurie-mod {
     import ecs;
     import events;
     import input;
+    import gui;
 
     use core.{event-handle};
     use events.{event-data};

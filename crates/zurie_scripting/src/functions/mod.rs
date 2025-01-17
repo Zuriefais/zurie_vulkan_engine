@@ -3,10 +3,14 @@ use std::sync::RwLock;
 
 use crate::functions::zurie::engine::audio::SoundHandle;
 
+use egui::Context;
+use egui::Ui;
+use egui::Window;
 use hashbrown::HashSet;
 use wasmtime::component::bindgen;
 use wasmtime::component::ResourceTable;
 use wasmtime_wasi::WasiCtx;
+use zurie::engine::gui::WidgetResponse;
 use zurie_audio::AudioManager;
 use zurie_ecs::World;
 use zurie_event::EventManager;
@@ -29,6 +33,10 @@ use zurie_types::ModHandle;
 bindgen!("zurie-mod" in "zurie_engine.wit");
 
 pub struct ScriptingState {
+    //GUI
+    pub gui_context: Context,
+    pub windows: Vec<Vec<WidgetResponse>>,
+
     //ECS
     pub world: Arc<RwLock<World>>,
 

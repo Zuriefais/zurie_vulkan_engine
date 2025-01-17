@@ -77,6 +77,8 @@ impl EngineMod {
         let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_args().build();
         let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
         let scripting_state = ScriptingState {
+            gui_context,
+            windows: Default::default(),
             world,
             audio_manager,
             wasi_ctx: wasi,
