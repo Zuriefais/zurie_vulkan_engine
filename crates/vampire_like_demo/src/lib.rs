@@ -1,8 +1,10 @@
+use zurie_mod_interface::engine::camera::set_zoom;
 use zurie_mod_interface::{
     ZurieMod,
     ecs::Entity,
     engine::{
         audio::{load_sound, play_sound},
+        camera::get_zoom,
         ecs::{ComponentData, register_component, spawn_entity},
         gui::{Widget, WidgetResponse, create_window},
     },
@@ -88,6 +90,11 @@ impl ZurieMod for Game {
                 info!("Mouse clicked")
             }
         }
+    }
+
+    fn scroll(&mut self, amount: f32) {
+        let zoom = get_zoom() + amount;
+        set_zoom(zoom);
     }
 }
 
