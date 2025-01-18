@@ -93,8 +93,8 @@ impl ZurieMod for Game {
     }
 
     fn scroll(&mut self, amount: f32) {
-        let zoom = get_zoom() + amount;
-        set_zoom(zoom);
+        // let zoom = get_zoom() + amount;
+        // set_zoom(zoom);
     }
 }
 
