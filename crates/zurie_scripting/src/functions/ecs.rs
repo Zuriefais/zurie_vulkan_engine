@@ -78,6 +78,13 @@ impl ecs::Host for ScriptingState {
             .map(|component| KeyData::as_ffi(component.data()))
             .collect()
     }
+
+    fn remove_component(&mut self, entity: EntityId, component: ComponentId) {
+        self.world.write().unwrap().remove_component(
+            KeyData::from_ffi(entity).into(),
+            KeyData::from_ffi(component).into(),
+        );
+    }
 }
 
 impl From<ComponentData> for EngineComponentData {

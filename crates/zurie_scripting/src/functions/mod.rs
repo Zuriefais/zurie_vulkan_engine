@@ -1,30 +1,25 @@
-use std::sync::Arc;
-use std::sync::RwLock;
-
-use crate::functions::zurie::engine::audio::SoundHandle;
-
-use egui::Context;
-use egui::Ui;
-use egui::Window;
-use hashbrown::HashSet;
-use wasmtime::component::bindgen;
-use wasmtime::component::ResourceTable;
-use wasmtime_wasi::WasiCtx;
-use zurie::engine::gui::WidgetResponse;
-use zurie_audio::AudioManager;
-use zurie_ecs::World;
-use zurie_event::EventManager;
-use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 pub mod audio;
 pub mod camera;
 pub mod ecs;
 pub mod events;
-pub mod game_logic;
 pub mod gui;
 pub mod input;
 pub mod sprite;
 pub mod utils;
-use wasmtime_wasi::WasiView;
+
+use crate::functions::zurie::engine::audio::SoundHandle;
+use egui::{Context, Ui, Window};
+use hashbrown::HashSet;
+use std::sync::{Arc, RwLock};
+use wasmtime::component::{bindgen, ResourceTable};
+use wasmtime_wasi::{WasiCtx, WasiView};
+use zurie::engine::gui::WidgetResponse;
+use zurie_audio::AudioManager;
+use zurie_ecs::ComponentID;
+use zurie_ecs::World;
+use zurie_event::EventManager;
+use zurie_render::sprite::SpriteManager;
+use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 use zurie_types::camera::Camera;
 use zurie_types::glam::Vec2;
 use zurie_types::KeyCode;
@@ -33,6 +28,10 @@ use zurie_types::ModHandle;
 bindgen!("zurie-mod" in "zurie_engine.wit");
 
 pub struct ScriptingState {
+    //Sprite
+    pub sprite_manager: Arc<RwLock<SpriteManager>>,
+    pub sprite_component: ComponentID,
+
     //GUI
     pub gui_context: Context,
     pub windows: Vec<Vec<WidgetResponse>>,

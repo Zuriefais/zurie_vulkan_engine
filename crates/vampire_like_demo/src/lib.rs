@@ -1,4 +1,5 @@
 use zurie_mod_interface::engine::camera::set_zoom;
+use zurie_mod_interface::engine::sprite::load_sprite_file;
 use zurie_mod_interface::{
     ZurieMod,
     ecs::Entity,
@@ -33,6 +34,7 @@ impl ZurieMod for Game {
     fn init(&mut self) {
         subscribe_to_key_event(zurie_mod_interface::input::KeyCode::KeyO);
         self.sound = load_sound("static/sound.wav");
+        let sprite = load_sprite_file("static/ase.aseprite");
 
         let player_ent = Entity::spawn();
         let pos_component = register_component("position");
@@ -44,6 +46,7 @@ impl ZurieMod for Game {
         );
         self.player = player_ent;
         self.pos_component = pos_component;
+        self.player.set_sprite(sprite);
         info!("Mod inited!!");
     }
 

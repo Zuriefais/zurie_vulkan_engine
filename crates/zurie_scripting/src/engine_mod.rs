@@ -76,7 +76,10 @@ impl EngineMod {
         ZurieMod::add_to_linker(&mut linker, |state: &mut ScriptingState| state)?;
         let wasi = WasiCtxBuilder::new().inherit_stdio().inherit_args().build();
         let subscribed_keys: Arc<RwLock<HashSet<KeyCode>>> = Default::default();
+        let sprite_component = world.write().unwrap().register_component("sprite".into());
         let scripting_state = ScriptingState {
+            sprite_manager,
+            sprite_component,
             gui_context,
             windows: Default::default(),
             world,

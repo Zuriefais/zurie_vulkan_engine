@@ -81,9 +81,20 @@ interface ecs {
     register-component: func(name: string) -> component-id;
     set-component: func(entity: entity-id, component: component-id, data: component-data);
     get-component: func(entity: entity-id, component: component-id) -> option<component-data>;
+    remove-component: func(entity: entity-id, component: component-id);
 
     get-entities-with-component: func(component: component-id) -> list<entity-id>;
     get-entities-with-components: func(required: list<component-id>, optional: list<component-id>) -> list<entity-id>;
+}
+
+interface sprite {
+    use core.{sprite-handle, entity-id};
+
+    load-sprite-file: func(path: string) -> sprite-handle;
+    load-sprite-bin: func(bin: list<u8>) -> sprite-handle;
+
+    set-sprite: func(entity: entity-id, sprite: sprite-handle);
+    remove-sprite: func(entity: entity-id);
 }
 
 interface events {
@@ -132,6 +143,7 @@ world zurie-mod {
     import events;
     import input;
     import gui;
+    import sprite;
 
     use core.{event-handle};
     use events.{event-data};

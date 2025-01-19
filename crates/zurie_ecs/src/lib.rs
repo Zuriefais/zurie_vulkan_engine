@@ -1,3 +1,5 @@
+#![feature(extract_if)]
+
 use egui::{Context, Label};
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -160,6 +162,21 @@ impl EntityStorage {
         }
     }
 
+    pub fn remove_component(&mut self, entity: Entity, component: ComponentID) {
+        if let Some(entity_data) = self.entities.get_mut(entity) {
+            entity_data.data = entity_data
+                .data
+                .extract_if(0..entity_data.data.len(), |(ent_component, _)| {
+                    if *ent_component == component {
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .collect();
+        }
+    }
+
     pub fn get_component(
         &self,
         entity: Entity,
@@ -253,6 +270,10 @@ impl World {
 
     pub fn set_component(&mut self, entity: Entity, new_component: (ComponentID, ComponentData)) {
         self.storage.set_component(entity, new_component)
+    }
+
+    pub fn remove_component(&mut self, entity: Entity, component: ComponentID) {
+        self.storage.remove_component(entity, component)
     }
 
     pub fn get_component(&self, entity: Entity, component: ComponentID) -> Option<&ComponentData> {
