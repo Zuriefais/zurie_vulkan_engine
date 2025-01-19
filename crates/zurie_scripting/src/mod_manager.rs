@@ -13,6 +13,7 @@ use winit::{
 use zurie_audio::AudioManager;
 use zurie_ecs::World;
 use zurie_event::EventManager;
+use zurie_input::InputState;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::SlotMap;
 use zurie_types::{camera::Camera, glam::Vec2, KeyCode, ModHandle};
@@ -24,8 +25,7 @@ pub struct ModManager {
     gui_context: Context,
     mods: SlotMap<ModHandle, Arc<RwLock<EngineMod>>>,
     new_mod_path: String,
-    pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
-    mouse_pos: Arc<RwLock<Vec2>>,
+    input_state: InputState,
     world: Arc<RwLock<World>>,
     camera: Arc<RwLock<Camera>>,
     event_manager: Arc<RwLock<EventManager>>,
@@ -114,8 +114,7 @@ impl ModManager {
             mod_path.clone(),
             &self.engine,
             self.gui_context.clone(),
-            self.pressed_keys_buffer.clone(),
-            self.mouse_pos.clone(),
+            self.input_state.clone(),
             self.world.clone(),
             self.camera.clone(),
             self.event_manager.clone(),
@@ -154,8 +153,7 @@ impl ModManager {
                     self.new_mod_path.clone(),
                     &self.engine,
                     self.gui_context.clone(),
-                    self.pressed_keys_buffer.clone(),
-                    self.mouse_pos.clone(),
+                    self.input_state.clone(),
                     self.world.clone(),
                     self.camera.clone(),
                     event_manager,
@@ -184,8 +182,7 @@ impl ModManager {
     }
     pub fn new(
         gui_context: Context,
-        pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
-        mouse_pos: Arc<RwLock<Vec2>>,
+        input_state: zurie_input::InputState,
         world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
         sprite_manager: Arc<RwLock<SpriteManager>>,
@@ -202,8 +199,7 @@ impl ModManager {
                     "./target/wasm32-wasip2/release/vampire_like_demo.wasm".into(),
                     &engine,
                     gui_context.clone(),
-                    pressed_keys_buffer.clone(),
-                    mouse_pos.clone(),
+                    input_state.clone(),
                     world.clone(),
                     camera.clone(),
                     event_manager.clone(),
@@ -221,8 +217,7 @@ impl ModManager {
                     "example_mod.wasm".into(),
                     &engine,
                     gui_context.clone(),
-                    pressed_keys_buffer.clone(),
-                    mouse_pos.clone(),
+                    input_state.clone(),
                     world.clone(),
                     camera.clone(),
                     event_manager.clone(),
@@ -238,8 +233,7 @@ impl ModManager {
             gui_context,
             mods,
             new_mod_path: String::new(),
-            pressed_keys_buffer,
-            mouse_pos,
+            input_state,
             world,
             camera,
             event_manager,

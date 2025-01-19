@@ -1,13 +1,13 @@
 use log::info;
+use zurie_input::InputState;
 use zurie_types::KeyCode;
 
 use super::{zurie::engine, ScriptingState};
 
 impl engine::input::Host for ScriptingState {
     fn key_clicked(&mut self, key: u32) -> bool {
-        self.pressed_keys_buffer
-            .read()
-            .unwrap()
+        self.input_state
+            .pressed_keys()
             .contains(&KeyCode::try_from(key).unwrap())
     }
 
@@ -19,7 +19,15 @@ impl engine::input::Host for ScriptingState {
 
     #[doc = " Mouse"]
     fn mouse_pos(&mut self) -> engine::core::Vec2 {
-        let vec = self.mouse_pos.read().unwrap();
+        let vec = self.input_state.get_mouse_pos();
         engine::core::Vec2 { x: vec.x, y: vec.y }
+    }
+
+    fn left_mouse_clicked(&mut self) -> bool {
+        self.input_state.left_mouse_button_pressed()
+    }
+
+    fn right_mouse_clicked(&mut self) -> bool {
+        self.input_state.right_mouse_button_pressed()
     }
 }

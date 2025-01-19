@@ -19,6 +19,7 @@
 // use wasmtime_wasi::bindings::sync::Command;
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiView};
 use zurie_event::{EventManager, ModEventQueue};
+use zurie_input::InputState;
 use zurie_types::ModHandle;
 
 use crate::functions::zurie::engine::core::EventHandle;
@@ -56,8 +57,7 @@ impl EngineMod {
         mod_path: String,
         engine: &Engine,
         gui_context: Context,
-        pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
-        mouse_pos: Arc<RwLock<Vec2>>,
+        input_state: InputState,
         world: Arc<RwLock<World>>,
         camera: Arc<RwLock<Camera>>,
         event_manager: Arc<RwLock<EventManager>>,
@@ -86,9 +86,8 @@ impl EngineMod {
             audio_manager,
             wasi_ctx: wasi,
             resource_table: ResourceTable::new(),
-            pressed_keys_buffer: pressed_keys_buffer.clone(),
             subscribed_keys: subscribed_keys.clone(),
-            mouse_pos: mouse_pos.clone(),
+            input_state,
             camera,
             event_manager,
             mod_handle,

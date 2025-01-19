@@ -1,5 +1,6 @@
 use zurie_mod_interface::engine::camera::set_zoom;
-use zurie_mod_interface::engine::sprite::load_sprite_file;
+use zurie_mod_interface::engine::input::left_mouse_clicked;
+use zurie_mod_interface::engine::sprite::{load_sprite_file, set_sprite};
 use zurie_mod_interface::{
     ZurieMod,
     ecs::Entity,
@@ -20,6 +21,7 @@ pub struct Game {
     sound: u64,
     player: Entity,
     pos_component: u64,
+    test_sprite: u64,
 }
 
 impl ZurieMod for Game {
@@ -34,7 +36,8 @@ impl ZurieMod for Game {
     fn init(&mut self) {
         subscribe_to_key_event(zurie_mod_interface::input::KeyCode::KeyO);
         self.sound = load_sound("static/sound.wav");
-        let sprite = load_sprite_file("static/ase.aseprite");
+        let sprite = load_sprite_file("static/player.aseprite");
+        self.test_sprite = load_sprite_file("static/ase2.aseprite");
 
         let player_ent = Entity::spawn();
         let pos_component = register_component("position");
@@ -47,6 +50,8 @@ impl ZurieMod for Game {
         self.player = player_ent;
         self.pos_component = pos_component;
         self.player.set_sprite(sprite);
+
+        set_zoom(15.0);
         info!("Mod inited!!");
     }
 
@@ -60,13 +65,13 @@ impl ZurieMod for Game {
         let mut direction = Vec2::ZERO;
 
         if key_clicked(zurie_mod_interface::input::KeyCode::KeyW) {
-            direction += Vec2::new(0.0, 1.0)
+            direction += Vec2::new(0.0, -1.0)
         }
         if key_clicked(zurie_mod_interface::input::KeyCode::KeyA) {
             direction += Vec2::new(-1.0, 0.0)
         }
         if key_clicked(zurie_mod_interface::input::KeyCode::KeyS) {
-            direction += Vec2::new(0.0, -1.0)
+            direction += Vec2::new(0.0, 1.0)
         }
         if key_clicked(zurie_mod_interface::input::KeyCode::KeyD) {
             direction += Vec2::new(1.0, 0.0)
@@ -82,6 +87,11 @@ impl ZurieMod for Game {
 
             self.player
                 .set_component(self.pos_component, ComponentData::Vec2(new_pos.into()));
+            if left_mouse_clicked() {
+                Entity::spawn()
+                    .set_component(self.pos_component, ComponentData::Vec2(old_player_pos))
+                    .set_sprite(self.test_sprite);
+            }
         }
         let widgets = vec![
             Widget::Label("My custom label in window".into()),

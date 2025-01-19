@@ -6,16 +6,19 @@ use crate::engine::sprite;
 pub struct Entity(pub u64);
 
 impl Entity {
-    pub fn set_component(self, component: u64, data: ComponentData) {
+    pub fn set_component(self, component: u64, data: ComponentData) -> Self {
         ecs::set_component(self.0, component, &data);
+        self
     }
 
-    pub fn set_sprite(self, sprite: u64) {
+    pub fn set_sprite(self, sprite: u64) -> Self {
         sprite::set_sprite(self.0, sprite);
+        self
     }
 
-    pub fn remove_sprite(self) {
+    pub fn remove_sprite(self) -> Self {
         sprite::remove_sprite(self.0);
+        self
     }
 
     pub fn get_component(self, component: u64) -> Option<ComponentData> {

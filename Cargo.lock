@@ -5519,6 +5519,7 @@ dependencies = [
  "strum_macros",
  "winit",
  "zurie_ecs",
+ "zurie_input",
  "zurie_render",
  "zurie_scripting",
  "zurie_shared",
@@ -5544,6 +5545,16 @@ dependencies = [
  "hashbrown 0.15.2",
  "log",
  "slotmap",
+ "zurie_types",
+]
+
+[[package]]
+name = "zurie_input"
+version = "0.1.0"
+dependencies = [
+ "hashbrown 0.15.2",
+ "log",
+ "winit",
  "zurie_types",
 ]
 
@@ -5602,6 +5613,7 @@ dependencies = [
  "zurie_audio",
  "zurie_ecs",
  "zurie_event",
+ "zurie_input",
  "zurie_render",
  "zurie_shared",
  "zurie_types",

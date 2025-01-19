@@ -27,3 +27,4 @@ zurie_shared = { path = "../zurie_shared" }
 zurie_render  = { path = "../zurie_render"}
 zurie_audio = {path = "../zurie_audio"}
 zurie_event = {path = "../zurie_event"}
+zurie_input = {path = "../zurie_input"}

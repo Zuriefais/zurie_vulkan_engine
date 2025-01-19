@@ -21,6 +21,6 @@ void main() {
     // Convert vertex position to texture coordinates
     frag_tex_coord = vec2(
         vert_position.x + 0.5,  // Convert from [-0.5, 0.5] to [0, 1]
-        1.0 - (vert_position.y + 0.5)  // Flip Y and convert to [0, 1]
+        vert_position.y + 0.5  // Flip Y and convert to [0, 1]
     );
 }

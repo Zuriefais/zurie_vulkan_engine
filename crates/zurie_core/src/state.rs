@@ -1,9 +1,8 @@
 pub mod gui;
-pub mod input;
 
 use ecolor::hex_color;
 use egui_winit_vulkano::egui::Context;
-use input::InputState;
+use zurie_input::InputState;
 
 use std::sync::{Arc, RwLock};
 #[cfg(target_os = "android")]
@@ -62,8 +61,7 @@ impl State {
         #[cfg(not(target_os = "android"))]
         let mod_manager = ModManager::new(
             gui_context.clone(),
-            input.pressed_keys_buffer.clone(),
-            input.mouse.position.clone(),
+            input.clone(),
             world.clone(),
             camera.clone(),
             render_state.sprite_manager.clone(),
@@ -97,14 +95,6 @@ impl State {
 
     pub fn render(&mut self) -> anyhow::Result<()> {
         self.render_state.gui.start_gui();
-        // self.gui.draw_gui(
-        //     &mut self.sim_clock,
-        //     &mut self.render_state.compute,
-        //     &mut self.input.mouse.hover_gui,
-        //     &mut self.selected_cell_type,
-        //     self.render_state.renderer.window_size(),
-        //     &mut self.background_color,
-        // );
         self.mod_manager.update()?;
         self.world
             .write()
@@ -156,16 +146,8 @@ impl State {
         };
         let objects = Arc::new(RwLock::new(objects));
 
-        self.render_state.render(
-            self.selected_cell_type,
-            &self.input.mouse.position.read().unwrap(),
-            self.input.mouse.left_pressed,
-            self.input.mouse.right_pressed,
-            self.input.mouse.hover_gui,
-            self.background_color,
-            &self.camera.read().unwrap(),
-            objects,
-        )?;
+        self.render_state
+            .render(self.background_color, &self.camera.read().unwrap(), objects)?;
         self.input.after_update();
 
         anyhow::Ok(())
@@ -182,11 +164,6 @@ impl State {
     pub fn event(&mut self, ev: WindowEvent) -> anyhow::Result<()> {
         self.render_state.event(&ev)?;
         self.input.event(ev.clone());
-        // if let WindowEvent::MouseWheel { delta, .. } = ev {
-        //     if let MouseScrollDelta::LineDelta(_, y) = delta {
-        //         self.camera.write().unwrap().event(y);
-        //     }
-        // }
 
         self.mod_manager.window_event(ev)?;
         Ok(())

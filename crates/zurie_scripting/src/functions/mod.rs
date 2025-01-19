@@ -18,6 +18,7 @@ use zurie_audio::AudioManager;
 use zurie_ecs::ComponentID;
 use zurie_ecs::World;
 use zurie_event::EventManager;
+use zurie_input::InputState;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 use zurie_types::camera::Camera;
@@ -43,9 +44,8 @@ pub struct ScriptingState {
     pub audio_manager: AudioManager,
 
     //Input
-    pub pressed_keys_buffer: Arc<RwLock<HashSet<KeyCode>>>,
     pub subscribed_keys: Arc<RwLock<HashSet<KeyCode>>>,
-    pub mouse_pos: Arc<RwLock<Vec2>>,
+    pub input_state: InputState,
 
     //Camera
     pub camera: Arc<RwLock<Camera>>,

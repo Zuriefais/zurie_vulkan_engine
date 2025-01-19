@@ -45,23 +45,10 @@ impl RenderState {
 
     pub fn render(
         &mut self,
-        selected_cell_type: CellType,
-        mouse_pos: &Vec2,
-        left_pressed: bool,
-        right_pressed: bool,
-        hover_gui: bool,
         background_color: [f32; 4],
         camera: &Camera,
         objects: Arc<RwLock<Vec<Object>>>,
     ) -> anyhow::Result<()> {
-        if left_pressed && !hover_gui {
-            self.compute
-                .draw(*mouse_pos, self.renderer.window_size(), selected_cell_type);
-        }
-        if right_pressed && !hover_gui {
-            self.compute
-                .draw(*mouse_pos, self.renderer.window_size(), CellType::Empty);
-        }
         {
             let mut sprite_manager = self.sprite_manager.write().unwrap();
             sprite_manager.process_queue(

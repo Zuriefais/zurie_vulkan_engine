@@ -1,0 +1,10 @@
+[package]
+name = "zurie_input"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hashbrown = {workspace = true}
+log = {workspace = true}
+winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
+zurie_types = { path = "../zurie_types" }

@@ -43,6 +43,8 @@ interface input {
 
     //Mouse
     mouse-pos: func() -> vec2;
+    left-mouse-clicked: func() -> bool;
+    right-mouse-clicked: func() -> bool;
 }
 
 interface camera {
