@@ -303,7 +303,7 @@ impl World {
                         }
                     });
                 });
-
+            ui.label(format!("Entities count: {}", self.storage.entities.len()));
             egui::CollapsingHeader::new("Entities")
                 .default_open(true)
                 .show(ui, |ui| {

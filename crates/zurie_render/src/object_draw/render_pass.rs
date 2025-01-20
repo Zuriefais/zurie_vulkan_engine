@@ -96,7 +96,7 @@ impl ObjectRenderPass {
             )
             .unwrap();
         let proj_mat = camera.create_matrix().to_cols_array_2d();
-        let cam_pos = (camera.position / camera.zoom_factor).into();
+        let cam_pos = (camera.position / -camera.zoom_factor).into();
         let cb = self.pixels_draw_pipeline.draw(
             img_dims,
             pipeline::vs::Camera { proj_mat, cam_pos },

@@ -137,6 +137,11 @@ interface gui {
     create-window: func(title: string, widgets: list<widget>) -> list<widget-response>;
 }
 
+interface rand {
+    rand-f32: func(start: f32, end: f32) -> f32;
+    rand-i32: func(start: s32, end: s32) -> s32;
+}
+
 world zurie-mod {
     import core;
     import audio;
@@ -146,6 +151,7 @@ world zurie-mod {
     import input;
     import gui;
     import sprite;
+    import rand;
 
     use core.{event-handle};
     use events.{event-data};

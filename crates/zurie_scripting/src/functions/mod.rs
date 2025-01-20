@@ -4,6 +4,7 @@ pub mod ecs;
 pub mod events;
 pub mod gui;
 pub mod input;
+pub mod rand;
 pub mod sprite;
 pub mod utils;
 
