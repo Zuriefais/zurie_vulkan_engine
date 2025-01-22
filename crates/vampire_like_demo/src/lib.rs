@@ -142,8 +142,8 @@ fn spawn_enemy(
 ) {
     Entity::spawn()
         .set_component(pos_component, ComponentData::Vec2(enemy_pos.into()))
-        .set_sprite(sprite);
-    //.set_component(enemy_component, ComponentData::None);
+        .set_sprite(sprite)
+        .set_component(enemy_component, ComponentData::None);
 }
 
 register_zurie_mod!(Game);

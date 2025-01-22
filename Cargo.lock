@@ -5531,6 +5531,7 @@ name = "zurie_ecs"
 version = "0.0.0"
 dependencies = [
  "egui",
+ "hashbrown 0.15.2",
  "log",
  "serde",
  "zurie_shared",

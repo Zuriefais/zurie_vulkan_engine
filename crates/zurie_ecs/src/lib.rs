@@ -1,6 +1,7 @@
 #![feature(extract_if)]
 
 use egui::{Context, Label};
+use hashbrown::HashSet;
 use log::info;
 use serde::{Deserialize, Serialize};
 use zurie_shared::slotmap::{new_key_type, KeyData, SlotMap};
@@ -69,29 +70,19 @@ impl EntityStorage {
     ) -> Vec<(Entity, &EntityData)> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let required_component_ids: std::collections::HashSet<_> =
+        let required_component_ids: HashSet<ComponentID> =
             architype.required.iter().copied().collect();
-        let optional_component_ids: std::collections::HashSet<_> =
+        let optional_component_ids: HashSet<ComponentID> =
             architype.optional.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
-            let entity_component_ids: std::collections::HashSet<_> =
+            let entity_component_ids: HashSet<ComponentID> =
                 data.data.iter().map(|(id, _)| *id).collect();
 
             // Check if all required components are present
-            if !required_component_ids.is_subset(&entity_component_ids) {
+            if !entity_component_ids.is_superset(&required_component_ids) {
                 continue 'entity_loop;
             }
-
-            // Check if any non-required/non-optional components are present
-            for component_id in entity_component_ids.iter() {
-                if !required_component_ids.contains(component_id)
-                    && !optional_component_ids.contains(component_id)
-                {
-                    continue 'entity_loop;
-                }
-            }
-
             entities.push((entity, data));
         }
 
@@ -101,30 +92,23 @@ impl EntityStorage {
     pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let required_component_ids: std::collections::HashSet<_> =
+        let required_component_ids: HashSet<ComponentID> =
             architype.required.iter().copied().collect();
-        let optional_component_ids: std::collections::HashSet<_> =
+        let optional_component_ids: HashSet<ComponentID> =
             architype.optional.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
-            let entity_component_ids: std::collections::HashSet<_> =
+            let entity_component_ids: HashSet<ComponentID> =
                 data.data.iter().map(|(id, _)| *id).collect();
+            info!(
+                "entity components: {:?}, required: {:?}",
+                &entity_component_ids, &required_component_ids
+            );
 
             // Check if all required components are present
-            if !required_component_ids.is_subset(&entity_component_ids) {
+            if !entity_component_ids.is_superset(&required_component_ids) {
                 continue 'entity_loop;
             }
-
-            // Check if any non-required/non-optional components are present
-            for component_id in entity_component_ids.iter() {
-                if !required_component_ids.contains(component_id)
-                    && !optional_component_ids.contains(component_id)
-                {
-                    continue 'entity_loop;
-                }
-            }
-
-            entities.push(entity);
         }
 
         entities
