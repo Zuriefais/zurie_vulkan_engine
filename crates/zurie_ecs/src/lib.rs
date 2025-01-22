@@ -72,8 +72,6 @@ impl EntityStorage {
 
         let required_component_ids: HashSet<ComponentID> =
             architype.required.iter().copied().collect();
-        let optional_component_ids: HashSet<ComponentID> =
-            architype.optional.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
             let entity_component_ids: HashSet<ComponentID> =
