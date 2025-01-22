@@ -13,13 +13,13 @@ ecolor = { version = "0.28.1", features = ["color-hex"] }
 egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
 env_logger = "0.11.5"
 fastrand = "2.1.0"
-log = "0.4.22"
+log = { workspace = true }
 pollster = "0.3.0"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 strum = "*"
 strum_macros = "*"
-anyhow = {workspace = true}
-hashbrown = "0.15.0"
+anyhow = { workspace = true }
+hashbrown = { workspace = true }
 
 #Engine parts
 zurie_types = { path = "../zurie_types" }
@@ -27,4 +27,4 @@ zurie_shared = { path = "../zurie_shared" }
 zurie_scripting = { path = "../zurie_scripting" }
 zurie_render = { path = "../zurie_render" }
 zurie_ecs = { path = "../zurie_ecs" }
-zurie_input = {path = "../zurie_input"}
+zurie_input = { path = "../zurie_input" }

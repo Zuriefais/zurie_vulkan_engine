@@ -4,11 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-log = {workspace = true, features = ["std"]}
+log = { workspace = true, features = ["std"] }
 glam = "0.29.2"
 wit-bindgen = "0.36.0"
 num_enum = "*"
-
 
 [lib]
 name = "zurie_mod_interface"

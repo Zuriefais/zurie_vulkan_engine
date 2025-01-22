@@ -1,8 +1,10 @@
 use std::iter;
 use std::ops::Range;
+use zurie_mod_interface::ecs::get_entities_with_components;
 use zurie_mod_interface::engine::camera::set_zoom;
 use zurie_mod_interface::engine::core::{ComponentId, SpriteHandle};
 use zurie_mod_interface::engine::input::left_mouse_clicked;
+use zurie_mod_interface::engine::sprite::load_sprite_bin;
 use zurie_mod_interface::engine::sprite::{load_sprite_file, set_sprite};
 use zurie_mod_interface::{
     ZurieMod,
@@ -25,6 +27,7 @@ pub struct Game {
     player: Entity,
     pos_component: u64,
     test_sprite: u64,
+    enemy_component: u64,
 }
 
 impl ZurieMod for Game {
@@ -39,9 +42,9 @@ impl ZurieMod for Game {
     fn init(&mut self) {
         subscribe_to_key_event(zurie_mod_interface::input::KeyCode::KeyO);
         self.sound = load_sound("static/sound.wav");
-        let player_sprite = load_sprite_file("static/player.aseprite");
-        let enemy_sprite = load_sprite_file("static/error.aseprite");
-        self.test_sprite = load_sprite_file("static/ase2.aseprite");
+        let player_sprite = load_sprite_bin(include_bytes!("../../../static/player.aseprite"));
+        let enemy_sprite = load_sprite_bin(include_bytes!("../../../static/error.aseprite"));
+        self.test_sprite = load_sprite_bin(include_bytes!("../../../static/ase2.aseprite"));
 
         let player_ent = Entity::spawn();
         let pos_component = register_component("position");
@@ -87,7 +90,7 @@ impl ZurieMod for Game {
             direction += Vec2::new(1.0, 0.0)
         }
 
-        if let Some(ComponentData::Vec2(old_player_pos)) =
+        let player_pos = if let Some(ComponentData::Vec2(old_player_pos)) =
             self.player.get_component(self.pos_component)
         {
             let new_pos: Vec2 =
@@ -96,12 +99,13 @@ impl ZurieMod for Game {
 
             self.player
                 .set_component(self.pos_component, ComponentData::Vec2(new_pos.into()));
-            // if left_mouse_clicked() {
-            //     Entity::spawn()
-            //         .set_component(self.pos_component, ComponentData::Vec2(old_player_pos))
-            //         .set_sprite(self.test_sprite);
-            // }
-        }
+            new_pos
+        } else {
+            Vec2::ZERO
+        };
+
+        move_enemies(self.pos_component, self.enemy_component, player_pos);
+
         let widgets = vec![
             Widget::Label("My custom label in window".into()),
             Widget::Button("My custom button. Try to click me".into()),
@@ -132,6 +136,24 @@ fn spawn_enemies(
         Vec2 { x: 1.0, y: 1.0 },
         sprite,
     );
+    spawn_enemy(
+        enemy_component,
+        pos_component,
+        Vec2 { x: 1.0, y: -1.0 },
+        sprite,
+    );
+    spawn_enemy(
+        enemy_component,
+        pos_component,
+        Vec2 { x: -1.0, y: 1.0 },
+        sprite,
+    );
+    spawn_enemy(
+        enemy_component,
+        pos_component,
+        Vec2 { x: -1.0, y: -1.0 },
+        sprite,
+    );
 }
 
 fn spawn_enemy(
@@ -144,6 +166,25 @@ fn spawn_enemy(
         .set_component(pos_component, ComponentData::Vec2(enemy_pos.into()))
         .set_sprite(sprite)
         .set_component(enemy_component, ComponentData::None);
+}
+
+fn move_enemies(pos_component: ComponentId, enemy_component: ComponentId, player_pos: Vec2) {
+    let enemies = get_entities_with_components(&[enemy_component, pos_component], &[]);
+
+    for enemy in enemies.iter() {
+        if let Some(ComponentData::Vec2(enemy_pos)) = enemy.get_component(pos_component) {
+            let enemy_pos: Vec2 = enemy_pos.into();
+            let new_enemy_pos =
+                enemy_pos + vector_between_coordinates(enemy_pos.into(), player_pos);
+            enemy.set_component(pos_component, ComponentData::Vec2(new_enemy_pos.into()));
+        }
+    }
+}
+
+pub fn vector_between_coordinates(cor1: Vec2, cor2: Vec2) -> Vec2 {
+    let mut vector2 = cor2 - cor1;
+    vector2 = vector2.normalize_or_zero();
+    vector2
 }
 
 register_zurie_mod!(Game);

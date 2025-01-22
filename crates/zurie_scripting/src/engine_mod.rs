@@ -68,7 +68,13 @@ impl EngineMod {
         #[cfg(target_os = "android")] android_app: AndroidApp,
     ) -> anyhow::Result<Self> {
         let engine = Engine::default();
+        #[cfg(not(target_os = "android"))]
         let component = Component::from_file(&engine, &mod_path)?;
+        #[cfg(target_os = "android")]
+        let component = Component::from_binary(
+            &engine,
+            include_bytes!("../../.././target/wasm32-wasip2/release/vampire_like_demo.wasm"),
+        )?;
 
         let mut linker: Linker<ScriptingState> = Linker::new(&engine);
 

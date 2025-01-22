@@ -8,9 +8,8 @@ bytemuck = { version = "1.16.3", features = ["derive"] }
 color-hex = "0.2.0"
 ecolor = { version = "0.28.1", features = ["color-hex"] }
 egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
-env_logger = "0.11.5"
 fastrand = "2.1.0"
-log = "0.4.22"
+log = { workspace = true }
 naga = { version = "22.1.0", features = ["spv-out", "wgsl-in"] }
 pollster = "0.3.0"
 vulkano = { version = "0.34.1", features = ["macros"] }
@@ -22,8 +21,8 @@ zurie_shared = { path = "../zurie_shared" }
 strum = "*"
 strum_macros = "*"
 zurie_types = { path = "../zurie_types" }
-anyhow = "1.0.89"
+anyhow = { workspace = true }
 asefile = { version = "*" }
-slotmap = {workspace = true}
+slotmap = { workspace = true }
 
-image = {version = "*"}
+image = { version = "*" }

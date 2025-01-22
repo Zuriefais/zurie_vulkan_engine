@@ -8,7 +8,7 @@ name = "zurie_android"
 crate-type = ["staticlib", "cdylib"]
 
 
-[target.'cfg(android)'.dependencies]
+[dependencies]
 android-activity = { version = "0.6.0", features = ["native-activity"] }
 zurie_core = { path = "../zurie_core" }
 winit = { version = "0.30.5", features = [
@@ -17,7 +17,7 @@ winit = { version = "0.30.5", features = [
     "android-native-activity",
 ] }
 android_logger = "0.14.1"
-log = "0.4.22"
+log = { workspace = true }
 
 
 [package.metadata.android]

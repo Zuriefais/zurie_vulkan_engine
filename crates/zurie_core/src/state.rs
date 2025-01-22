@@ -58,22 +58,14 @@ impl State {
                 sprite_component,
             )
         };
-        #[cfg(not(target_os = "android"))]
+
         let mod_manager = ModManager::new(
             gui_context.clone(),
             input.clone(),
             world.clone(),
             camera.clone(),
             render_state.sprite_manager.clone(),
-        );
-        #[cfg(target_os = "android")]
-        let mod_manager = ModManager::new(
-            gui_context.clone(),
-            input.pressed_keys_buffer.clone(),
-            input.mouse.position.clone(),
-            world.clone(),
-            camera.clone(),
-            render_state.sprite_manager.clone(),
+            #[cfg(target_os = "android")]
             event_loop.android_app().clone(),
         );
 

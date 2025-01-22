@@ -11,4 +11,4 @@ path = "src/main.rs"
 zurie_core = { path = "../zurie_core" }
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 env_logger = "0.11.5"
-log = "0.4.22"
+log = { workspace = true }

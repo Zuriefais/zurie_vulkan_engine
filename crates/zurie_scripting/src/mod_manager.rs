@@ -96,20 +96,6 @@ impl ModManager {
         mod_path: &String,
         handle: ModHandle,
     ) -> anyhow::Result<Arc<RwLock<EngineMod>>> {
-        #[cfg(target_os = "android")]
-        return Ok(Arc::new(RwLock::new(EngineMod::new(
-            mod_path.clone(),
-            &self.engine,
-            self.gui_context.clone(),
-            self.pressed_keys_buffer.clone(),
-            self.mouse_pos.clone(),
-            self.world.clone(),
-            self.camera.clone(),
-            self.event_manager.clone(),
-            handle,
-            self.app.clone(),
-        )?)));
-        #[cfg(not(target_os = "android"))]
         Ok(Arc::new(RwLock::new(EngineMod::new(
             mod_path.clone(),
             &self.engine,
@@ -121,6 +107,8 @@ impl ModManager {
             handle,
             self.sprite_manager.clone(),
             self.audio_manager.clone(),
+            #[cfg(target_os = "android")]
+            self.app.clone(),
         )?)))
     }
 
@@ -192,7 +180,7 @@ impl ModManager {
         let mut mods = SlotMap::with_key();
         let event_manager: Arc<RwLock<EventManager>> = Default::default();
         let audio_manager = AudioManager::new();
-        #[cfg(not(target_os = "android"))]
+
         mods.insert_with_key(|handle| {
             Arc::new(RwLock::new(
                 EngineMod::new(
@@ -206,22 +194,7 @@ impl ModManager {
                     handle,
                     sprite_manager.clone(),
                     audio_manager.clone(),
-                )
-                .unwrap(),
-            ))
-        });
-        #[cfg(target_os = "android")]
-        mods.insert_with_key(|handle| {
-            Arc::new(RwLock::new(
-                EngineMod::new(
-                    "example_mod.wasm".into(),
-                    &engine,
-                    gui_context.clone(),
-                    input_state.clone(),
-                    world.clone(),
-                    camera.clone(),
-                    event_manager.clone(),
-                    handle,
+                    #[cfg(target_os = "android")]
                     android_app.clone(),
                 )
                 .unwrap(),
