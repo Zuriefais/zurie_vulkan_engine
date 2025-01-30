@@ -84,7 +84,12 @@ impl ZurieMod for Game {
         self.last_shot = Instant::now();
         self.direction_component = direction_component;
 
-        spawn_enemy_wave(enemy_component, pos_component, enemy_sprite);
+        spawn_enemy_wave(
+            enemy_component,
+            pos_component,
+            health_component,
+            enemy_sprite,
+        );
 
         set_zoom(10.0);
     }
@@ -124,28 +129,45 @@ impl ZurieMod for Game {
             self.pos_component,
             self.direction_component,
         );
+
+        check_projectile_collision(
+            self.projectile_component,
+            self.pos_component,
+            self.direction_component,
+            self.enemy_component,
+            self.health_component,
+        );
     }
 }
 
 fn spawn_enemy_wave(
     enemy_component: ComponentId,
     pos_component: ComponentId,
+    health_component: ComponentId,
     sprite: SpriteHandle,
 ) {
     for i in -2..=2 {
         let enemy_pos = Vec2::new(i as f32 * 2.0, -5.0);
-        spawn_enemy(enemy_component, pos_component, enemy_pos, sprite);
+        spawn_enemy(
+            enemy_component,
+            pos_component,
+            health_component,
+            enemy_pos,
+            sprite,
+        );
     }
 }
 
 fn spawn_enemy(
     enemy_component: ComponentId,
     pos_component: ComponentId,
+    health_component: ComponentId,
     pos: Vec2,
     sprite: SpriteHandle,
 ) {
     Entity::spawn()
         .set_component(pos_component, ComponentData::Vec2(pos.into()))
+        .set_component(health_component, ComponentData::I32(100))
         .set_component(enemy_component, ComponentData::None)
         .set_sprite(sprite);
 }
@@ -224,6 +246,47 @@ fn update_projectiles(
             projectile.set_component(pos_component, ComponentData::Vec2(new_pos.into()));
         }
     }
+}
+
+fn check_projectile_collision(
+    projectile_component: ComponentId,
+    pos_component: ComponentId,
+    direction_component: ComponentId,
+    enemy_component: ComponentId,
+    health_component: ComponentId,
+) {
+    let mut projectiles = get_entities_with_component(projectile_component);
+    let mut enemies = get_entities_with_component(enemy_component);
+
+    projectiles.iter_mut().for_each(|projectile| {
+        if let Some(ComponentData::Vec2(proj_pos)) = projectile.get_component(pos_component) {
+            let proj_pos: Vec2 = proj_pos.into();
+
+            enemies.iter_mut().for_each(|enemy| {
+                if let Some(ComponentData::Vec2(enemy_pos)) = enemy.get_component(pos_component) {
+                    let enemy_pos: Vec2 = enemy_pos.into();
+
+                    if proj_pos.distance(enemy_pos) < 0.5 {
+                        projectile.despawn();
+
+                        enemy.get_component(health_component).map(|health| {
+                            if let ComponentData::I32(health_value) = health {
+                                let new_health = health_value - 10;
+                                enemy.set_component(
+                                    health_component,
+                                    ComponentData::I32(new_health),
+                                );
+
+                                if new_health <= 0 {
+                                    enemy.despawn();
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
 }
 
 fn vector_between_coordinates(from: Vec2, to: Vec2) -> Vec2 {
