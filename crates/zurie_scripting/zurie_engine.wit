@@ -86,7 +86,7 @@ interface ecs {
     remove-component: func(entity: entity-id, component: component-id);
 
     get-entities-with-component: func(component: component-id) -> list<entity-id>;
-    get-entities-with-components: func(required: list<component-id>, optional: list<component-id>) -> list<entity-id>;
+    get-entities-with-components: func(components: list<component-id>) -> list<entity-id>;
 }
 
 interface sprite {

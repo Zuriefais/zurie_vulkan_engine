@@ -96,14 +96,7 @@ impl State {
             .world
             .read()
             .unwrap()
-            .get_entities_data_with_arhetype(Architype {
-                required: vec![self.pos_component],
-                optional: vec![
-                    self.scale_component,
-                    self.color_component,
-                    self.sprite_component,
-                ],
-            })
+            .get_entities_data_with_components(vec![self.pos_component])
             .iter()
             .map(|(_, entity_data)| {
                 let mut obj = Object::default();

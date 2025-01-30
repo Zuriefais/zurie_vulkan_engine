@@ -2,7 +2,7 @@ use crate::engine::ecs::{self, spawn_entity};
 use crate::engine::ecs::{ComponentData, despawn_entity};
 use crate::engine::sprite;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct Entity(pub u64);
 
 impl Entity {
@@ -42,8 +42,8 @@ pub fn get_entities_with_component(component: u64) -> Vec<Entity> {
         .collect()
 }
 
-pub fn get_entities_with_components(required: &[u64], optional: &[u64]) -> Vec<Entity> {
-    ecs::get_entities_with_components(required, optional)
+pub fn get_entities_with_components(components: &[u64]) -> Vec<Entity> {
+    ecs::get_entities_with_components(components)
         .to_vec()
         .iter()
         .map(|ent: &u64| Entity(*ent))

@@ -4,7 +4,7 @@ use egui::{Context, Label};
 use hashbrown::HashSet;
 use log::info;
 use serde::{Deserialize, Serialize};
-use zurie_shared::slotmap::{new_key_type, KeyData, SlotMap};
+use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
 use zurie_types::ComponentData;
 
 new_key_type! { pub struct Entity; }
@@ -28,7 +28,7 @@ pub struct Architype {
     pub optional: Vec<ComponentID>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct EntityData {
     pub data: Vec<(ComponentID, ComponentData)>,
 }
@@ -64,14 +64,13 @@ impl EntityStorage {
         self.entities.iter().collect()
     }
 
-    pub fn get_entities_data_with_arhetype(
+    pub fn get_entities_data_with_components(
         &self,
-        architype: Architype,
+        components: Vec<ComponentID>,
     ) -> Vec<(Entity, &EntityData)> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let required_component_ids: HashSet<ComponentID> =
-            architype.required.iter().copied().collect();
+        let required_component_ids: HashSet<ComponentID> = components.iter().copied().collect();
 
         'entity_loop: for (entity, data) in self.entities.iter() {
             let entity_component_ids: HashSet<ComponentID> =
@@ -87,26 +86,27 @@ impl EntityStorage {
         entities
     }
 
-    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
+    pub fn get_entities_with_components(&self, components: Vec<ComponentID>) -> Vec<Entity> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
 
-        let required_component_ids: HashSet<ComponentID> =
-            architype.required.iter().copied().collect();
-        let optional_component_ids: HashSet<ComponentID> =
-            architype.optional.iter().copied().collect();
+        let required_component_ids: HashSet<ComponentID> = components.iter().copied().collect();
+
+        info!(
+            "requested find entities with: {:?}",
+            &components
+                .iter()
+                .map(|comp| { KeyData::as_ffi(comp.data()) })
+                .collect::<Vec<_>>()
+        );
 
         'entity_loop: for (entity, data) in self.entities.iter() {
             let entity_component_ids: HashSet<ComponentID> =
                 data.data.iter().map(|(id, _)| *id).collect();
-            info!(
-                "entity components: {:?}, required: {:?}",
-                &entity_component_ids, &required_component_ids
-            );
 
-            // Check if all required components are present
             if !entity_component_ids.is_superset(&required_component_ids) {
                 continue 'entity_loop;
             }
+            entities.push(entity);
         }
 
         entities
@@ -114,6 +114,11 @@ impl EntityStorage {
 
     pub fn get_entities_with_component(&self, component: ComponentID) -> Vec<Entity> {
         let mut entities = Vec::with_capacity(self.entities.len() / 2);
+
+        info!(
+            "requested find entities with: {:?}",
+            KeyData::as_ffi(component.data())
+        );
 
         for (entity, data) in self.entities.iter() {
             // Check if the entity has the component we're looking for
@@ -146,16 +151,9 @@ impl EntityStorage {
 
     pub fn remove_component(&mut self, entity: Entity, component: ComponentID) {
         if let Some(entity_data) = self.entities.get_mut(entity) {
-            entity_data.data = entity_data
+            entity_data
                 .data
-                .extract_if(0..entity_data.data.len(), |(ent_component, _)| {
-                    if *ent_component == component {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .collect();
+                .retain(|(ent_component, _)| *ent_component != component);
         }
     }
 
@@ -228,14 +226,14 @@ impl World {
         self.storage.get_all_entities()
     }
 
-    pub fn get_entities_data_with_arhetype(
+    pub fn get_entities_data_with_components(
         &self,
-        architype: Architype,
+        components: Vec<ComponentID>,
     ) -> Vec<(Entity, &EntityData)> {
-        self.storage.get_entities_data_with_arhetype(architype)
+        self.storage.get_entities_data_with_components(components)
     }
-    pub fn get_entities_with_arhetype(&self, architype: Architype) -> Vec<Entity> {
-        self.storage.get_entities_with_arhetype(architype)
+    pub fn get_entities_with_components(&self, components: Vec<ComponentID>) -> Vec<Entity> {
+        self.storage.get_entities_with_components(components)
     }
 
     pub fn get_entities_with_component(&self, component: ComponentID) -> Vec<Entity> {
@@ -326,6 +324,7 @@ impl World {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use zurie_types::glam::Vec2;
 
     #[test]
     fn test_one_entity() {
@@ -381,19 +380,15 @@ pub mod test {
         }
         println!(
             "{:?}",
-            world.storage.get_entities_with_arhetype(Architype {
-                required: vec![my_component, my_component3],
-                optional: vec![]
-            })
-        );
-        assert_eq!(
-            100,
             world
                 .storage
-                .get_entities_with_arhetype(Architype {
-                    required: vec![my_component, my_component3],
-                    optional: vec![]
-                })
+                .get_entities_data_with_components([my_component, my_component3].into(),),
+        );
+        assert_eq!(
+            200,
+            world
+                .storage
+                .get_entities_data_with_components([my_component, my_component3].into(),)
                 .len()
         );
     }
@@ -419,11 +414,92 @@ pub mod test {
             ],
         });
 
-        let matches = world.get_entities_with_arhetype(Architype {
-            required: vec![comp_a, comp_b],
-            optional: vec![],
-        });
+        let matches = world.get_entities_data_with_components([comp_a, comp_b].into());
 
         assert_eq!(matches.len(), 2);
+    }
+
+    #[test]
+    fn test_entity_creation() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        assert!(world.get_entity_data(entity).is_some());
+    }
+
+    #[test]
+    fn test_component_registration() {
+        let mut world = World::default();
+        let component_id = world.register_component("Health".to_string());
+        assert!(world.registered_components.get(component_id).is_some());
+    }
+
+    #[test]
+    fn test_set_component() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        let component_id = world.register_component("Health".to_string());
+        let component_data = ComponentData::I32(100);
+
+        world.set_component(entity, (component_id, component_data.clone()));
+        let stored_data = world.get_component(entity, component_id);
+
+        assert!(stored_data.is_some());
+        assert_eq!(stored_data.unwrap(), &component_data);
+    }
+
+    #[test]
+    fn test_remove_component() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        let component_id = world.register_component("Health".to_string());
+        let component_data = ComponentData::I32(100);
+
+        world.set_component(entity, (component_id, component_data));
+        world.remove_component(entity, component_id);
+
+        assert!(world.get_component(entity, component_id).is_none());
+    }
+
+    #[test]
+    fn test_entity_with_component_query() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        let component_id = world.register_component("Health".to_string());
+        let component_data = ComponentData::I32(100);
+
+        world.set_component(entity, (component_id, component_data));
+        let entities = world.get_entities_with_component(component_id);
+
+        assert_eq!(entities.len(), 1);
+        assert_eq!(entities[0], entity);
+    }
+
+    #[test]
+    fn test_get_entities_with_multiple_components() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        let health_id = world.register_component("Health".to_string());
+        let position_id = world.register_component("Position".to_string());
+
+        world.set_component(entity, (health_id, ComponentData::I32(100)));
+        world.set_component(
+            entity,
+            (position_id, ComponentData::Vector(Vec2::new(1.0, 1.0))),
+        );
+
+        let query_components = [health_id, position_id];
+        let entities = world.get_entities_with_components(query_components.into());
+
+        assert_eq!(entities.len(), 1);
+        assert_eq!(entities[0], entity);
+    }
+
+    #[test]
+    fn test_despawn_entity() {
+        let mut world = World::default();
+        let entity = world.spawn_entity();
+        world.despawn(entity);
+
+        assert!(world.get_entity_data(entity).is_none());
     }
 }

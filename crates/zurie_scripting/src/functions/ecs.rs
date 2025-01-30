@@ -1,10 +1,11 @@
+use super::ScriptingState;
+use log::info;
 use zurie_shared::slotmap::{Key, KeyData};
 use zurie_types::ComponentData as EngineComponentData;
 
-use super::ScriptingState;
-
 use crate::functions::zurie::engine::ecs;
 use crate::functions::zurie::engine::ecs::*;
+
 impl ecs::Host for ScriptingState {
     fn spawn_entity(&mut self) -> EntityId {
         KeyData::as_ffi(self.world.write().unwrap().spawn_entity().data())
@@ -17,16 +18,11 @@ impl ecs::Host for ScriptingState {
             .despawn(KeyData::from_ffi(entity).into());
     }
 
-    fn register_component(&mut self, name: String) -> ComponentId {
+    fn register_component(&mut self, name: String) -> u64 {
         KeyData::as_ffi(self.world.write().unwrap().register_component(name).data())
     }
 
-    fn set_component(
-        &mut self,
-        entity: EntityId,
-        component: ComponentId,
-        data: ComponentData,
-    ) -> () {
+    fn set_component(&mut self, entity: EntityId, component: u64, data: ComponentData) -> () {
         let data: EngineComponentData = data.into();
         let entity = KeyData::from_ffi(entity).into();
         let component = KeyData::from_ffi(component).into();
@@ -36,7 +32,7 @@ impl ecs::Host for ScriptingState {
             .set_component(entity, (component, data));
     }
 
-    fn get_component(&mut self, entity: EntityId, component: ComponentId) -> Option<ComponentData> {
+    fn get_component(&mut self, entity: EntityId, component: u64) -> Option<ComponentData> {
         match self.world.read().unwrap().get_component(
             KeyData::from_ffi(entity).into(),
             KeyData::from_ffi(component).into(),
@@ -46,7 +42,8 @@ impl ecs::Host for ScriptingState {
         }
     }
 
-    fn get_entities_with_component(&mut self, component: ComponentId) -> Vec<EntityId> {
+    fn get_entities_with_component(&mut self, component: u64) -> Vec<EntityId> {
+        info!("component: {}", component);
         self.world
             .read()
             .unwrap()
@@ -56,30 +53,22 @@ impl ecs::Host for ScriptingState {
             .collect()
     }
 
-    fn get_entities_with_components(
-        &mut self,
-        required: Vec<ComponentId>,
-        optional: Vec<ComponentId>,
-    ) -> wasmtime::component::__internal::Vec<EntityId> {
+    fn get_entities_with_components(&mut self, components: Vec<u64>) -> Vec<EntityId> {
         self.world
             .read()
             .unwrap()
-            .get_entities_with_arhetype(zurie_ecs::Architype {
-                required: required
+            .get_entities_with_components(
+                components
                     .iter()
                     .map(|component| KeyData::from_ffi(*component).into())
                     .collect(),
-                optional: optional
-                    .iter()
-                    .map(|component| KeyData::from_ffi(*component).into())
-                    .collect(),
-            })
+            )
             .iter()
             .map(|component| KeyData::as_ffi(component.data()))
             .collect()
     }
 
-    fn remove_component(&mut self, entity: EntityId, component: ComponentId) {
+    fn remove_component(&mut self, entity: EntityId, component: u64) {
         self.world.write().unwrap().remove_component(
             KeyData::from_ffi(entity).into(),
             KeyData::from_ffi(component).into(),

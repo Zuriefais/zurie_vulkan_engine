@@ -1,5 +1,6 @@
 use std::iter;
 use std::ops::Range;
+use zurie_mod_interface::ecs::get_entities_with_component;
 use zurie_mod_interface::ecs::get_entities_with_components;
 use zurie_mod_interface::engine::camera::set_zoom;
 use zurie_mod_interface::engine::core::{ComponentId, SpriteHandle};
@@ -49,6 +50,9 @@ impl ZurieMod for Game {
         let player_ent = Entity::spawn();
         let pos_component = register_component("position");
         let enemy_component = register_component("enemy");
+        self.enemy_component = enemy_component;
+
+        info!("enemy component: {}", enemy_component);
         player_ent.set_component(
             pos_component,
             zurie_mod_interface::engine::ecs::ComponentData::Vec2(
@@ -169,13 +173,12 @@ fn spawn_enemy(
 }
 
 fn move_enemies(pos_component: ComponentId, enemy_component: ComponentId, player_pos: Vec2) {
-    let enemies = get_entities_with_components(&[enemy_component, pos_component], &[]);
-
+    let enemies = get_entities_with_component(enemy_component);
+    info!("moving enemies: {:?}", &enemies);
     for enemy in enemies.iter() {
         if let Some(ComponentData::Vec2(enemy_pos)) = enemy.get_component(pos_component) {
             let enemy_pos: Vec2 = enemy_pos.into();
-            let new_enemy_pos =
-                enemy_pos + vector_between_coordinates(enemy_pos.into(), player_pos);
+            let new_enemy_pos = enemy_pos + vector_between_coordinates(enemy_pos, player_pos);
             enemy.set_component(pos_component, ComponentData::Vec2(new_enemy_pos.into()));
         }
     }
