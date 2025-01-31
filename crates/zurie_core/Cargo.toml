@@ -10,7 +10,7 @@ name = "zurie_core"
 [dependencies]
 color-hex = "0.2.0"
 ecolor = { version = "0.28.1", features = ["color-hex"] }
-egui_winit_vulkano = { git = "https://github.com/Zuriefais/egui_winit_vulkano", version = "0.27.0" }
+egui = {workspace = true}
 env_logger = "0.11.5"
 fastrand = "2.1.0"
 log = { workspace = true }

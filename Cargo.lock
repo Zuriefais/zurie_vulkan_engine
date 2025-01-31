@@ -5531,7 +5531,7 @@ dependencies = [
  "anyhow",
  "color-hex",
  "ecolor 0.28.1",
- "egui_winit_vulkano",
+ "egui",
  "env_logger",
  "fastrand",
  "hashbrown 0.15.2",

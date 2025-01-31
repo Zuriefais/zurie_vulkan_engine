@@ -14,7 +14,7 @@ wasmtime-wasi = "29.0.1"
 thiserror = "2.0.11"
 anyhow = { workspace = true }
 hashbrown = { workspace = true }
-egui = { version = "0.29.1" }
+egui = { workspace = true}
 log = "0.4.22"
 winit = { version = "0.30.5", features = ["rwh_05", "rwh_06"] }
 rand = "0.8.5"

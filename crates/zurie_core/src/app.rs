@@ -48,6 +48,7 @@ impl ApplicationHandler for App {
         _: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
+        self.state.as_mut().unwrap().event(event.clone()).unwrap();
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -72,7 +73,7 @@ impl ApplicationHandler for App {
                 self.delta_time = Instant::now();
                 self.window.as_ref().unwrap().request_redraw();
             }
-            event => self.state.as_mut().unwrap().event(event).unwrap(),
+            _ => {}
         }
     }
 }

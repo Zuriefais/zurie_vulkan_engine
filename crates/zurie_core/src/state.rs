@@ -1,7 +1,7 @@
 pub mod gui;
 
 use ecolor::hex_color;
-use egui_winit_vulkano::egui::Context;
+use egui::Context;
 use zurie_input::InputState;
 
 use std::sync::{Arc, RwLock};
@@ -12,6 +12,8 @@ use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_types::{camera::Camera, glam::Vec2, ComponentData, Object};
+
+use crate::egui_theme::gruvbox_dark_theme;
 
 pub struct State {
     input: InputState,
@@ -33,6 +35,7 @@ impl State {
         let render_state =
             RenderState::new(window, event_loop).expect("error creating render state");
         let gui_context = render_state.gui.gui.context();
+        gui_context.set_style(gruvbox_dark_theme());
 
         let size = render_state.renderer.window_size();
         let camera = Arc::new(RwLock::new(Camera::create_camera_from_screen_size(

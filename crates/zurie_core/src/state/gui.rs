@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use egui_winit_vulkano::egui::{self, Context};
+use egui::{self, Context};
 use strum::IntoEnumIterator;
 use zurie_shared::sim_clock::SimClock;
 

@@ -62,8 +62,16 @@ impl InputStateInner {
             match event.physical_key {
                 winit::keyboard::PhysicalKey::Code(key_code) => {
                     let key_code = key_code as u32;
-                    let key_code: KeyCode = KeyCode::try_from(key_code).unwrap();
-                    self.pressed_keys_buffer.insert(key_code);
+                    if let Ok(key_code) = KeyCode::try_from(key_code) {
+                        match event.state {
+                            ElementState::Pressed => {
+                                self.pressed_keys_buffer.insert(key_code);
+                            }
+                            ElementState::Released => {
+                                self.pressed_keys_buffer.remove(&key_code);
+                            }
+                        }
+                    }
                 }
                 winit::keyboard::PhysicalKey::Unidentified(_) => {}
             }
@@ -72,9 +80,8 @@ impl InputStateInner {
     }
 
     pub fn after_update(&mut self) {
-        if !self.pressed_keys_buffer.is_empty() {
-            let mut keys_lock = self.pressed_keys_buffer.clear();
-        }
+        info!("{:?}", self.pressed_keys_buffer);
+        let mut keys_lock = self.pressed_keys_buffer.clear();
     }
 }
 
