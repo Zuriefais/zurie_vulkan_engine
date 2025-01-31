@@ -26,11 +26,13 @@ pub struct Game {
     player: Entity,
     pos_component: u64,
     enemy_component: u64,
+    enemy_sprite: u64,
     projectile_component: u64,
     health_component: u64,
     last_shot: Instant,
     projectile_sprite: u64,
     direction_component: u64,
+    next_enemy_wave: Instant,
 }
 
 impl Default for Game {
@@ -42,9 +44,11 @@ impl Default for Game {
             enemy_component: 0,
             projectile_component: 0,
             health_component: 0,
+            enemy_sprite: 0,
             last_shot: Instant::now(),
             projectile_sprite: 0,
             direction_component: 0,
+            next_enemy_wave: Instant::now(),
         }
     }
 }
@@ -83,6 +87,7 @@ impl ZurieMod for Game {
         self.health_component = health_component;
         self.last_shot = Instant::now();
         self.direction_component = direction_component;
+        self.enemy_sprite = enemy_sprite;
 
         spawn_enemy_wave(
             enemy_component,
@@ -122,6 +127,16 @@ impl ZurieMod for Game {
                 self.direction_component,
             );
             self.last_shot = Instant::now();
+        }
+
+        if self.next_enemy_wave.elapsed() > Duration::from_secs_f32(5.0) {
+            spawn_enemy_wave(
+                self.enemy_component,
+                self.pos_component,
+                self.health_component,
+                self.enemy_sprite,
+            );
+            self.next_enemy_wave = Instant::now();
         }
 
         update_projectiles(
