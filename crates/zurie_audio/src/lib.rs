@@ -5,6 +5,7 @@ use kira::DefaultBackend;
 use log::info;
 use log::warn;
 use slotmap::{new_key_type, KeyData, SlotMap};
+use tracy_client::set_thread_name;
 
 use std::str::MatchIndices;
 use std::sync::mpsc::channel;
@@ -32,6 +33,7 @@ impl AudioManager {
     pub fn new() -> AudioManager {
         let (sender, receiver) = channel();
         thread::spawn(move || {
+            set_thread_name!("Audio thread");
             let mut audio_thread = AudioThread::new();
             audio_thread.run(receiver);
         });

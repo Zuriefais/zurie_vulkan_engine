@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub struct RenderState {
-    pub compute: SandComputePipeline,
+    //pub compute: SandComputePipeline,
     pub pixels_render: PixelsRenderPass,
     pub objects_render: ObjectRenderPass,
     pub renderer: Renderer,
@@ -34,7 +34,7 @@ impl RenderState {
             Arc::new(RwLock::new(SpriteManager::new(gui.gui.context())));
 
         Ok(RenderState {
-            compute: SandComputePipeline::new(&renderer),
+            //compute: SandComputePipeline::new(&renderer),
             pixels_render: PixelsRenderPass::new(&renderer),
             objects_render: ObjectRenderPass::new(&renderer, sprite_manager.clone())?,
             renderer,
@@ -96,7 +96,7 @@ impl RenderState {
 
     pub fn resize(&mut self, size: [u32; 2]) {
         self.renderer.resize();
-        self.compute.resize(size)
+        //self.compute.resize(size)
     }
     pub fn event(&mut self, ev: &WindowEvent) -> anyhow::Result<()> {
         self.gui.event(ev);

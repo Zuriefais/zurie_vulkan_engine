@@ -28,3 +28,4 @@ zurie_scripting = { path = "../zurie_scripting" }
 zurie_render = { path = "../zurie_render" }
 zurie_ecs = { path = "../zurie_ecs" }
 zurie_input = { path = "../zurie_input" }
+tracy-client = {workspace = true}

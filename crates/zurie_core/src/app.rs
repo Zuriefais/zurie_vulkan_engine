@@ -1,5 +1,7 @@
 use log::info;
 use std::{sync::Arc, time::Instant};
+use tracy_client::{set_thread_name, Client};
+
 use zurie_shared::DELTA_TIME;
 
 use winit::{
@@ -16,14 +18,18 @@ pub struct App {
     window: Option<Arc<Window>>,
     state: Option<State>,
     delta_time: Instant,
+    tracy_client: Client,
 }
 
 impl Default for App {
     fn default() -> Self {
+        let tracy_client = Client::start();
+        set_thread_name!("Main Thread");
         Self {
             delta_time: Instant::now(),
             window: Default::default(),
             state: None,
+            tracy_client,
         }
     }
 }
@@ -72,6 +78,7 @@ impl ApplicationHandler for App {
                 }
                 self.delta_time = Instant::now();
                 self.window.as_ref().unwrap().request_redraw();
+                self.tracy_client.frame_mark();
             }
             _ => {}
         }

@@ -10,6 +10,7 @@ log = { workspace = true }
 anyhow = { workspace = true }
 zurie_types = { path = "../zurie_types" }
 cpal = { version = "0.15.1", features = ["oboe-shared-stdcxx"] }
+tracy-client = {workspace = true}
 
 [[bin]]
 name = "zurie_audio_test"

@@ -210,15 +210,28 @@ impl Renderer {
         window: &Arc<Window>,
         surface: Arc<Surface>,
     ) -> (Arc<Swapchain>, Vec<Arc<ImageView>>, Format) {
+        info!(
+            "Available formats: {:?}",
+            device
+                .physical_device()
+                .surface_formats(&surface, Default::default())
+                .unwrap()
+        );
         let surface_capabilities = device
             .physical_device()
             .surface_capabilities(&surface, Default::default())
             .unwrap();
-        let image_format = device
-            .physical_device()
-            .surface_formats(&surface, Default::default())
-            .unwrap()[0]
-            .0;
+
+        let image_format = if env::var("WAYLAND_DISPLAY").is_ok() {
+            Format::B8G8R8A8_UNORM
+        } else {
+            device
+                .physical_device()
+                .surface_formats(&surface, Default::default())
+                .unwrap()[0]
+                .0
+        };
+
         let (swapchain, images) = Swapchain::new(device, surface, {
             let mut create_info = SwapchainCreateInfo {
                 min_image_count: surface_capabilities.min_image_count.max(2),
@@ -312,6 +325,7 @@ impl Renderer {
 
     pub fn add_additional_image_view(&mut self, key: usize, format: Format, usage: ImageUsage) {
         let final_view_image = self.final_views[0].image();
+
         let image = ImageView::new_default(
             Image::new(
                 self.memory_allocator.clone(),

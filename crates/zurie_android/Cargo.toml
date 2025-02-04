@@ -19,7 +19,6 @@ winit = { version = "0.30.5", features = [
 android_logger = "0.14.1"
 log = { workspace = true }
 
-
 [package.metadata.android]
 package = "me.zurie.zurie_engine"
 apk_name = "zurie_engine"
