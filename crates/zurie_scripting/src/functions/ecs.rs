@@ -74,6 +74,14 @@ impl ecs::Host for ScriptingState {
             KeyData::from_ffi(component).into(),
         );
     }
+
+    fn entity_exits(&mut self, entity: EntityId) -> bool {
+        self.world
+            .write()
+            .unwrap()
+            .get_entity_data(KeyData::from_ffi(entity).into())
+            .is_some()
+    }
 }
 
 impl From<ComponentData> for EngineComponentData {

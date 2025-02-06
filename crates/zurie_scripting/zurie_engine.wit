@@ -85,6 +85,8 @@ interface ecs {
     get-component: func(entity: entity-id, component: component-id) -> option<component-data>;
     remove-component: func(entity: entity-id, component: component-id);
 
+    entity-exits: func(entity: entity-id) -> bool;
+
     get-entities-with-component: func(component: component-id) -> list<entity-id>;
     get-entities-with-components: func(components: list<component-id>) -> list<entity-id>;
 }

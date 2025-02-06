@@ -33,6 +33,7 @@ pub struct Game {
     projectile_sprite: u64,
     direction_component: u64,
     next_enemy_wave: Instant,
+    player_sprite: u64,
 }
 
 impl Default for Game {
@@ -49,6 +50,7 @@ impl Default for Game {
             projectile_sprite: 0,
             direction_component: 0,
             next_enemy_wave: Instant::now(),
+            player_sprite: 0,
         }
     }
 }
@@ -81,6 +83,7 @@ impl ZurieMod for Game {
         player_ent.set_sprite(player_sprite);
 
         self.player = player_ent;
+        self.player_sprite = player_sprite;
         self.pos_component = pos_component;
         self.enemy_component = enemy_component;
         self.projectile_component = projectile_component;
@@ -100,6 +103,27 @@ impl ZurieMod for Game {
     }
 
     fn update(&mut self) {
+        if !self.player.exits() {
+            let responses = create_window("Game Status", &[
+                Widget::Label("You Lose!!!".into()),
+                Widget::Button("Restart Game?".into()),
+            ]);
+            if let WidgetResponse::Clicked(clicked) = responses[1] {
+                if clicked {
+                    for enemy in get_entities_with_component(self.enemy_component).iter_mut() {
+                        enemy.despawn();
+                    }
+
+                    let player_ent = Entity::spawn()
+                        .set_component(self.pos_component, ComponentData::Vec2(Vec2::ZERO.into()))
+                        .set_component(self.health_component, ComponentData::I32(100))
+                        .set_sprite(self.player_sprite);
+                    self.player = player_ent
+                }
+            }
+            return;
+        }
+
         let direction = Vec2::new(
             (key_clicked(zurie_mod_interface::input::KeyCode::KeyD as u32) as i8
                 - key_clicked(zurie_mod_interface::input::KeyCode::KeyA as u32) as i8)
@@ -149,6 +173,13 @@ impl ZurieMod for Game {
             self.projectile_component,
             self.pos_component,
             self.direction_component,
+            self.enemy_component,
+            self.health_component,
+        );
+
+        check_player_collision(
+            self.player,
+            self.pos_component,
             self.enemy_component,
             self.health_component,
         );
@@ -212,23 +243,7 @@ fn fire_projectile(
 ) {
     if let Some(ComponentData::Vec2(player_pos)) = player.get_component(pos_component) {
         let nearest_enemy_pos: Option<Vec2> =
-            get_entities_with_components(&[pos_component, enemy_component])
-                .iter()
-                .map(|ent| {
-                    if let ComponentData::Vec2(pos) = ent
-                        .get_component(pos_component)
-                        .unwrap_or(engine::ecs::ComponentData::Vec2(Vec2::ZERO.into()))
-                    {
-                        pos.into()
-                    } else {
-                        Vec2::ZERO
-                    }
-                })
-                .min_by(|a, b| {
-                    a.distance(player_pos.into())
-                        .partial_cmp(&b.distance(player_pos.into()))
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
+            get_nearest_enemy_to(pos_component, enemy_component, player_pos.into());
         if let Some(enemy_pos) = nearest_enemy_pos {
             Entity::spawn()
                 .set_component(pos_component, ComponentData::Vec2(player_pos.into()))
@@ -302,6 +317,77 @@ fn check_projectile_collision(
             });
         }
     });
+}
+
+fn check_player_collision(
+    mut player: Entity,
+    pos_component: ComponentId,
+    enemy_component: ComponentId,
+    health_component: ComponentId,
+) {
+    if let (Some(ComponentData::Vec2(pos)), Some(ComponentData::I32(health))) = (
+        player.get_component(pos_component),
+        player.get_component(health_component),
+    ) {
+        let enemies = get_enemies_with_distance_to(pos_component, enemy_component, pos.into(), 1.0)
+            .len() as i32;
+        let new_health = health - 5 * enemies;
+        if health - 5 * enemies < 0 {
+            player.despawn()
+        } else {
+            player.set_component(health_component, ComponentData::I32(health - 5 * enemies));
+        }
+    }
+}
+
+fn get_enemies_with_distance_to(
+    pos_component: ComponentId,
+    enemy_component: ComponentId,
+    to: Vec2,
+    distance: f32,
+) -> Vec<Entity> {
+    get_entities_with_components(&[pos_component, enemy_component])
+        .iter()
+        .filter(|ent| {
+            if let ComponentData::Vec2(pos) = ent
+                .get_component(pos_component)
+                .unwrap_or(engine::ecs::ComponentData::Vec2(Vec2::ZERO.into()))
+            {
+                if Into::<Vec2>::into(pos).distance(to) < distance {
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        })
+        .copied()
+        .collect()
+}
+
+fn get_nearest_enemy_to(
+    pos_component: ComponentId,
+    enemy_component: ComponentId,
+    to: Vec2,
+) -> Option<Vec2> {
+    get_entities_with_components(&[pos_component, enemy_component])
+        .iter()
+        .map(|ent| {
+            if let ComponentData::Vec2(pos) = ent
+                .get_component(pos_component)
+                .unwrap_or(engine::ecs::ComponentData::Vec2(Vec2::ZERO.into()))
+            {
+                pos.into()
+            } else {
+                Vec2::ZERO
+            }
+        })
+        .min_by(|a, b| {
+            a.distance(to)
+                .partial_cmp(&b.distance(to))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
 }
 
 fn vector_between_coordinates(from: Vec2, to: Vec2) -> Vec2 {

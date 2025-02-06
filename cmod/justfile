@@ -4,5 +4,4 @@ generate:
 
     wit-bindgen c .././crates/zurie_scripting/zurie_engine.wit
 compile:
-    rm game.wasm
     PATH=$HOME/.wasi-sdk/wasi-sdk-24.0/bin/:$PATH  ~/.wasi-sdk/wasi-sdk-24.0/bin/clang game.c zurie_mod.c zurie_mod_component_type.o -o game.wasm -mexec-model=reactor --target=wasm32-wasip2

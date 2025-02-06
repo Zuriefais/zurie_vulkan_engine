@@ -1,4 +1,4 @@
-use crate::engine::ecs::{self, spawn_entity};
+use crate::engine::ecs::{self, entity_exits, spawn_entity};
 use crate::engine::ecs::{ComponentData, despawn_entity};
 use crate::engine::sprite;
 
@@ -31,6 +31,10 @@ impl Entity {
 
     pub fn despawn(&mut self) {
         despawn_entity(self.0);
+    }
+
+    pub fn exits(self) -> bool {
+        entity_exits(self.0)
     }
 }
 

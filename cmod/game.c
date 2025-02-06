@@ -9,7 +9,12 @@ void exports_zurie_mod_init()
     zurie_engine_core_info(&module_name, &message);
 }
 
-void exports_zurie_mod_update() {}
+void exports_zurie_mod_update() {
+    zurie_mod_string_t module_name = { "cpp_hell", strlen("cpp_hell") };
+    zurie_mod_string_t message = { "Hello from hell", strlen("Hello from hell") };
+
+    zurie_engine_core_info(&module_name, &message);
+}
 
 void exports_zurie_mod_event(zurie_mod_event_handle_t handle, zurie_mod_event_data_t *data) {}
 
