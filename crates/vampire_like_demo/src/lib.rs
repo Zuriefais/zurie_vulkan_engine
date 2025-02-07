@@ -291,14 +291,13 @@ fn check_projectile_collision(
     projectiles.iter_mut().for_each(|projectile| {
         if let Some(ComponentData::Vec2(proj_pos)) = projectile.get_component(pos_component) {
             let proj_pos: Vec2 = proj_pos.into();
-
+            let mut collided = false;
             enemies.iter_mut().for_each(|enemy| {
                 if let Some(ComponentData::Vec2(enemy_pos)) = enemy.get_component(pos_component) {
                     let enemy_pos: Vec2 = enemy_pos.into();
 
                     if proj_pos.distance(enemy_pos) < 0.5 {
-                        projectile.despawn();
-
+                        collided = true;
                         enemy.get_component(health_component).map(|health| {
                             if let ComponentData::I32(health_value) = health {
                                 let new_health = health_value - 10;
@@ -315,6 +314,9 @@ fn check_projectile_collision(
                     }
                 }
             });
+            if collided {
+                projectile.despawn();
+            }
         }
     });
 }
