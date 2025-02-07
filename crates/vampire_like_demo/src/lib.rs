@@ -108,8 +108,8 @@ impl ZurieMod for Game {
                 Widget::Label("You Lose!!!".into()),
                 Widget::Button("Restart Game?".into()),
             ]);
-            if let WidgetResponse::Clicked(clicked) = responses[1] {
-                if clicked {
+            if let Some(WidgetResponse::Clicked(clicked)) = responses.get(1) {
+                if *clicked {
                     for enemy in get_entities_with_component(self.enemy_component).iter_mut() {
                         enemy.despawn();
                     }
@@ -175,6 +175,7 @@ impl ZurieMod for Game {
             self.direction_component,
             self.enemy_component,
             self.health_component,
+            20,
         );
 
         check_player_collision(
@@ -284,6 +285,7 @@ fn check_projectile_collision(
     direction_component: ComponentId,
     enemy_component: ComponentId,
     health_component: ComponentId,
+    damage: i32,
 ) {
     let mut projectiles = get_entities_with_component(projectile_component);
     let mut enemies = get_entities_with_component(enemy_component);
@@ -300,7 +302,7 @@ fn check_projectile_collision(
                         collided = true;
                         enemy.get_component(health_component).map(|health| {
                             if let ComponentData::I32(health_value) = health {
-                                let new_health = health_value - 10;
+                                let new_health = health_value - damage;
                                 enemy.set_component(
                                     health_component,
                                     ComponentData::I32(new_health),
