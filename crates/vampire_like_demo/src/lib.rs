@@ -34,6 +34,7 @@ pub struct Game {
     direction_component: u64,
     next_enemy_wave: Instant,
     player_sprite: u64,
+    timer: Instant,
 }
 
 impl Default for Game {
@@ -51,6 +52,7 @@ impl Default for Game {
             direction_component: 0,
             next_enemy_wave: Instant::now(),
             player_sprite: 0,
+            timer: Instant::now(),
         }
     }
 }
@@ -113,6 +115,7 @@ impl ZurieMod for Game {
                     for enemy in get_entities_with_component(self.enemy_component).iter_mut() {
                         enemy.despawn();
                     }
+                    self.timer = Instant::now();
 
                     let player_ent = Entity::spawn()
                         .set_component(self.pos_component, ComponentData::Vec2(Vec2::ZERO.into()))
@@ -123,6 +126,10 @@ impl ZurieMod for Game {
             }
             return;
         }
+        let game_status_window = create_window("Game status", &[
+            Widget::Label(format!("time elapsed: {}s", self.timer.elapsed().as_secs())),
+            Widget::Label(format!("Enemies slained")),
+        ]);
 
         let direction = Vec2::new(
             (key_clicked(zurie_mod_interface::input::KeyCode::KeyD as u32) as i8
