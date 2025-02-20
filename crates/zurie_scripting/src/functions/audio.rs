@@ -1,8 +1,8 @@
 use crate::functions::zurie::engine::audio;
 use crate::functions::zurie::engine::audio::*;
 
-use crate::functions::KeyData;
 use crate::ScriptingState;
+use crate::functions::KeyData;
 use zurie_shared::slotmap::Key;
 
 impl audio::Host for ScriptingState {

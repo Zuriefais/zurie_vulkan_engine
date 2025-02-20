@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
-use zurie_types::{camera::Camera, glam::Vec2, Object};
+use zurie_types::{Object, camera::Camera, glam::Vec2};
 
 use crate::{
     compute_sand::{CellType, SandComputePipeline},

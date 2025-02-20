@@ -12,7 +12,7 @@ use crate::functions::zurie::engine::audio::SoundHandle;
 use egui::{Context, Ui, Window};
 use hashbrown::HashSet;
 use std::sync::{Arc, RwLock};
-use wasmtime::component::{bindgen, ResourceTable};
+use wasmtime::component::{ResourceTable, bindgen};
 use wasmtime_wasi::{WasiCtx, WasiView};
 use zurie::engine::gui::WidgetResponse;
 use zurie_audio::AudioManager;
@@ -21,11 +21,11 @@ use zurie_ecs::World;
 use zurie_event::EventManager;
 use zurie_input::InputState;
 use zurie_render::sprite::SpriteManager;
-use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
-use zurie_types::camera::Camera;
-use zurie_types::glam::Vec2;
+use zurie_shared::slotmap::{Key, KeyData, SlotMap, new_key_type};
 use zurie_types::KeyCode;
 use zurie_types::ModHandle;
+use zurie_types::camera::Camera;
+use zurie_types::glam::Vec2;
 
 bindgen!("zurie-mod" in "zurie_engine.wit");
 

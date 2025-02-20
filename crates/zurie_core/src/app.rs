@@ -1,6 +1,6 @@
 use log::info;
 use std::{sync::Arc, time::Instant};
-use tracy_client::{set_thread_name, Client};
+use tracy_client::{Client, set_thread_name};
 
 use zurie_shared::DELTA_TIME;
 

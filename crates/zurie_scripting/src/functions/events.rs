@@ -1,7 +1,7 @@
 use log::info;
 use zurie_event::EventData as EngineEventData;
 
-use super::{zurie::engine::events, ScriptingState};
+use super::{ScriptingState, zurie::engine::events};
 use crate::functions::zurie::engine::events::*;
 use zurie_shared::slotmap::{Key, KeyData};
 
@@ -30,13 +30,10 @@ impl events::Host for ScriptingState {
             "Event emited: {}",
             event_manager.event_storage.get(handle.into()).unwrap()
         );
-        event_manager.emit(
-            &self.mod_handle,
-            zurie_event::Event {
-                handle: handle.into(),
-                data: data.into(),
-            },
-        );
+        event_manager.emit(&self.mod_handle, zurie_event::Event {
+            handle: handle.into(),
+            data: data.into(),
+        });
     }
 }
 

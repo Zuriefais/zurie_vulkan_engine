@@ -11,7 +11,7 @@ use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
 use zurie_ecs::{Architype, ComponentID, World};
 use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
-use zurie_types::{camera::Camera, glam::Vec2, ComponentData, Object};
+use zurie_types::{ComponentData, Object, camera::Camera, glam::Vec2};
 
 use crate::egui_theme::gruvbox_dark_theme;
 

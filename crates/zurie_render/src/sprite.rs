@@ -16,7 +16,7 @@ use vulkano::memory::allocator::MemoryTypeFilter;
 use vulkano::sync::GpuFuture;
 use vulkano::{
     format::Format,
-    image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
+    image::{Image, ImageCreateInfo, ImageType, ImageUsage, view::ImageView},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
 use zurie_shared::slotmap::Key;

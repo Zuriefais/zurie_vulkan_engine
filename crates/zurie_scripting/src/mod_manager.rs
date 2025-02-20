@@ -16,7 +16,7 @@ use zurie_event::EventManager;
 use zurie_input::InputState;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::SlotMap;
-use zurie_types::{camera::Camera, glam::Vec2, KeyCode, ModHandle};
+use zurie_types::{KeyCode, ModHandle, camera::Camera, glam::Vec2};
 
 use super::engine_mod::EngineMod;
 

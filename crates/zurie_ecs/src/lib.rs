@@ -4,7 +4,7 @@ use egui::{Context, Label};
 use hashbrown::HashSet;
 use log::info;
 use serde::{Deserialize, Serialize};
-use zurie_shared::slotmap::{new_key_type, Key, KeyData, SlotMap};
+use zurie_shared::slotmap::{Key, KeyData, SlotMap, new_key_type};
 use zurie_types::ComponentData;
 
 new_key_type! { pub struct Entity; }
@@ -337,12 +337,9 @@ pub mod test {
             ComponentData::Raw(vec![10]),
             world.get_entity_data(entity).unwrap().data[0].1
         );
-        world.modify_entity(
-            entity,
-            EntityData {
-                data: vec![(my_component, ComponentData::Raw(vec![20]))],
-            },
-        );
+        world.modify_entity(entity, EntityData {
+            data: vec![(my_component, ComponentData::Raw(vec![20]))],
+        });
         assert_eq!(
             ComponentData::Raw(vec![20]),
             world.get_entity_data(entity).unwrap().data[0].1

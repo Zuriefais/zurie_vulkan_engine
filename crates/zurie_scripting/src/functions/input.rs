@@ -2,7 +2,7 @@ use log::info;
 use zurie_input::InputState;
 use zurie_types::KeyCode;
 
-use super::{zurie::engine, ScriptingState};
+use super::{ScriptingState, zurie::engine};
 
 impl engine::input::Host for ScriptingState {
     fn key_clicked(&mut self, key: u32) -> bool {

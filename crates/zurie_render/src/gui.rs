@@ -17,17 +17,11 @@ impl GuiRender {
         gfx_queue: Arc<Queue>,
         output_format: Format,
     ) -> Self {
-        let gui = Gui::new(
-            event_loop,
-            surface,
-            gfx_queue,
-            output_format,
-            GuiConfig {
-                allow_srgb_render_target: true,
-                is_overlay: true,
-                samples: vulkano::image::SampleCount::Sample1,
-            },
-        );
+        let gui = Gui::new(event_loop, surface, gfx_queue, output_format, GuiConfig {
+            allow_srgb_render_target: true,
+            is_overlay: true,
+            samples: vulkano::image::SampleCount::Sample1,
+        });
 
         GuiRender { gui }
     }

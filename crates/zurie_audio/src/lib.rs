@@ -1,16 +1,16 @@
-use kira::backend::cpal::CpalBackend;
-use kira::sound::static_sound::StaticSoundData;
 use kira::AudioManagerSettings;
 use kira::DefaultBackend;
+use kira::backend::cpal::CpalBackend;
+use kira::sound::static_sound::StaticSoundData;
 use log::info;
 use log::warn;
-use slotmap::{new_key_type, KeyData, SlotMap};
+use slotmap::{KeyData, SlotMap, new_key_type};
 use tracy_client::set_thread_name;
 
 use std::str::MatchIndices;
-use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
 
 use std::path::Path;
 use std::sync::{Arc, RwLock};

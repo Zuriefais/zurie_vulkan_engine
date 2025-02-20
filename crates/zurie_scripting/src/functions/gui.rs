@@ -1,7 +1,7 @@
 use egui::Id;
 
-use super::zurie::engine::gui::{Widget, WidgetResponse};
 use super::ScriptingState;
+use super::zurie::engine::gui::{Widget, WidgetResponse};
 use crate::functions::zurie::engine::gui;
 
 impl gui::Host for ScriptingState {

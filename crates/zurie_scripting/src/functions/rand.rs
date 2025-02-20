@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::ops::Range;
 
-use super::{zurie::engine, ScriptingState};
+use super::{ScriptingState, zurie::engine};
 
 impl engine::rand::Host for ScriptingState {
     fn rand_f32(&mut self, start: f32, end: f32) -> f32 {

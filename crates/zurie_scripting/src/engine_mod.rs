@@ -42,7 +42,7 @@ use zurie_ecs::World;
 use zurie_event::EventData as EngineEventData;
 use zurie_render::sprite::SpriteManager;
 use zurie_shared::slotmap::{Key, KeyData};
-use zurie_types::{camera::Camera, glam::Vec2, KeyCode};
+use zurie_types::{KeyCode, camera::Camera, glam::Vec2};
 pub struct EngineMod {
     pub path: String,
     pub bindings: ZurieMod,

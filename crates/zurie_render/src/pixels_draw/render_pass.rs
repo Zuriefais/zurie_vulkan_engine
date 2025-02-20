@@ -2,8 +2,8 @@ use crate::render::Renderer;
 use std::sync::Arc;
 use vulkano::{
     command_buffer::{
-        allocator::StandardCommandBufferAllocator, AutoCommandBufferBuilder, CommandBufferUsage,
-        RenderPassBeginInfo, SubpassBeginInfo, SubpassContents,
+        AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassBeginInfo,
+        SubpassContents, allocator::StandardCommandBufferAllocator,
     },
     device::Queue,
     image::view::ImageView,
@@ -64,13 +64,10 @@ impl PixelsRenderPass {
     {
         // Get the dimensions.
         let img_dims: [u32; 2] = target.image().extent()[0..2].try_into().unwrap();
-        let framebuffer = Framebuffer::new(
-            self.render_pass.clone(),
-            FramebufferCreateInfo {
-                attachments: vec![target],
-                ..Default::default()
-            },
-        )
+        let framebuffer = Framebuffer::new(self.render_pass.clone(), FramebufferCreateInfo {
+            attachments: vec![target],
+            ..Default::default()
+        })
         .unwrap();
         let mut command_buffer_builder = AutoCommandBufferBuilder::primary(
             self.command_buffer_allocator.as_ref(),

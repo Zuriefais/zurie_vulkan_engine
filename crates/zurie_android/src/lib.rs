@@ -1,8 +1,8 @@
 #[cfg(target_os = "android")]
 mod lib {
     use android_activity::{
-        input::{InputEvent, KeyAction, KeyEvent, KeyMapChar, MotionAction},
         AndroidApp, InputStatus, MainEvent, PollEvent,
+        input::{InputEvent, KeyAction, KeyEvent, KeyMapChar, MotionAction},
     };
 
     use log::info;

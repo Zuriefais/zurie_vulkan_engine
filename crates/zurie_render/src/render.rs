@@ -2,21 +2,21 @@ use std::{collections::HashMap, env, sync::Arc};
 
 use log::info;
 use vulkano::{
+    Validated, VulkanError, VulkanLibrary,
     command_buffer::allocator::{
         StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo,
     },
     descriptor_set::allocator::StandardDescriptorSetAllocator,
     device::{
-        physical::{PhysicalDevice, PhysicalDeviceType},
         Device, DeviceCreateInfo, DeviceExtensions, Features, Queue, QueueCreateInfo, QueueFlags,
+        physical::{PhysicalDevice, PhysicalDeviceType},
     },
     format::Format,
-    image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
+    image::{Image, ImageCreateInfo, ImageType, ImageUsage, view::ImageView},
     instance::{Instance, InstanceCreateFlags, InstanceCreateInfo},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
     swapchain::{self, PresentMode, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo},
     sync::{self, GpuFuture},
-    Validated, VulkanError, VulkanLibrary,
 };
 use winit::window::Window;
 
@@ -42,14 +42,11 @@ impl Renderer {
     pub fn new(window: Arc<winit::window::Window>) -> Renderer {
         let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
         let required_extensions = Surface::required_extensions(&window);
-        let instance = Instance::new(
-            library,
-            InstanceCreateInfo {
-                flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
-                enabled_extensions: required_extensions,
-                ..Default::default()
-            },
-        )
+        let instance = Instance::new(library, InstanceCreateInfo {
+            flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
+            enabled_extensions: required_extensions,
+            ..Default::default()
+        })
         .expect("failed to create instance");
         let surface = loop {
             match Surface::from_window(instance.clone(), window.clone()) {
@@ -185,15 +182,12 @@ impl Renderer {
         };
 
         let (device, mut queues) = {
-            Device::new(
-                physical_device,
-                DeviceCreateInfo {
-                    queue_create_infos,
-                    enabled_extensions: device_extensions,
-                    enabled_features: features,
-                    ..Default::default()
-                },
-            )
+            Device::new(physical_device, DeviceCreateInfo {
+                queue_create_infos,
+                enabled_extensions: device_extensions,
+                enabled_features: features,
+                ..Default::default()
+            })
             .expect("failed to create device")
         };
         let gfx_queue = queues.next().unwrap();
