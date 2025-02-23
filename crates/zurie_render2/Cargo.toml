@@ -18,7 +18,9 @@ log = {workspace = true}
 winit = {version = "0.30.9", features = ["rwh_06"]}
 
 egui = {workspace = true}
+egui-winit = "0.29.1"
 egui-ash-renderer = "0.8.0"
+
 ash-window = "0.13.0"
 num = "0.4.3"
 memoffset = "0.9.1"
@@ -26,3 +28,12 @@ pollster = "0.4.0"
 env_logger = "0.11.6"
 
 naga = { version = "24.0.0", features = ["wgsl-in", "spv-out"] }
+
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.60"
+features = [
+    "Data_Xml_Dom",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+]

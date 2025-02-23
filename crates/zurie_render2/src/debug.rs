@@ -1,4 +1,5 @@
 use ash::vk;
+use log::{error, info, warn};
 
 use std::ffi::CStr;
 use std::os::raw::c_void;
@@ -13,21 +14,31 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
     _p_user_data: *mut c_void,
 ) -> vk::Bool32 {
-    let severity = match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => "[Verbose]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => "[Warning]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => "[Error]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => "[Info]",
-        _ => "[Unknown]",
-    };
     let types = match message_type {
-        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "[General]",
-        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "[Performance]",
-        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "[Validation]",
-        _ => "[Unknown]",
+        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "[general]",
+        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "[performance]",
+        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "[validation]",
+        _ => "[unknown]",
     };
     let message = unsafe { CStr::from_ptr((*p_callback_data).p_message) };
-    println!("[Debug]{}{}{:?}", severity, types, message);
+    match message_severity {
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => {
+            warn!(target: "vulkan", "{} {}", types, message.to_str().unwrap())
+        }
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => {
+            warn!(target: "vulkan", "{} {}", types, message.to_str().unwrap())
+        }
+
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => {
+            error!(target: "vulkan", "{} {}", types, message.to_str().unwrap())
+        }
+
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => {
+            info!(target: "vulkan", "{} {}", types, message.to_str().unwrap())
+        }
+
+        _ => info!(target: "vulkan", "{} {}", types, message.to_str().unwrap()),
+    };
 
     vk::FALSE
 }

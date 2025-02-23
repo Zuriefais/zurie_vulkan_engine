@@ -6,6 +6,9 @@ use crate::structures::*;
 use crate::structures::*;
 use crate::tools;
 use ash::vk;
+use egui::{ClippedPrimitive, Context, TextureId, ViewportId};
+use egui_ash_renderer::{Options, Renderer};
+use egui_winit::State;
 use log::info;
 use naga::back::spv; // For generating SPIR-V
 use naga::front::wgsl; // For parsing WGSL
@@ -71,6 +74,11 @@ struct RenderState {
     render_finished_semaphores: Vec<vk::Semaphore>,
     in_flight_fences: Vec<vk::Fence>,
     current_frame: usize,
+
+    egui_ctx: Context,
+    egui_winit: State,
+    egui_renderer: Renderer,
+    textures_to_free: Option<Vec<TextureId>>,
 }
 
 pub fn create_surface(
@@ -414,7 +422,12 @@ pub fn create_swapchain(
 ) -> SwapChainStuff {
     let swapchain_support = query_swapchain_support(physical_device, surface_stuff);
     let surface_format = choose_swapchain_format(&swapchain_support.formats);
+    info!(
+        "Supported present modes: {:?}",
+        swapchain_support.present_modes
+    );
     let present_mode = choose_swapchain_present_mode(&swapchain_support.present_modes);
+    info!("Selected present mode: {:?}", present_mode);
     let extent = choose_swapchain_extent(&swapchain_support.capabilities, window);
     let image_count = swapchain_support.capabilities.min_image_count + 1;
     let image_count = if swapchain_support.capabilities.max_image_count > 0 {
@@ -490,7 +503,7 @@ pub fn choose_swapchain_present_mode(
     available_present_modes: &Vec<vk::PresentModeKHR>,
 ) -> vk::PresentModeKHR {
     for &available_present_mode in available_present_modes.iter() {
-        if available_present_mode == vk::PresentModeKHR::MAILBOX {
+        if available_present_mode == vk::PresentModeKHR::FIFO {
             return available_present_mode;
         }
     }
@@ -1049,6 +1062,27 @@ impl RenderState {
         );
         let sync_objects = RenderState::create_sync_objects(&device);
 
+        let egui_ctx = Context::default();
+        let egui_winit = State::new(
+            egui_ctx.clone(),
+            ViewportId::ROOT,
+            &window,
+            None,
+            None,
+            None,
+        );
+        let egui_renderer = Renderer::with_default_allocator(
+            &instance,
+            physical_device,
+            device.clone(),
+            render_pass,
+            Options {
+                srgb_framebuffer: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
         // cleanup(); the 'drop' function will take care of it.
         RenderState {
             window,
@@ -1085,6 +1119,11 @@ impl RenderState {
             render_finished_semaphores: sync_objects.render_finished_semaphores,
             in_flight_fences: sync_objects.inflight_fences,
             current_frame: 0,
+
+            egui_ctx,
+            egui_winit,
+            egui_renderer,
+            textures_to_free: None,
         }
     }
 
