@@ -40,3 +40,6 @@ docs:
 
 run_android DEVICE:
     x run --package zurie_android --device {{DEVICE}} --release
+
+zurie_render2:
+    RUST_LOG=info mangohud cargo run --release --package zurie_render2

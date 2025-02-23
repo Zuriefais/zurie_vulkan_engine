@@ -594,11 +594,10 @@ pub fn create_graphics_pipeline(
     let vert_shader_module = create_shader_module(device, include_str!("shaders/vert.wgsl"));
     let frag_shader_module = create_shader_module(device, include_str!("shaders/frag.wgsl"));
 
-    let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
+    let main_function_name = CString::new("main").unwrap();
 
     let shader_stages = [
         vk::PipelineShaderStageCreateInfo {
-            // Vertex Shader
             s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineShaderStageCreateFlags::empty(),
@@ -609,7 +608,6 @@ pub fn create_graphics_pipeline(
             _marker: std::marker::PhantomData,
         },
         vk::PipelineShaderStageCreateInfo {
-            // Fragment Shader
             s_type: vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineShaderStageCreateFlags::empty(),
@@ -640,28 +638,25 @@ pub fn create_graphics_pipeline(
         _marker: std::marker::PhantomData,
     };
 
-    let viewports = [vk::Viewport {
-        x: 0.0,
-        y: 0.0,
-        width: swapchain_extent.width as f32,
-        height: swapchain_extent.height as f32,
-        min_depth: 0.0,
-        max_depth: 1.0,
-    }];
-
-    let scissors = [vk::Rect2D {
-        offset: vk::Offset2D { x: 0, y: 0 },
-        extent: swapchain_extent,
-    }];
+    // Define dynamic states
+    let dynamic_states = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+    let dynamic_state_create_info = vk::PipelineDynamicStateCreateInfo {
+        s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        p_next: ptr::null(),
+        flags: vk::PipelineDynamicStateCreateFlags::empty(),
+        dynamic_state_count: dynamic_states.len() as u32,
+        p_dynamic_states: dynamic_states.as_ptr(),
+        _marker: std::marker::PhantomData,
+    };
 
     let viewport_state_create_info = vk::PipelineViewportStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         p_next: ptr::null(),
         flags: vk::PipelineViewportStateCreateFlags::empty(),
-        scissor_count: scissors.len() as u32,
-        p_scissors: scissors.as_ptr(),
-        viewport_count: viewports.len() as u32,
-        p_viewports: viewports.as_ptr(),
+        scissor_count: 1, // Still need to specify count, but values are dynamic
+        p_scissors: ptr::null(), // Dynamic, so no static values
+        viewport_count: 1,
+        p_viewports: ptr::null(), // Dynamic, so no static values
         _marker: std::marker::PhantomData,
     };
 
@@ -774,7 +769,7 @@ pub fn create_graphics_pipeline(
         p_multisample_state: &multisample_state_create_info,
         p_depth_stencil_state: &depth_state_create_info,
         p_color_blend_state: &color_blend_state,
-        p_dynamic_state: ptr::null(),
+        p_dynamic_state: &dynamic_state_create_info, // Add dynamic state info
         layout: pipeline_layout,
         render_pass,
         subpass: 0,
@@ -914,6 +909,20 @@ pub fn create_command_buffers(
             _marker: std::marker::PhantomData,
         };
 
+        let viewports = [vk::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: surface_extent.width as f32,
+            height: surface_extent.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        }];
+
+        let scissors = [vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent: surface_extent,
+        }];
+
         unsafe {
             device.cmd_begin_render_pass(
                 command_buffer,
@@ -925,8 +934,9 @@ pub fn create_command_buffers(
                 vk::PipelineBindPoint::GRAPHICS,
                 graphics_pipeline,
             );
+            device.cmd_set_viewport(command_buffer, 0, &viewports);
+            device.cmd_set_scissor(command_buffer, 0, &scissors);
             device.cmd_draw(command_buffer, 3, 1, 0, 0);
-
             device.cmd_end_render_pass(command_buffer);
 
             device
