@@ -8,20 +8,23 @@ name = "zurie_render2"
 
 [dependencies]
 ash = "0.38.0"
-gpu-allocator = {version = "0.27.0", default-features = false, features = ["vulkan"]}
+ash-window = "0.13.0"
+gpu-allocator = { version = "0.27.0", default-features = false, features = [
+    "vulkan",
+] }
 
 glam = "0.29.2"
 
-anyhow = {workspace = true}
-log = {workspace = true}
+anyhow = { workspace = true }
+log = { workspace = true }
 
-winit = {version = "0.30.9", features = ["rwh_06"]}
+winit = { version = "0.30.9", features = ["rwh_06"] }
 
-egui = {workspace = true}
+egui = { workspace = true }
 egui-winit = "0.29.1"
 egui-ash-renderer = "0.8.0"
+gruvbox_egui = { path = "../gruvbox_egui" }
 
-ash-window = "0.13.0"
 num = "0.4.3"
 memoffset = "0.9.1"
 pollster = "0.4.0"
