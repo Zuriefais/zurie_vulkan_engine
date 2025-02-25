@@ -1,0 +1,10 @@
+[package]
+name = "zurie_render_glue"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+egui = { workspace = true }
+zurie_types = { path = "../zurie_types" }
+anyhow = { workspace = true }
+winit = { version = "0.30.9", features = ["rwh_06"] }

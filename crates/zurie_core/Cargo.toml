@@ -10,7 +10,7 @@ name = "zurie_core"
 [dependencies]
 color-hex = "0.2.0"
 ecolor = { version = "0.28.1", features = ["color-hex"] }
-egui = {workspace = true}
+egui = { workspace = true }
 env_logger = "0.11.5"
 fastrand = "2.1.0"
 log = { workspace = true }
@@ -28,4 +28,5 @@ zurie_scripting = { path = "../zurie_scripting" }
 zurie_render = { path = "../zurie_render" }
 zurie_ecs = { path = "../zurie_ecs" }
 zurie_input = { path = "../zurie_input" }
-tracy-client = {workspace = true}
+gruvbox_egui = { path = "../gruvbox_egui" }
+tracy-client = { workspace = true }

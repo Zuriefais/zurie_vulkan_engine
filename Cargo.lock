@@ -6026,6 +6026,7 @@ dependencies = [
  "egui",
  "env_logger",
  "fastrand",
+ "gruvbox_egui",
  "hashbrown 0.15.2",
  "log",
  "pollster 0.3.0",
@@ -6130,6 +6131,18 @@ dependencies = [
  "pollster 0.4.0",
  "windows 0.60.0",
  "winit",
+ "zurie_render_glue",
+ "zurie_types",
+]
+
+[[package]]
+name = "zurie_render_glue"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "egui",
+ "winit",
+ "zurie_types",
 ]
 
 [[package]]

@@ -13,8 +13,6 @@ use zurie_render::{compute_sand::CellType, render_state::RenderState};
 use zurie_scripting::mod_manager::ModManager;
 use zurie_types::{ComponentData, Object, camera::Camera, glam::Vec2};
 
-use crate::egui_theme::gruvbox_dark_theme;
-
 pub struct State {
     input: InputState,
     selected_cell_type: CellType,
@@ -35,7 +33,7 @@ impl State {
         let render_state =
             RenderState::new(window, event_loop).expect("error creating render state");
         let gui_context = render_state.gui.gui.context();
-        gui_context.set_style(gruvbox_dark_theme());
+        gui_context.set_style(gruvbox_egui::gruvbox_dark_theme());
 
         let size = render_state.renderer.window_size();
         let camera = Arc::new(RwLock::new(Camera::create_camera_from_screen_size(

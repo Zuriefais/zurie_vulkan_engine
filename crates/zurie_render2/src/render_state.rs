@@ -29,6 +29,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::raw_window_handle::HasDisplayHandle;
 use winit::window::Window;
 use winit::window::WindowId;
+use zurie_render_glue::RenderBackend;
 // Constants
 const WINDOW_TITLE: &'static str = "15.Hello Triangle";
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
@@ -39,53 +40,8 @@ struct SyncObjects {
     inflight_fences: Vec<vk::Fence>,
 }
 
-struct RenderState {
-    window: Arc<Window>,
-    // vulkan stuff
-    entry: ash::Entry,
-    instance: ash::Instance,
-    surface_loader: ash::khr::surface::Instance,
-    surface: vk::SurfaceKHR,
-    debug_utils_loader: ash::ext::debug_utils::Instance,
-    debug_merssager: vk::DebugUtilsMessengerEXT,
-
-    _physical_device: vk::PhysicalDevice,
-    device: ash::Device,
-
-    graphics_queue: vk::Queue,
-    present_queue: vk::Queue,
-
-    swapchain_loader: ash::khr::swapchain::Device,
-    swapchain: vk::SwapchainKHR,
-    swapchain_images: Vec<vk::Image>,
-    swapchain_format: vk::Format,
-    swapchain_extent: vk::Extent2D,
-    swapchain_imageviews: Vec<vk::ImageView>,
-    swapchain_framebuffers: Vec<vk::Framebuffer>,
-
-    render_pass: vk::RenderPass,
-    pipeline_layout: vk::PipelineLayout,
-    graphics_pipeline: vk::Pipeline,
-
-    command_pool: vk::CommandPool,
-    command_buffers: Vec<vk::CommandBuffer>,
-
-    image_available_semaphores: Vec<vk::Semaphore>,
-    render_finished_semaphores: Vec<vk::Semaphore>,
-    in_flight_fences: Vec<vk::Fence>,
-    current_frame: usize,
-
-    egui_ctx: Context,
-    egui_winit: State,
-    egui_renderer: Renderer,
-    textures_to_free: Option<Vec<TextureId>>,
-}
-
-impl RenderState {
-    pub async fn new(
-        window: Arc<Window>,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> RenderState {
+impl RenderBackend for RenderState {
+    fn init(window: Arc<Window>, event_loop: &ActiveEventLoop) -> Result<Self, anyhow::Error> {
         // init vulkan stuff
         let entry = unsafe { ash::Entry::load().unwrap() };
         let instance = create_instance(
@@ -172,7 +128,7 @@ impl RenderState {
         .unwrap();
 
         // cleanup(); the 'drop' function will take care of it.
-        RenderState {
+        Ok(RenderState {
             window,
             // vulkan stuff
             entry: entry,
@@ -212,9 +168,139 @@ impl RenderState {
             egui_winit,
             egui_renderer,
             textures_to_free: None,
-        }
+        })
     }
 
+    fn render(
+        &mut self,
+        background_color: [f32; 4],
+        camera: &zurie_types::camera::Camera,
+        objects: Arc<std::sync::RwLock<Vec<zurie_types::Object>>>,
+    ) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()> {
+        self.egui_winit.on_window_event(&self.window, &event);
+        Ok(())
+    }
+
+    fn get_egui_context(&self) -> egui::Context {
+        self.egui_ctx.clone()
+    }
+
+    fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()> {
+        unsafe {
+            // Wait for the device to finish all operations
+            self.device
+                .device_wait_idle()
+                .expect("Failed to wait for device idle");
+
+            // Clean up old resources
+            self.cleanup_swapchain();
+
+            // Update surface dimensions in surface_stuff (if needed elsewhere)
+            let surface_stuff = SurfaceStuff {
+                surface_loader: self.surface_loader.clone(),
+                surface: self.surface,
+                screen_width: size.0,
+                screen_height: size.1,
+            };
+
+            // Recreate the swapchain
+            let queue_family =
+                find_queue_family(&self.instance, self._physical_device, &surface_stuff);
+            let swapchain_stuff = create_swapchain(
+                &self.instance,
+                &self.device,
+                self._physical_device,
+                &self.window,
+                &surface_stuff,
+                &queue_family,
+            );
+
+            // Recreate image views
+            let swapchain_imageviews = create_image_views(
+                &self.device,
+                swapchain_stuff.swapchain_format,
+                &swapchain_stuff.swapchain_images,
+            );
+
+            // Recreate framebuffers
+            let swapchain_framebuffers = create_framebuffers(
+                &self.device,
+                self.render_pass,
+                &swapchain_imageviews,
+                swapchain_stuff.swapchain_extent,
+            );
+
+            // Recreate command buffers (since they depend on framebuffers)
+            let command_buffers = create_command_buffers(
+                &self.device,
+                self.command_pool,
+                self.graphics_pipeline,
+                &swapchain_framebuffers,
+                self.render_pass,
+                swapchain_stuff.swapchain_extent,
+            );
+
+            // Update RenderState with new resources
+            self.swapchain_loader = swapchain_stuff.swapchain_loader;
+            self.swapchain = swapchain_stuff.swapchain;
+            self.swapchain_format = swapchain_stuff.swapchain_format;
+            self.swapchain_images = swapchain_stuff.swapchain_images;
+            self.swapchain_extent = swapchain_stuff.swapchain_extent;
+            self.swapchain_imageviews = swapchain_imageviews;
+            self.swapchain_framebuffers = swapchain_framebuffers;
+            self.command_buffers = command_buffers;
+        }
+        Ok(())
+    }
+}
+
+struct RenderState {
+    window: Arc<Window>,
+    // vulkan stuff
+    entry: ash::Entry,
+    instance: ash::Instance,
+    surface_loader: ash::khr::surface::Instance,
+    surface: vk::SurfaceKHR,
+    debug_utils_loader: ash::ext::debug_utils::Instance,
+    debug_merssager: vk::DebugUtilsMessengerEXT,
+
+    _physical_device: vk::PhysicalDevice,
+    device: ash::Device,
+
+    graphics_queue: vk::Queue,
+    present_queue: vk::Queue,
+
+    swapchain_loader: ash::khr::swapchain::Device,
+    swapchain: vk::SwapchainKHR,
+    swapchain_images: Vec<vk::Image>,
+    swapchain_format: vk::Format,
+    swapchain_extent: vk::Extent2D,
+    swapchain_imageviews: Vec<vk::ImageView>,
+    swapchain_framebuffers: Vec<vk::Framebuffer>,
+
+    render_pass: vk::RenderPass,
+    pipeline_layout: vk::PipelineLayout,
+    graphics_pipeline: vk::Pipeline,
+
+    command_pool: vk::CommandPool,
+    command_buffers: Vec<vk::CommandBuffer>,
+
+    image_available_semaphores: Vec<vk::Semaphore>,
+    render_finished_semaphores: Vec<vk::Semaphore>,
+    in_flight_fences: Vec<vk::Fence>,
+    current_frame: usize,
+
+    egui_ctx: Context,
+    egui_winit: State,
+    egui_renderer: Renderer,
+    textures_to_free: Option<Vec<TextureId>>,
+}
+
+impl RenderState {
     fn render(&mut self) {
         let wait_fences = [self.in_flight_fences[self.current_frame]];
 
@@ -412,73 +498,6 @@ impl RenderState {
         }
     }
 
-    pub fn resize(&mut self, new_width: u32, new_height: u32) {
-        unsafe {
-            // Wait for the device to finish all operations
-            self.device
-                .device_wait_idle()
-                .expect("Failed to wait for device idle");
-
-            // Clean up old resources
-            self.cleanup_swapchain();
-
-            // Update surface dimensions in surface_stuff (if needed elsewhere)
-            let surface_stuff = SurfaceStuff {
-                surface_loader: self.surface_loader.clone(),
-                surface: self.surface,
-                screen_width: new_width,
-                screen_height: new_height,
-            };
-
-            // Recreate the swapchain
-            let queue_family =
-                find_queue_family(&self.instance, self._physical_device, &surface_stuff);
-            let swapchain_stuff = create_swapchain(
-                &self.instance,
-                &self.device,
-                self._physical_device,
-                &self.window,
-                &surface_stuff,
-                &queue_family,
-            );
-
-            // Recreate image views
-            let swapchain_imageviews = create_image_views(
-                &self.device,
-                swapchain_stuff.swapchain_format,
-                &swapchain_stuff.swapchain_images,
-            );
-
-            // Recreate framebuffers
-            let swapchain_framebuffers = create_framebuffers(
-                &self.device,
-                self.render_pass,
-                &swapchain_imageviews,
-                swapchain_stuff.swapchain_extent,
-            );
-
-            // Recreate command buffers (since they depend on framebuffers)
-            let command_buffers = create_command_buffers(
-                &self.device,
-                self.command_pool,
-                self.graphics_pipeline,
-                &swapchain_framebuffers,
-                self.render_pass,
-                swapchain_stuff.swapchain_extent,
-            );
-
-            // Update RenderState with new resources
-            self.swapchain_loader = swapchain_stuff.swapchain_loader;
-            self.swapchain = swapchain_stuff.swapchain;
-            self.swapchain_format = swapchain_stuff.swapchain_format;
-            self.swapchain_images = swapchain_stuff.swapchain_images;
-            self.swapchain_extent = swapchain_stuff.swapchain_extent;
-            self.swapchain_imageviews = swapchain_imageviews;
-            self.swapchain_framebuffers = swapchain_framebuffers;
-            self.command_buffers = command_buffers;
-        }
-    }
-
     // Helper method to clean up old swapchain-related resources
     fn cleanup_swapchain(&mut self) {
         unsafe {
@@ -673,7 +692,7 @@ impl ApplicationHandler for App {
             let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
             self.window = Some(window.clone());
 
-            let state = pollster::block_on(RenderState::new(window.clone(), event_loop));
+            let state = RenderState::init(window.clone(), event_loop).unwrap();
             self.state = Some(state);
         }
     }
@@ -685,7 +704,7 @@ impl ApplicationHandler for App {
         event: winit::event::WindowEvent,
     ) {
         let state = self.state.as_mut().unwrap();
-        state.egui_winit.on_window_event(&state.window, &event);
+        state.handle_window_event(&event);
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -698,7 +717,7 @@ impl ApplicationHandler for App {
                 ..
             } => event_loop.exit(),
             WindowEvent::Resized(size) => {
-                state.resize(size.width, size.height);
+                state.resize_window((size.width, size.height));
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Update egui's scale factor immediately
