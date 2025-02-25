@@ -1,4 +1,5 @@
 use ash::vk;
+use log::info;
 use std::sync::Arc;
 use winit::raw_window_handle::{HasDisplayHandle, HasRawDisplayHandle, HasRawWindowHandle};
 use winit::window::Window;
@@ -49,12 +50,22 @@ pub fn required_extension_names() -> Vec<*const i8> {
 
 #[cfg(all(unix, not(target_os = "android"), not(target_os = "macos")))]
 pub fn required_extension_names() -> Vec<*const i8> {
-    vec![
-        surface::NAME.as_ptr(),         // VK_KHR_surface
-        xlib_surface::NAME.as_ptr(),    // VK_KHR_xlib_surface for X11
-        wayland_surface::NAME.as_ptr(), // VK_KHR_wayland_surface for Wayland
-        debug_utils::NAME.as_ptr(),     // VK_EXT_debug_utils
-    ]
+    let mut extensions = vec![
+        surface::NAME.as_ptr(),      // VK_KHR_surface
+        xlib_surface::NAME.as_ptr(), // VK_KHR_xlib_surface for X11
+        debug_utils::NAME.as_ptr(),  // VK_EXT_debug_utils
+    ];
+
+    // Check if WAYLAND_DISPLAY env var exists
+    if std::env::var_os("WAYLAND_DISPLAY")
+        .map(|val| !val.is_empty())
+        .unwrap_or(false)
+    {
+        info!("WAYLAND_DISPLAY env var exists");
+        extensions.push(wayland_surface::NAME.as_ptr()); // VK_KHR_wayland_surface for Wayland
+    }
+
+    extensions
 }
 
 // Create surface ---------------------------------------------------------

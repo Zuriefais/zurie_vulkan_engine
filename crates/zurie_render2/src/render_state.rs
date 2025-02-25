@@ -131,7 +131,7 @@ impl RenderBackend for RenderState {
         Ok(RenderState {
             window,
             // vulkan stuff
-            entry: entry,
+            entry,
             instance,
             surface: surface_stuff.surface,
             surface_loader: surface_stuff.surface_loader,
