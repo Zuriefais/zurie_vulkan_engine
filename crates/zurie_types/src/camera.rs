@@ -1,7 +1,7 @@
 use super::glam::{Mat4, Vec2};
 use super::serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
 pub struct Camera {
     pub right: f32,
 

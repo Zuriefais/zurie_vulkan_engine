@@ -5,6 +5,7 @@ use crate::platforms;
 use crate::structures::*;
 use crate::tools;
 use crate::utils::*;
+use anyhow::Ok;
 use ash::vk;
 use egui::{ClippedPrimitive, Context, TextureId, ViewportId};
 use egui_ash_renderer::{Options, Renderer};
@@ -161,104 +162,6 @@ impl RenderBackend for RenderState {
         camera: &zurie_types::camera::Camera,
         objects: Arc<std::sync::RwLock<Vec<zurie_types::Object>>>,
     ) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()> {
-        self.egui_winit.on_window_event(&self.window, &event);
-        Ok(())
-    }
-
-    fn get_egui_context(&self) -> egui::Context {
-        self.egui_ctx.clone()
-    }
-
-    fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()> {
-        unsafe {
-            self.device
-                .device_wait_idle()
-                .expect("Failed to wait for device idle");
-            self.cleanup_swapchain();
-
-            let surface_stuff = SurfaceStuff {
-                surface_loader: self.surface_loader.clone(),
-                surface: self.surface,
-                screen_width: size.0,
-                screen_height: size.1,
-            };
-
-            let queue_family =
-                find_queue_family(&self.instance, self._physical_device, &surface_stuff);
-            let swapchain_stuff = create_swapchain(
-                &self.instance,
-                &self.device,
-                self._physical_device,
-                &self.window,
-                &surface_stuff,
-                &queue_family,
-            );
-
-            let swapchain_imageviews = create_image_views(
-                &self.device,
-                swapchain_stuff.swapchain_format,
-                &swapchain_stuff.swapchain_images,
-            );
-
-            let command_buffers = create_command_buffers_dynamic(
-                &self.device,
-                self.command_pool,
-                self.graphics_pipeline,
-                &swapchain_imageviews,
-                swapchain_stuff.swapchain_extent,
-                swapchain_stuff.swapchain_format,
-            );
-
-            self.swapchain_loader = swapchain_stuff.swapchain_loader;
-            self.swapchain = swapchain_stuff.swapchain;
-            self.swapchain_format = swapchain_stuff.swapchain_format;
-            self.swapchain_images = swapchain_stuff.swapchain_images;
-            self.swapchain_extent = swapchain_stuff.swapchain_extent;
-            self.swapchain_imageviews = swapchain_imageviews;
-            self.command_buffers = command_buffers;
-        }
-        Ok(())
-    }
-}
-
-struct RenderState {
-    window: Arc<Window>,
-    entry: ash::Entry,
-    instance: ash::Instance,
-    surface_loader: ash::khr::surface::Instance,
-    surface: vk::SurfaceKHR,
-    debug_utils_loader: ash::ext::debug_utils::Instance,
-    debug_merssager: vk::DebugUtilsMessengerEXT,
-    _physical_device: vk::PhysicalDevice,
-    device: ash::Device,
-    graphics_queue: vk::Queue,
-    present_queue: vk::Queue,
-    swapchain_loader: ash::khr::swapchain::Device,
-    swapchain: vk::SwapchainKHR,
-    swapchain_images: Vec<vk::Image>,
-    swapchain_format: vk::Format,
-    swapchain_extent: vk::Extent2D,
-    swapchain_imageviews: Vec<vk::ImageView>,
-    pipeline_layout: vk::PipelineLayout,
-    graphics_pipeline: vk::Pipeline,
-    command_pool: vk::CommandPool,
-    command_buffers: Vec<vk::CommandBuffer>,
-    image_available_semaphores: Vec<vk::Semaphore>,
-    render_finished_semaphores: Vec<vk::Semaphore>,
-    in_flight_fences: Vec<vk::Fence>,
-    current_frame: usize,
-    egui_ctx: Context,
-    egui_winit: State,
-    egui_renderer: Renderer,
-    textures_to_free: Option<Vec<TextureId>>,
-}
-
-impl RenderState {
-    fn render(&mut self) {
         let wait_fences = [self.in_flight_fences[self.current_frame]];
 
         unsafe {
@@ -370,8 +273,103 @@ impl RenderState {
         }
 
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+        Ok(())
     }
 
+    fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()> {
+        self.egui_winit.on_window_event(&self.window, &event);
+        Ok(())
+    }
+
+    fn get_egui_context(&self) -> egui::Context {
+        self.egui_ctx.clone()
+    }
+
+    fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()> {
+        unsafe {
+            self.device
+                .device_wait_idle()
+                .expect("Failed to wait for device idle");
+            self.cleanup_swapchain();
+
+            let surface_stuff = SurfaceStuff {
+                surface_loader: self.surface_loader.clone(),
+                surface: self.surface,
+                screen_width: size.0,
+                screen_height: size.1,
+            };
+
+            let queue_family =
+                find_queue_family(&self.instance, self._physical_device, &surface_stuff);
+            let swapchain_stuff = create_swapchain(
+                &self.instance,
+                &self.device,
+                self._physical_device,
+                &self.window,
+                &surface_stuff,
+                &queue_family,
+            );
+
+            let swapchain_imageviews = create_image_views(
+                &self.device,
+                swapchain_stuff.swapchain_format,
+                &swapchain_stuff.swapchain_images,
+            );
+
+            let command_buffers = create_command_buffers_dynamic(
+                &self.device,
+                self.command_pool,
+                self.graphics_pipeline,
+                &swapchain_imageviews,
+                swapchain_stuff.swapchain_extent,
+                swapchain_stuff.swapchain_format,
+            );
+
+            self.swapchain_loader = swapchain_stuff.swapchain_loader;
+            self.swapchain = swapchain_stuff.swapchain;
+            self.swapchain_format = swapchain_stuff.swapchain_format;
+            self.swapchain_images = swapchain_stuff.swapchain_images;
+            self.swapchain_extent = swapchain_stuff.swapchain_extent;
+            self.swapchain_imageviews = swapchain_imageviews;
+            self.command_buffers = command_buffers;
+        }
+        Ok(())
+    }
+}
+
+struct RenderState {
+    window: Arc<Window>,
+    entry: ash::Entry,
+    instance: ash::Instance,
+    surface_loader: ash::khr::surface::Instance,
+    surface: vk::SurfaceKHR,
+    debug_utils_loader: ash::ext::debug_utils::Instance,
+    debug_merssager: vk::DebugUtilsMessengerEXT,
+    _physical_device: vk::PhysicalDevice,
+    device: ash::Device,
+    graphics_queue: vk::Queue,
+    present_queue: vk::Queue,
+    swapchain_loader: ash::khr::swapchain::Device,
+    swapchain: vk::SwapchainKHR,
+    swapchain_images: Vec<vk::Image>,
+    swapchain_format: vk::Format,
+    swapchain_extent: vk::Extent2D,
+    swapchain_imageviews: Vec<vk::ImageView>,
+    pipeline_layout: vk::PipelineLayout,
+    graphics_pipeline: vk::Pipeline,
+    command_pool: vk::CommandPool,
+    command_buffers: Vec<vk::CommandBuffer>,
+    image_available_semaphores: Vec<vk::Semaphore>,
+    render_finished_semaphores: Vec<vk::Semaphore>,
+    in_flight_fences: Vec<vk::Fence>,
+    current_frame: usize,
+    egui_ctx: Context,
+    egui_winit: State,
+    egui_renderer: Renderer,
+    textures_to_free: Option<Vec<TextureId>>,
+}
+
+impl RenderState {
     fn record_command_buffer(
         &mut self,
         image_index: usize,
@@ -759,7 +757,9 @@ impl ApplicationHandler for App {
                 log::info!("Scale factor: {}", scale_factor);
             }
             WindowEvent::RedrawRequested => {
-                state.render();
+                state
+                    .render(Default::default(), &Default::default(), Default::default())
+                    .unwrap();
                 self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}
