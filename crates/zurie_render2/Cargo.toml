@@ -22,7 +22,7 @@ winit = { version = "0.30.9", features = ["rwh_06"] }
 
 egui = { workspace = true }
 egui-winit = "0.29.1"
-egui-ash-renderer = "0.8.0"
+egui-ash-renderer = {version = "0.8.0", features = ["dynamic-rendering"]}
 gruvbox_egui = { path = "../gruvbox_egui" }
 
 num = "0.4.3"

@@ -1,11 +1,7 @@
 use ash::vk;
 use glam::Mat4; // Changed from cgmath::Matrix4
 use memoffset::offset_of;
-
-pub struct DeviceExtension {
-    pub names: [&'static str; 1],
-    //    pub raw_names: [*const i8; 1],
-}
+use std::fmt;
 
 pub struct SurfaceStuff {
     pub surface_loader: ash::khr::surface::Instance,

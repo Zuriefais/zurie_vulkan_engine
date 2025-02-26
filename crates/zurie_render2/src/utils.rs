@@ -4,7 +4,10 @@ use crate::debug::setup_debug_utils;
 use crate::platforms;
 use crate::structures::*;
 use crate::tools;
+use anyhow::anyhow;
+use ash::khr::swapchain;
 use ash::vk;
+use ash::vk::DeviceCreateInfo;
 use egui::{ClippedPrimitive, Context, TextureId, ViewportId};
 use egui_ash_renderer::{Options, Renderer};
 use egui_winit::State;
@@ -12,6 +15,7 @@ use log::info;
 use naga::back::spv; // For generating SPIR-V
 use naga::front::wgsl; // For parsing WGSL
 use naga::valid::{Capabilities, ValidationFlags, Validator};
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ffi::c_char;
 use std::ffi::c_void;
@@ -54,7 +58,7 @@ pub fn create_instance(
     window_title: &str,
     is_enable_debug: bool,
     required_validation_layers: &Vec<&str>,
-) -> ash::Instance {
+) -> anyhow::Result<ash::Instance> {
     if is_enable_debug
         && debug::check_validation_layer_support(entry, required_validation_layers) == false
     {
@@ -63,6 +67,10 @@ pub fn create_instance(
 
     let app_name = CString::new(window_title).unwrap();
     let engine_name = CString::new("Vulkan Engine").unwrap();
+    let api_version = unsafe { entry.enumerate_instance_version().unwrap() };
+    if api_version < vk::make_api_version(0, 1, 3, 0) {
+        Err(anyhow!("Vulkan 1.3 is not supported by this system!"))?
+    }
     let app_info = vk::ApplicationInfo {
         p_application_name: app_name.as_ptr(),
         s_type: vk::StructureType::APPLICATION_INFO,
@@ -70,7 +78,7 @@ pub fn create_instance(
         application_version: APPLICATION_VERSION,
         p_engine_name: engine_name.as_ptr(),
         engine_version: ENGINE_VERSION,
-        api_version: API_VERSION,
+        api_version,
         _marker: std::marker::PhantomData,
     };
 
@@ -119,75 +127,91 @@ pub fn create_instance(
             .expect("Failed to create instance!")
     };
 
-    instance
+    Ok(instance)
 }
 
 pub fn pick_physical_device(
     instance: &ash::Instance,
     surface_stuff: &SurfaceStuff,
-    required_device_extensions: &DeviceExtension,
-) -> vk::PhysicalDevice {
-    let physical_devices = unsafe {
-        instance
-            .enumerate_physical_devices()
-            .expect("Failed to enumerate Physical Devices!")
+) -> anyhow::Result<vk::PhysicalDevice> {
+    let devices = {
+        let mut devices = unsafe { instance.enumerate_physical_devices()? };
+        devices.sort_by_key(|device| {
+            let props = unsafe { instance.get_physical_device_properties(*device) };
+            match props.device_type {
+                vk::PhysicalDeviceType::DISCRETE_GPU => 0,
+                vk::PhysicalDeviceType::INTEGRATED_GPU => 1,
+                _ => 2,
+            }
+        });
+        devices
     };
 
-    let result = physical_devices.iter().find(|physical_device| {
-        let is_suitable = is_physical_device_suitable(
-            instance,
-            **physical_device,
-            surface_stuff,
-            required_device_extensions,
-        );
+    let device = devices.into_iter().find(|device| {
+        let device = *device;
 
-        // if is_suitable {
-        //     let device_properties = instance.get_physical_device_properties(**physical_device);
-        //     let device_name = super::tools::vk_to_string(&device_properties.device_name);
-        //     println!("Using GPU: {}", device_name);
-        // }
+        // Does device supports graphics and present queues
+        let props = unsafe { instance.get_physical_device_queue_family_properties(device) };
+        for (index, family) in props.iter().filter(|f| f.queue_count > 0).enumerate() {
+            let index = index as u32;
 
-        is_suitable
+            let present_support = unsafe {
+                surface_stuff
+                    .surface_loader
+                    .get_physical_device_surface_support(device, index, surface_stuff.surface)
+                    .expect("Failed to get device surface support")
+            };
+        }
+
+        // Does device support desired extensions
+        let extension_props = unsafe {
+            instance
+                .enumerate_device_extension_properties(device)
+                .expect("Failed to get device ext properties")
+        };
+        let extention_support = extension_props.iter().any(|ext| {
+            let name = unsafe { CStr::from_ptr(ext.extension_name.as_ptr()) };
+            swapchain::NAME == name
+        });
+
+        // Does the device have available formats for the given surface
+        let formats = unsafe {
+            surface_stuff
+                .surface_loader
+                .get_physical_device_surface_formats(device, surface_stuff.surface)
+                .expect("Failed to get physical device surface formats")
+        };
+
+        // Does the device have available present modes for the given surface
+        let present_modes = unsafe {
+            surface_stuff
+                .surface_loader
+                .get_physical_device_surface_present_modes(device, surface_stuff.surface)
+                .expect("Failed to get physical device surface present modes")
+        };
+
+        // Check 1.3 features
+        let mut features13 = vk::PhysicalDeviceVulkan13Features::default();
+        let mut features = vk::PhysicalDeviceFeatures2::default().push_next(&mut features13);
+        unsafe { instance.get_physical_device_features2(device, &mut features) };
+
+        extention_support
+            && !formats.is_empty()
+            && !present_modes.is_empty()
+            && features13.dynamic_rendering == vk::TRUE
+            && features13.synchronization2 == vk::TRUE
     });
 
-    match result {
-        Some(p_physical_device) => *p_physical_device,
-        None => panic!("Failed to find a suitable GPU!"),
+    match device {
+        Some(device) => Ok(device),
+        None => Err(anyhow!("Failed to find a suitable GPU!")),
     }
-}
-
-pub fn is_physical_device_suitable(
-    instance: &ash::Instance,
-    physical_device: vk::PhysicalDevice,
-    surface_stuff: &SurfaceStuff,
-    required_device_extensions: &DeviceExtension,
-) -> bool {
-    let device_features = unsafe { instance.get_physical_device_features(physical_device) };
-
-    let indices = find_queue_family(instance, physical_device, surface_stuff);
-
-    let is_queue_family_supported = indices.is_complete();
-    let is_device_extension_supported =
-        check_device_extension_support(instance, physical_device, required_device_extensions);
-    let is_swapchain_supported = if is_device_extension_supported {
-        let swapchain_support = query_swapchain_support(physical_device, surface_stuff);
-        !swapchain_support.formats.is_empty() && !swapchain_support.present_modes.is_empty()
-    } else {
-        false
-    };
-    let is_support_sampler_anisotropy = device_features.sampler_anisotropy == 1;
-
-    return is_queue_family_supported
-        && is_device_extension_supported
-        && is_swapchain_supported
-        && is_support_sampler_anisotropy;
 }
 
 pub fn create_logical_device(
     instance: &ash::Instance,
     physical_device: vk::PhysicalDevice,
     validation: &debug::ValidationInfo,
-    device_extensions: &DeviceExtension,
     surface_stuff: &SurfaceStuff,
 ) -> (ash::Device, QueueFamilyIndices) {
     let indices = find_queue_family(instance, physical_device, surface_stuff);
@@ -212,44 +236,22 @@ pub fn create_logical_device(
         queue_create_infos.push(queue_create_info);
     }
 
-    let physical_device_features = vk::PhysicalDeviceFeatures {
-        sampler_anisotropy: vk::TRUE, // enable anisotropy device feature from Chapter-24.
-        ..Default::default()
-    };
+    let device_extensions_ptrs = [
+        swapchain::NAME.as_ptr(),
+        ash::khr::dynamic_rendering::NAME.as_ptr(),
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        ash::khr::portability_subset::NAME.as_ptr(),
+    ];
 
-    let requred_validation_layer_raw_names: Vec<CString> = validation
-        .required_validation_layers
-        .iter()
-        .map(|layer_name| CString::new(*layer_name).unwrap())
-        .collect();
-    let enable_layer_names: Vec<*const c_char> = requred_validation_layer_raw_names
-        .iter()
-        .map(|layer_name| layer_name.as_ptr())
-        .collect();
+    let mut features13 = vk::PhysicalDeviceVulkan13Features::default()
+        .dynamic_rendering(true)
+        .synchronization2(true);
+    let mut features = vk::PhysicalDeviceFeatures2::default().push_next(&mut features13);
 
-    let enable_extension_names = CString::new(device_extensions.names[0]).unwrap();
-
-    let device_create_info = vk::DeviceCreateInfo {
-        s_type: vk::StructureType::DEVICE_CREATE_INFO,
-        p_next: ptr::null(),
-        flags: vk::DeviceCreateFlags::empty(),
-        queue_create_info_count: queue_create_infos.len() as u32,
-        p_queue_create_infos: queue_create_infos.as_ptr(),
-        enabled_layer_count: if validation.is_enable {
-            enable_layer_names.len()
-        } else {
-            0
-        } as u32,
-        pp_enabled_layer_names: if validation.is_enable {
-            enable_layer_names.as_ptr()
-        } else {
-            ptr::null()
-        },
-        enabled_extension_count: device_extensions.names.len() as u32,
-        pp_enabled_extension_names: &enable_extension_names.as_ptr(),
-        p_enabled_features: &physical_device_features,
-        _marker: std::marker::PhantomData,
-    };
+    let device_create_info = vk::DeviceCreateInfo::default()
+        .queue_create_infos(&queue_create_infos)
+        .enabled_extension_names(&device_extensions_ptrs)
+        .push_next(&mut features);
 
     let device: ash::Device = unsafe {
         instance
@@ -300,38 +302,6 @@ pub fn find_queue_family(
     }
 
     queue_family_indices
-}
-
-pub fn check_device_extension_support(
-    instance: &ash::Instance,
-    physical_device: vk::PhysicalDevice,
-    device_extensions: &DeviceExtension,
-) -> bool {
-    let available_extensions = unsafe {
-        instance
-            .enumerate_device_extension_properties(physical_device)
-            .expect("Failed to get device extension properties.")
-    };
-
-    let mut available_extension_names = vec![];
-
-    for extension in available_extensions.iter() {
-        let extension_name = tools::vk_to_string(&extension.extension_name);
-
-        available_extension_names.push(extension_name);
-    }
-
-    use std::collections::HashSet;
-    let mut required_extensions = HashSet::new();
-    for extension in device_extensions.names.iter() {
-        required_extensions.insert(extension.to_string());
-    }
-
-    for extension_name in available_extension_names.iter() {
-        required_extensions.remove(extension_name);
-    }
-
-    return required_extensions.is_empty();
 }
 
 pub fn query_swapchain_support(
@@ -549,13 +519,13 @@ pub fn create_image_view(
 
 pub fn create_graphics_pipeline(
     device: &ash::Device,
-    render_pass: vk::RenderPass,
     swapchain_extent: vk::Extent2D,
+    swapchain_format: vk::Format,
 ) -> (vk::Pipeline, vk::PipelineLayout) {
     let vert_shader_module = create_shader_module(device, include_str!("shaders/vert.wgsl"));
     let frag_shader_module = create_shader_module(device, include_str!("shaders/frag.wgsl"));
 
-    let main_function_name = CString::new("main").unwrap();
+    let main_function_name = std::ffi::CString::new("main").unwrap();
 
     let shader_stages = [
         vk::PipelineShaderStageCreateInfo {
@@ -599,7 +569,6 @@ pub fn create_graphics_pipeline(
         _marker: std::marker::PhantomData,
     };
 
-    // Define dynamic states
     let dynamic_states = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
     let dynamic_state_create_info = vk::PipelineDynamicStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -614,10 +583,10 @@ pub fn create_graphics_pipeline(
         s_type: vk::StructureType::PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         p_next: ptr::null(),
         flags: vk::PipelineViewportStateCreateFlags::empty(),
-        scissor_count: 1, // Still need to specify count, but values are dynamic
-        p_scissors: ptr::null(), // Dynamic, so no static values
+        scissor_count: 1,
+        p_scissors: ptr::null(),
         viewport_count: 1,
-        p_viewports: ptr::null(), // Dynamic, so no static values
+        p_viewports: ptr::null(),
         _marker: std::marker::PhantomData,
     };
 
@@ -716,9 +685,22 @@ pub fn create_graphics_pipeline(
             .expect("Failed to create pipeline layout!")
     };
 
+    // Allocate VkPipelineRenderingCreateInfo on the heap to ensure stable memory
+    let color_attachment_formats = [swapchain_format];
+    let pipeline_rendering_create_info = Box::new(vk::PipelineRenderingCreateInfo {
+        s_type: vk::StructureType::PIPELINE_RENDERING_CREATE_INFO,
+        p_next: ptr::null(),
+        view_mask: 0,
+        color_attachment_count: color_attachment_formats.len() as u32,
+        p_color_attachment_formats: color_attachment_formats.as_ptr(),
+        depth_attachment_format: vk::Format::UNDEFINED,
+        stencil_attachment_format: vk::Format::UNDEFINED,
+        _marker: std::marker::PhantomData,
+    });
+
     let graphic_pipeline_create_infos = [vk::GraphicsPipelineCreateInfo {
         s_type: vk::StructureType::GRAPHICS_PIPELINE_CREATE_INFO,
-        p_next: ptr::null(),
+        p_next: Box::into_raw(pipeline_rendering_create_info) as *const std::ffi::c_void,
         flags: vk::PipelineCreateFlags::empty(),
         stage_count: shader_stages.len() as u32,
         p_stages: shader_stages.as_ptr(),
@@ -730,9 +712,9 @@ pub fn create_graphics_pipeline(
         p_multisample_state: &multisample_state_create_info,
         p_depth_stencil_state: &depth_state_create_info,
         p_color_blend_state: &color_blend_state,
-        p_dynamic_state: &dynamic_state_create_info, // Add dynamic state info
+        p_dynamic_state: &dynamic_state_create_info,
         layout: pipeline_layout,
-        render_pass,
+        render_pass: vk::RenderPass::null(),
         subpass: 0,
         base_pipeline_handle: vk::Pipeline::null(),
         base_pipeline_index: -1,
@@ -746,12 +728,17 @@ pub fn create_graphics_pipeline(
                 &graphic_pipeline_create_infos,
                 None,
             )
-            .expect("Failed to create Graphics Pipeline!.")
+            .expect("Failed to create Graphics Pipeline!")
     };
 
+    // Clean up shader modules
     unsafe {
         device.destroy_shader_module(vert_shader_module, None);
         device.destroy_shader_module(frag_shader_module, None);
+        // Free the boxed pipeline_rendering_create_info after use
+        let _ = Box::from_raw(
+            graphic_pipeline_create_infos[0].p_next as *mut vk::PipelineRenderingCreateInfo,
+        );
     }
 
     (graphics_pipelines[0], pipeline_layout)
