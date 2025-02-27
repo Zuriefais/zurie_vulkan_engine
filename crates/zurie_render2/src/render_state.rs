@@ -30,7 +30,10 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::raw_window_handle::HasDisplayHandle;
 use winit::window::Window;
 use winit::window::WindowId;
+use zurie_render_glue::FrameContext;
 use zurie_render_glue::RenderBackend;
+use zurie_render_glue::RenderConfig;
+use zurie_types::Object;
 // Constants
 const WINDOW_TITLE: &'static str = "15.Hello Triangle";
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
@@ -42,8 +45,9 @@ struct SyncObjects {
 }
 
 impl RenderBackend for RenderState {
-    fn init(window: Arc<Window>, event_loop: &ActiveEventLoop) -> Result<Self, anyhow::Error> {
+    fn init(config: RenderConfig) -> Result<Self, anyhow::Error> {
         let entry = unsafe { ash::Entry::load().unwrap() };
+        let window = config.window;
         let instance = create_instance(
             &entry,
             WINDOW_TITLE,
@@ -98,10 +102,8 @@ impl RenderBackend for RenderState {
         );
         let sync_objects = RenderState::create_sync_objects(&device);
 
-        let egui_ctx = Context::default();
-        egui_ctx.set_style(gruvbox_egui::gruvbox_dark_theme());
         let egui_winit = State::new(
-            egui_ctx.clone(),
+            config.egui_context.clone(),
             ViewportId::ROOT,
             &window,
             None,
@@ -149,19 +151,17 @@ impl RenderBackend for RenderState {
             render_finished_semaphores: sync_objects.render_finished_semaphores,
             in_flight_fences: sync_objects.inflight_fences,
             current_frame: 0,
-            egui_ctx,
+            egui_ctx: config.egui_context,
             egui_winit,
             egui_renderer,
             textures_to_free: None,
         })
     }
 
-    fn render(
-        &mut self,
-        background_color: [f32; 4],
-        camera: &zurie_types::camera::Camera,
-        objects: Arc<std::sync::RwLock<Vec<zurie_types::Object>>>,
-    ) -> anyhow::Result<()> {
+    fn render<I>(&mut self, context: FrameContext, objects: I) -> anyhow::Result<()>
+    where
+        I: Iterator<Item = Object>,
+    {
         let wait_fences = [self.in_flight_fences[self.current_frame]];
 
         unsafe {
@@ -279,10 +279,6 @@ impl RenderBackend for RenderState {
     fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()> {
         self.egui_winit.on_window_event(&self.window, &event);
         Ok(())
-    }
-
-    fn get_egui_context(&self) -> egui::Context {
-        self.egui_ctx.clone()
     }
 
     fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()> {
@@ -723,8 +719,14 @@ impl ApplicationHandler for App {
                 Window::default_attributes().with_title("Vulcan engine by Zuriefais");
             let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
             self.window = Some(window.clone());
-
-            let state = RenderState::init(window.clone(), event_loop).unwrap();
+            let egui_context = Context::default();
+            egui_context.set_style(gruvbox_egui::gruvbox_dark_theme());
+            let state = RenderState::init(RenderConfig {
+                window: window.clone(),
+                event_loop,
+                egui_context,
+            })
+            .unwrap();
             self.state = Some(state);
         }
     }
@@ -758,7 +760,7 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 state
-                    .render(Default::default(), &Default::default(), Default::default())
+                    .render(Default::default(), Vec::new().into_iter())
                     .unwrap();
                 self.window.as_ref().unwrap().request_redraw();
             }

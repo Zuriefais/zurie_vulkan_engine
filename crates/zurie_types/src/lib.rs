@@ -73,6 +73,7 @@ pub struct Object {
     pub scale: [f32; 2],
     pub color: [f32; 4],
     pub sprite: u64,
+    pub z_index: f32,
 }
 
 impl Default for Object {
@@ -82,6 +83,7 @@ impl Default for Object {
             scale: [1.0, 1.0],
             color: [1.0, 1.0, 1.0, 1.0],
             sprite: 0,
+            z_index: 1.0,
         }
     }
 }
