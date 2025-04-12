@@ -226,7 +226,7 @@ impl RenderBackend for RenderState {
         let instance_data = vec![InstanceData {
             position: Vec2::new(0.0, 0.0),
             scale: Vec2::new(1.0, 1.0),
-            color: Vec4::new(1.0, 0.0, 0.0, 1.0), // Red color
+            color: Vec4::new(1.0, 1.0, 0.0, 1.0), // Red color
         }];
 
         let (instance_buffer, instance_buffer_memory) = crate::vertex::create_instance_buffer(
@@ -807,11 +807,67 @@ fn create_texture_image(
     queue: vk::Queue,
     command_pool: vk::CommandPool,
 ) -> (vk::Image, vk::DeviceMemory, vk::ImageView) {
-    // Create a simple 1x1 white texture as a placeholder
+    // Create staging buffer
+    let pixel_data = [255u8, 255, 255, 255]; // White pixel (RGBA)
+    let buffer_size = pixel_data.len() as vk::DeviceSize;
+    let staging_buffer_info = vk::BufferCreateInfo {
+        s_type: vk::StructureType::BUFFER_CREATE_INFO,
+        p_next: ptr::null(),
+        flags: vk::BufferCreateFlags::empty(),
+        size: buffer_size,
+        usage: vk::BufferUsageFlags::TRANSFER_SRC,
+        sharing_mode: vk::SharingMode::EXCLUSIVE,
+        queue_family_index_count: queue_family_indices.len() as u32,
+        p_queue_family_indices: queue_family_indices.as_ptr(),
+        ..Default::default()
+    };
+    let staging_buffer = unsafe { device.create_buffer(&staging_buffer_info, None).unwrap() };
+    let staging_mem_requirements = unsafe { device.get_buffer_memory_requirements(staging_buffer) };
+
+    // Allocate staging buffer memory (host-visible)
+    let memory_properties =
+        unsafe { instance.get_physical_device_memory_properties(physical_device) };
+    let memory_type_index = memory_properties
+        .memory_types
+        .iter()
+        .enumerate()
+        .find(|(i, mem_type)| {
+            let type_filter = staging_mem_requirements.memory_type_bits & (1 << i);
+            let properties =
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+            type_filter != 0 && mem_type.property_flags.contains(properties)
+        })
+        .map(|(i, _)| i as u32)
+        .expect("No suitable memory type for staging buffer");
+
+    let staging_memory_info = vk::MemoryAllocateInfo {
+        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+        p_next: ptr::null(),
+        allocation_size: staging_mem_requirements.size,
+        memory_type_index,
+        ..Default::default()
+    };
+    let staging_memory = unsafe { device.allocate_memory(&staging_memory_info, None).unwrap() };
+    unsafe {
+        device
+            .bind_buffer_memory(staging_buffer, staging_memory, 0)
+            .unwrap()
+    };
+
+    // Upload pixel data to staging buffer
+    unsafe {
+        let data_ptr = device
+            .map_memory(staging_memory, 0, buffer_size, vk::MemoryMapFlags::empty())
+            .expect("Failed to map staging memory") as *mut u8;
+        ptr::copy_nonoverlapping(pixel_data.as_ptr(), data_ptr, pixel_data.len());
+        device.unmap_memory(staging_memory);
+    }
+
+    // Create texture image
     let image_info = vk::ImageCreateInfo {
         s_type: vk::StructureType::IMAGE_CREATE_INFO,
-        p_next: std::ptr::null(),
-        flags: vk::ImageCreateFlags::empty(),
+        p_next: ptr::null(),
+        flags: vk::ImageCreateFlags::empty(), // Fixed: Use ImageCreateFlags
         image_type: vk::ImageType::TYPE_2D,
         format: vk::Format::R8G8B8A8_SRGB,
         extent: vk::Extent3D {
@@ -828,19 +884,40 @@ fn create_texture_image(
         queue_family_index_count: queue_family_indices.len() as u32,
         p_queue_family_indices: queue_family_indices.as_ptr(),
         initial_layout: vk::ImageLayout::UNDEFINED,
-        _marker: std::marker::PhantomData,
+        ..Default::default()
     };
-
     let image = unsafe { device.create_image(&image_info, None).unwrap() };
     let mem_requirements = unsafe { device.get_image_memory_requirements(image) };
-    let memory = allocate_buffer_memory(instance, device, physical_device, &mem_requirements);
+
+    // Allocate texture image memory (device-local)
+    let memory_type_index = memory_properties
+        .memory_types
+        .iter()
+        .enumerate()
+        .find(|(i, mem_type)| {
+            let type_filter = mem_requirements.memory_type_bits & (1 << i);
+            mem_type
+                .property_flags
+                .contains(vk::MemoryPropertyFlags::DEVICE_LOCAL)
+        })
+        .map(|(i, _)| i as u32)
+        .expect("No suitable memory type for texture image");
+
+    let memory_info = vk::MemoryAllocateInfo {
+        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+        p_next: ptr::null(),
+        allocation_size: mem_requirements.size,
+        memory_type_index,
+        ..Default::default()
+    };
+    let memory = unsafe { device.allocate_memory(&memory_info, None).unwrap() };
     unsafe { device.bind_image_memory(image, memory, 0).unwrap() };
 
-    // Transition layout and copy data
+    // Transfer pixel data to image
     let command_buffer = begin_single_time_commands(device, command_pool);
     let barrier = vk::ImageMemoryBarrier {
         s_type: vk::StructureType::IMAGE_MEMORY_BARRIER,
-        p_next: std::ptr::null(),
+        p_next: ptr::null(),
         src_access_mask: vk::AccessFlags::empty(),
         dst_access_mask: vk::AccessFlags::TRANSFER_WRITE,
         old_layout: vk::ImageLayout::UNDEFINED,
@@ -855,9 +932,8 @@ fn create_texture_image(
             base_array_layer: 0,
             layer_count: 1,
         },
-        _marker: std::marker::PhantomData,
+        ..Default::default()
     };
-
     unsafe {
         device.cmd_pipeline_barrier(
             command_buffer,
@@ -869,8 +945,34 @@ fn create_texture_image(
             &[barrier],
         );
 
-        // Transition to shader read optimal
+        let copy_region = vk::BufferImageCopy {
+            buffer_offset: 0,
+            buffer_row_length: 0,
+            buffer_image_height: 0,
+            image_subresource: vk::ImageSubresourceLayers {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                mip_level: 0,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+            image_offset: vk::Offset3D { x: 0, y: 0, z: 0 },
+            image_extent: vk::Extent3D {
+                width: 1,
+                height: 1,
+                depth: 1,
+            },
+            ..Default::default()
+        };
+        device.cmd_copy_buffer_to_image(
+            command_buffer,
+            staging_buffer,
+            image,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            &[copy_region],
+        );
+
         let barrier = vk::ImageMemoryBarrier {
+            src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
             dst_access_mask: vk::AccessFlags::SHADER_READ,
             old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             new_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
@@ -886,9 +988,15 @@ fn create_texture_image(
             &[barrier],
         );
     }
-
     end_single_time_commands(device, command_pool, queue, command_buffer);
 
+    // Clean up staging buffer
+    unsafe {
+        device.destroy_buffer(staging_buffer, None);
+        device.free_memory(staging_memory, None);
+    }
+
+    // Create image view
     let view = create_image_view(
         device,
         image,
