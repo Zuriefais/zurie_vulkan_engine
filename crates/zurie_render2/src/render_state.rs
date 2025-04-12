@@ -3,7 +3,9 @@ use crate::camera::create_camera_buffer;
 use crate::constants::*;
 use crate::debug::setup_debug_utils;
 use crate::structures::*;
-use crate::utils::*;
+use crate::utils::vulkan_init::*;
+
+use crate::utils::swapchain::*;
 use crate::vertex::InstanceData;
 use crate::vertex::create_quad_buffer;
 use anyhow::Ok;
@@ -34,9 +36,6 @@ use zurie_render_glue::FrameContext;
 use zurie_render_glue::RenderBackend;
 use zurie_render_glue::RenderConfig;
 use zurie_types::Object;
-// Constants
-const WINDOW_TITLE: &'static str = "15.Hello Triangle";
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
 struct SyncObjects {
     image_available_semaphores: Vec<vk::Semaphore>,
@@ -936,7 +935,7 @@ fn create_texture_image(
         .map(|(i, _)| i as u32)
         .expect("No suitable memory type for texture image");
 
-    let memory = crate::utils::allocate_buffer_memory(
+    let memory = allocate_buffer_memory(
         instance,
         device,
         physical_device,

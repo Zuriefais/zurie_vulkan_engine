@@ -39,13 +39,7 @@ pub fn create_uniform_buffer(
     let mem_requirements = unsafe { device.get_buffer_memory_requirements(uniform_buffer) };
 
     // Allocate memory (assuming allocate_buffer_memory helper function exists)
-    let memory = crate::utils::allocate_buffer_memory(
-        instance,
-        device,
-        physical_device,
-        &mem_requirements,
-        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-    );
+    let memory = allocate_buffer_memory(instance, device, physical_device, &mem_requirements);
 
     // Bind memory to buffer
     unsafe {

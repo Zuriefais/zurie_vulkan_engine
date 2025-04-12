@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::sync::RwLock;
+
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 use zurie_types::Object;
