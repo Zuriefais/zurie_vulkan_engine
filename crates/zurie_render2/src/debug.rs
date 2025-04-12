@@ -3,7 +3,6 @@ use log::{error, info, warn};
 
 use std::ffi::CStr;
 use std::os::raw::c_void;
-use std::ptr;
 
 // 1. Add the explicit debug utils extension import
 use ash::ext::debug_utils; // Changed from ash::extensions::ext::DebugUtils

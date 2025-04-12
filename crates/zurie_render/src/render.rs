@@ -42,11 +42,14 @@ impl Renderer {
     pub fn new(window: Arc<winit::window::Window>) -> Renderer {
         let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
         let required_extensions = Surface::required_extensions(&window);
-        let instance = Instance::new(library, InstanceCreateInfo {
-            flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
-            enabled_extensions: required_extensions,
-            ..Default::default()
-        })
+        let instance = Instance::new(
+            library,
+            InstanceCreateInfo {
+                flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
+                enabled_extensions: required_extensions,
+                ..Default::default()
+            },
+        )
         .expect("failed to create instance");
         let surface = loop {
             match Surface::from_window(instance.clone(), window.clone()) {
@@ -182,12 +185,15 @@ impl Renderer {
         };
 
         let (device, mut queues) = {
-            Device::new(physical_device, DeviceCreateInfo {
-                queue_create_infos,
-                enabled_extensions: device_extensions,
-                enabled_features: features,
-                ..Default::default()
-            })
+            Device::new(
+                physical_device,
+                DeviceCreateInfo {
+                    queue_create_infos,
+                    enabled_extensions: device_extensions,
+                    enabled_features: features,
+                    ..Default::default()
+                },
+            )
             .expect("failed to create device")
         };
         let gfx_queue = queues.next().unwrap();

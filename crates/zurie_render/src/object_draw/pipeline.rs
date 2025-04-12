@@ -221,13 +221,16 @@ impl ObjectDrawPipeline {
             .set_layouts()
             .first()
             .expect("No set layout found");
-        let sampler = Sampler::new(self.gfx_queue.device().clone(), SamplerCreateInfo {
-            mag_filter: Filter::Nearest,
-            min_filter: Filter::Nearest,
-            address_mode: [SamplerAddressMode::Repeat; 3],
-            mipmap_mode: SamplerMipmapMode::Nearest,
-            ..Default::default()
-        })
+        let sampler = Sampler::new(
+            self.gfx_queue.device().clone(),
+            SamplerCreateInfo {
+                mag_filter: Filter::Nearest,
+                min_filter: Filter::Nearest,
+                address_mode: [SamplerAddressMode::Repeat; 3],
+                mipmap_mode: SamplerMipmapMode::Nearest,
+                ..Default::default()
+            },
+        )
         .unwrap();
 
         let camera_buffer = Buffer::from_data(

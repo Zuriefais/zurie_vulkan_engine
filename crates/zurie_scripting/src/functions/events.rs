@@ -30,10 +30,13 @@ impl events::Host for ScriptingState {
             "Event emited: {}",
             event_manager.event_storage.get(handle.into()).unwrap()
         );
-        event_manager.emit(&self.mod_handle, zurie_event::Event {
-            handle: handle.into(),
-            data: data.into(),
-        });
+        event_manager.emit(
+            &self.mod_handle,
+            zurie_event::Event {
+                handle: handle.into(),
+                data: data.into(),
+            },
+        );
     }
 }
 

@@ -1,21 +1,20 @@
 use ash::vk;
 use log::info;
 use std::sync::Arc;
-use winit::raw_window_handle::{HasDisplayHandle, HasRawDisplayHandle, HasRawWindowHandle};
+use winit::raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use winit::window::Window;
 // Fix the extension imports with proper lowercase paths and aliases
 #[cfg(target_os = "windows")]
 use ash::khr::win32_surface as Win32Surface;
 
-#[cfg(all(unix, not(target_os = "android"), not(target_os = "macos")))]
-use ash::khr::xlib_surface as XlibSurface; // Changed from XlibSurface
+// Changed from XlibSurface
 
 #[cfg(target_os = "macos")]
 use ash::mvk::macos_surface as MacOSSurface;
 
-use ash::ext::debug_utils as DebugUtils; // Changed from DebugUtils
+// Changed from DebugUtils
 use ash::ext::debug_utils;
-use ash::khr::surface as Surface; // Changed from Surface
+// Changed from Surface
 use ash::khr::surface;
 use ash::khr::wayland_surface;
 use ash::khr::xlib_surface;
@@ -76,11 +75,8 @@ pub unsafe fn create_surface(
     window: Arc<Window>,
 ) -> Result<vk::SurfaceKHR, vk::Result> {
     use ash::vk::{WaylandSurfaceCreateInfoKHR, XlibSurfaceCreateInfoKHR};
-    use std::{ptr, sync::Arc};
-    use winit::{
-        raw_window_handle::{RawDisplayHandle, RawWindowHandle},
-        window::Window,
-    };
+    use std::ptr;
+    use winit::raw_window_handle::{RawDisplayHandle, RawWindowHandle};
     let display_handle = window
         .raw_display_handle()
         .expect("Failed to get display handle");

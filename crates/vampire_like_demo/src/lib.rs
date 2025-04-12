@@ -11,9 +11,8 @@ use zurie_mod_interface::{
     ZurieMod,
     ecs::Entity,
     engine::{
-        audio::{load_sound, play_sound},
-        camera::get_zoom,
-        ecs::{ComponentData, register_component, spawn_entity},
+        audio::load_sound,
+        ecs::{ComponentData, register_component},
         gui::{Widget, WidgetResponse, create_window},
     },
     glam::{self, Vec2},
@@ -106,10 +105,13 @@ impl ZurieMod for Game {
 
     fn update(&mut self) {
         if !self.player.exits() {
-            let responses = create_window("Game Status", &[
-                Widget::Label("You Lose!!!".into()),
-                Widget::Button("Restart Game?".into()),
-            ]);
+            let responses = create_window(
+                "Game Status",
+                &[
+                    Widget::Label("You Lose!!!".into()),
+                    Widget::Button("Restart Game?".into()),
+                ],
+            );
             if let Some(WidgetResponse::Clicked(clicked)) = responses.get(1) {
                 if *clicked {
                     for enemy in get_entities_with_component(self.enemy_component).iter_mut() {
@@ -126,10 +128,13 @@ impl ZurieMod for Game {
             }
             return;
         }
-        let game_status_window = create_window("Game status", &[
-            Widget::Label(format!("time elapsed: {}s", self.timer.elapsed().as_secs())),
-            Widget::Label(format!("Enemies slained")),
-        ]);
+        let game_status_window = create_window(
+            "Game status",
+            &[
+                Widget::Label(format!("time elapsed: {}s", self.timer.elapsed().as_secs())),
+                Widget::Label(format!("Enemies slained")),
+            ],
+        );
 
         let direction = Vec2::new(
             (key_clicked(zurie_mod_interface::input::KeyCode::KeyD as u32) as i8

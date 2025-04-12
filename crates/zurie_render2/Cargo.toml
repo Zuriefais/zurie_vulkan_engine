@@ -13,7 +13,7 @@ gpu-allocator = { version = "0.27.0", default-features = false, features = [
     "vulkan",
 ] }
 
-glam = "0.29.2"
+glam = {version = "0.30", features = ["bytemuck"]}
 
 anyhow = { workspace = true }
 log = { workspace = true }
@@ -34,6 +34,9 @@ naga = { version = "24.0.0", features = ["wgsl-in", "spv-out"] }
 
 zurie_render_glue = { path = "../zurie_render_glue" }
 zurie_types = { path = "../zurie_types" }
+bytemuck = {version = "1.22.0", features = ["derive"]}
+
+
 
 [target.'cfg(windows)'.dependencies.windows]
 version = "0.60"

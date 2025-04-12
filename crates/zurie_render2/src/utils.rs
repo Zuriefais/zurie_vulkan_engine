@@ -1,37 +1,68 @@
+use crate::camera::Camera;
 use crate::constants::*;
 use crate::debug;
-use crate::debug::setup_debug_utils;
+
 use crate::platforms;
 use crate::structures::*;
-use crate::tools;
+use crate::vertex::InstanceData;
+use crate::vertex::TriangleVertex;
+
 use anyhow::anyhow;
+use ash::Device;
 use ash::khr::swapchain;
 use ash::vk;
-use ash::vk::DeviceCreateInfo;
-use egui::{ClippedPrimitive, Context, TextureId, ViewportId};
-use egui_ash_renderer::{Options, Renderer};
-use egui_winit::State;
+use ash::vk::DescriptorSetLayout;
+
 use log::info;
 use naga::back::spv; // For generating SPIR-V
 use naga::front::wgsl; // For parsing WGSL
 use naga::valid::{Capabilities, ValidationFlags, Validator};
 use std::ffi::CStr;
 use std::ffi::CString;
-use std::ffi::c_char;
+use std::mem::offset_of;
+use winit::window::Window;
+
 use std::ffi::c_void;
 use std::ptr;
 use std::sync::Arc;
-use winit::application::ApplicationHandler;
-use winit::event::KeyEvent;
-use winit::event::WindowEvent::KeyboardInput;
-use winit::event::{ElementState, Event, WindowEvent};
-use winit::event_loop;
-use winit::event_loop::ActiveEventLoop;
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::raw_window_handle::HasDisplayHandle;
-use winit::window::Window;
-use winit::window::WindowId;
+
+pub fn allocate_buffer_memory(
+    instance: &ash::Instance,
+    device: &ash::Device,
+    physical_device: vk::PhysicalDevice,
+    mem_requirements: &vk::MemoryRequirements,
+) -> vk::DeviceMemory {
+    let mem_properties = unsafe { instance.get_physical_device_memory_properties(physical_device) };
+
+    let memory_type_index = mem_properties
+        .memory_types
+        .iter()
+        .enumerate()
+        .find(|(i, mem_type)| {
+            let type_filter = mem_requirements.memory_type_bits & (1 << i);
+            // First try for optimal properties
+            let optimal_properties =
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+            // Fallback to just DEVICE_LOCAL if optimal isn't available
+            type_filter != 0
+                && (mem_type.property_flags.contains(optimal_properties)
+                    || mem_type
+                        .property_flags
+                        .contains(vk::MemoryPropertyFlags::DEVICE_LOCAL))
+        })
+        .map(|(i, _)| i as u32)
+        .expect("Failed to find suitable memory type");
+
+    let alloc_info = vk::MemoryAllocateInfo {
+        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+        p_next: std::ptr::null(),
+        allocation_size: mem_requirements.size,
+        memory_type_index,
+        _marker: std::marker::PhantomData,
+    };
+
+    unsafe { device.allocate_memory(&alloc_info, None) }.expect("Failed to allocate buffer memory")
+}
 
 pub fn create_surface(
     entry: &ash::Entry,
@@ -130,6 +161,129 @@ pub fn create_instance(
     Ok(instance)
 }
 
+fn create_descriptor_set_layout(device: &Device) -> vk::DescriptorSetLayout {
+    // Binding 0: Uniform Buffer for Camera
+    let ubo_binding = vk::DescriptorSetLayoutBinding::default()
+        .binding(0)
+        .descriptor_count(1)
+        .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+        .stage_flags(vk::ShaderStageFlags::VERTEX); // Used in vertex shader
+
+    // Binding 1: Sampler
+    let sampler_binding = vk::DescriptorSetLayoutBinding::default()
+        .binding(1)
+        .descriptor_count(1)
+        .descriptor_type(vk::DescriptorType::SAMPLER)
+        .stage_flags(vk::ShaderStageFlags::FRAGMENT); // Used in fragment shader
+
+    // Binding 2: Texture
+    let texture_binding = vk::DescriptorSetLayoutBinding::default()
+        .binding(2)
+        .descriptor_count(1)
+        .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
+        .stage_flags(vk::ShaderStageFlags::FRAGMENT); // Used in fragment shader
+
+    let bindings = [ubo_binding, sampler_binding, texture_binding];
+
+    let layout_info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings);
+
+    unsafe {
+        device
+            .create_descriptor_set_layout(&layout_info, None)
+            .unwrap()
+    }
+}
+
+pub fn create_descriptor_pool(device: &Device, max_sets: u32) -> vk::DescriptorPool {
+    // Define the types and counts of descriptors we need
+    let pool_sizes = [
+        // For the uniform buffer (Camera)
+        vk::DescriptorPoolSize::default()
+            .ty(vk::DescriptorType::UNIFORM_BUFFER)
+            .descriptor_count(1), // One uniform buffer per set
+        // For the sampler
+        vk::DescriptorPoolSize::default()
+            .ty(vk::DescriptorType::SAMPLER)
+            .descriptor_count(1), // One sampler per set
+        // For the texture (sampled image)
+        vk::DescriptorPoolSize::default()
+            .ty(vk::DescriptorType::SAMPLED_IMAGE)
+            .descriptor_count(1), // One texture per set
+    ];
+
+    // Create info for the descriptor pool
+    let pool_info = vk::DescriptorPoolCreateInfo::default()
+        .pool_sizes(&pool_sizes)
+        .max_sets(max_sets) // Maximum number of descriptor sets that can be allocated
+        .flags(vk::DescriptorPoolCreateFlags::empty()); // Add FREE_DESCRIPTOR_SET if you need to free individual sets
+
+    unsafe {
+        device
+            .create_descriptor_pool(&pool_info, None)
+            .expect("Failed to create descriptor pool")
+    }
+}
+
+pub fn create_descriptor_sets(
+    device: &Device,
+    pool: vk::DescriptorPool,
+    layout: vk::DescriptorSetLayout,
+    buffer: vk::Buffer,          // Uniform buffer
+    texture_view: vk::ImageView, // Texture view
+    sampler: vk::Sampler,        // Sampler
+) -> Vec<vk::DescriptorSet> {
+    let layouts = vec![layout]; // For one descriptor set, adjust if you need multiple
+
+    let alloc_info = vk::DescriptorSetAllocateInfo::default()
+        .descriptor_pool(pool)
+        .set_layouts(&layouts);
+
+    let descriptor_sets = unsafe { device.allocate_descriptor_sets(&alloc_info).unwrap() };
+
+    // Update descriptor set with buffer, texture, and sampler info
+    let buffer_info = vk::DescriptorBufferInfo::default()
+        .buffer(buffer)
+        .offset(0)
+        .range(std::mem::size_of::<Camera>() as u64);
+
+    let image_info = vk::DescriptorImageInfo::default()
+        .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+        .image_view(texture_view)
+        .sampler(sampler);
+
+    let sampler_info = vk::DescriptorImageInfo::default().sampler(sampler);
+
+    let descriptor_writes = [
+        // Binding 0: Uniform Buffer
+        vk::WriteDescriptorSet::default()
+            .dst_set(descriptor_sets[0])
+            .dst_binding(0)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+            .buffer_info(std::slice::from_ref(&buffer_info)),
+        // Binding 1: Sampler
+        vk::WriteDescriptorSet::default()
+            .dst_set(descriptor_sets[0])
+            .dst_binding(1)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::SAMPLER)
+            .image_info(std::slice::from_ref(&sampler_info)),
+        // Binding 2: Texture
+        vk::WriteDescriptorSet::default()
+            .dst_set(descriptor_sets[0])
+            .dst_binding(2)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
+            .image_info(std::slice::from_ref(&image_info)),
+    ];
+
+    unsafe {
+        device.update_descriptor_sets(&descriptor_writes, &[]);
+    }
+
+    descriptor_sets
+}
+
 pub fn pick_physical_device(
     instance: &ash::Instance,
     surface_stuff: &SurfaceStuff,
@@ -211,7 +365,6 @@ pub fn pick_physical_device(
 pub fn create_logical_device(
     instance: &ash::Instance,
     physical_device: vk::PhysicalDevice,
-    validation: &debug::ValidationInfo,
     surface_stuff: &SurfaceStuff,
 ) -> (ash::Device, QueueFamilyIndices) {
     let indices = find_queue_family(instance, physical_device, surface_stuff);
@@ -355,10 +508,14 @@ pub fn create_swapchain(
     };
     let (image_sharing_mode, queue_family_index_count, queue_family_indices) =
         if queue_family.graphics_family != queue_family.present_family {
-            (vk::SharingMode::CONCURRENT, 2, vec![
-                queue_family.graphics_family.unwrap(),
-                queue_family.present_family.unwrap(),
-            ])
+            (
+                vk::SharingMode::CONCURRENT,
+                2,
+                vec![
+                    queue_family.graphics_family.unwrap(),
+                    queue_family.present_family.unwrap(),
+                ],
+            )
         } else {
             (vk::SharingMode::EXCLUSIVE, 0, vec![])
         };
@@ -400,6 +557,7 @@ pub fn create_swapchain(
         swapchain_format: surface_format.format,
         swapchain_extent: extent,
         swapchain_images,
+        queue_family_indices,
     }
 }
 
@@ -519,9 +677,8 @@ pub fn create_image_view(
 
 pub fn create_graphics_pipeline(
     device: &ash::Device,
-    swapchain_extent: vk::Extent2D,
     swapchain_format: vk::Format,
-) -> (vk::Pipeline, vk::PipelineLayout) {
+) -> (vk::Pipeline, vk::PipelineLayout, DescriptorSetLayout) {
     let vert_shader_module = create_shader_module(device, include_str!("shaders/vert.wgsl"));
     let frag_shader_module = create_shader_module(device, include_str!("shaders/frag.wgsl"));
 
@@ -550,22 +707,70 @@ pub fn create_graphics_pipeline(
         },
     ];
 
+    // Vertex Input Bindings and Attributes
+    let vertex_binding_descriptions = [
+        // Binding 0: Per-vertex data
+        vk::VertexInputBindingDescription {
+            binding: 0,
+            stride: std::mem::size_of::<TriangleVertex>() as u32,
+            input_rate: vk::VertexInputRate::VERTEX,
+        },
+        // Binding 1: Per-instance data
+        vk::VertexInputBindingDescription {
+            binding: 1,
+            stride: std::mem::size_of::<InstanceData>() as u32,
+            input_rate: vk::VertexInputRate::INSTANCE,
+        },
+    ];
+
+    let vertex_attribute_descriptions = [
+        // Location 0: vert_position (per-vertex)
+        vk::VertexInputAttributeDescription {
+            location: 0,
+            binding: 0,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: offset_of!(TriangleVertex, vert_position) as u32,
+        },
+        // Location 1: position (per-instance)
+        vk::VertexInputAttributeDescription {
+            location: 1,
+            binding: 1,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: offset_of!(InstanceData, position) as u32,
+        },
+        // Location 2: scale (per-instance)
+        vk::VertexInputAttributeDescription {
+            location: 2,
+            binding: 1,
+            format: vk::Format::R32G32_SFLOAT,
+            offset: offset_of!(InstanceData, scale) as u32,
+        },
+        // Location 3: color (per-instance)
+        vk::VertexInputAttributeDescription {
+            location: 3,
+            binding: 1,
+            format: vk::Format::R32G32B32A32_SFLOAT,
+            offset: offset_of!(InstanceData, color) as u32,
+        },
+    ];
+
     let vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         p_next: ptr::null(),
         flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-        vertex_attribute_description_count: 0,
-        p_vertex_attribute_descriptions: ptr::null(),
-        vertex_binding_description_count: 0,
-        p_vertex_binding_descriptions: ptr::null(),
+        vertex_binding_description_count: vertex_binding_descriptions.len() as u32,
+        p_vertex_binding_descriptions: vertex_binding_descriptions.as_ptr(),
+        vertex_attribute_description_count: vertex_attribute_descriptions.len() as u32,
+        p_vertex_attribute_descriptions: vertex_attribute_descriptions.as_ptr(),
         _marker: std::marker::PhantomData,
     };
+
     let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         flags: vk::PipelineInputAssemblyStateCreateFlags::empty(),
         p_next: ptr::null(),
         primitive_restart_enable: vk::FALSE,
-        topology: vk::PrimitiveTopology::TRIANGLE_LIST,
+        topology: vk::PrimitiveTopology::TRIANGLE_STRIP,
         _marker: std::marker::PhantomData,
     };
 
@@ -595,7 +800,7 @@ pub fn create_graphics_pipeline(
         p_next: ptr::null(),
         flags: vk::PipelineRasterizationStateCreateFlags::empty(),
         depth_clamp_enable: vk::FALSE,
-        cull_mode: vk::CullModeFlags::BACK,
+        cull_mode: vk::CullModeFlags::NONE, // Changed to NONE for 2D rendering
         front_face: vk::FrontFace::CLOCKWISE,
         line_width: 1.0,
         polygon_mode: vk::PolygonMode::FILL,
@@ -606,6 +811,7 @@ pub fn create_graphics_pipeline(
         depth_bias_slope_factor: 0.0,
         _marker: std::marker::PhantomData,
     };
+
     let multisample_state_create_info = vk::PipelineMultisampleStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         flags: vk::PipelineMultisampleStateCreateFlags::empty(),
@@ -619,16 +825,6 @@ pub fn create_graphics_pipeline(
         _marker: std::marker::PhantomData,
     };
 
-    let stencil_state = vk::StencilOpState {
-        fail_op: vk::StencilOp::KEEP,
-        pass_op: vk::StencilOp::KEEP,
-        depth_fail_op: vk::StencilOp::KEEP,
-        compare_op: vk::CompareOp::ALWAYS,
-        compare_mask: 0,
-        write_mask: 0,
-        reference: 0,
-    };
-
     let depth_state_create_info = vk::PipelineDepthStencilStateCreateInfo {
         s_type: vk::StructureType::PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         p_next: ptr::null(),
@@ -638,18 +834,19 @@ pub fn create_graphics_pipeline(
         depth_compare_op: vk::CompareOp::LESS_OR_EQUAL,
         depth_bounds_test_enable: vk::FALSE,
         stencil_test_enable: vk::FALSE,
-        front: stencil_state,
-        back: stencil_state,
+        front: vk::StencilOpState::default(),
+        back: vk::StencilOpState::default(),
         max_depth_bounds: 1.0,
         min_depth_bounds: 0.0,
         _marker: std::marker::PhantomData,
     };
 
+    // Enable blending for transparency
     let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState {
-        blend_enable: vk::FALSE,
+        blend_enable: vk::TRUE,
         color_write_mask: vk::ColorComponentFlags::RGBA,
-        src_color_blend_factor: vk::BlendFactor::ONE,
-        dst_color_blend_factor: vk::BlendFactor::ZERO,
+        src_color_blend_factor: vk::BlendFactor::SRC_ALPHA,
+        dst_color_blend_factor: vk::BlendFactor::ONE_MINUS_SRC_ALPHA,
         color_blend_op: vk::BlendOp::ADD,
         src_alpha_blend_factor: vk::BlendFactor::ONE,
         dst_alpha_blend_factor: vk::BlendFactor::ZERO,
@@ -668,12 +865,14 @@ pub fn create_graphics_pipeline(
         _marker: std::marker::PhantomData,
     };
 
+    let descriptor_set_layout = create_descriptor_set_layout(&device);
+
     let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
         s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
         p_next: ptr::null(),
         flags: vk::PipelineLayoutCreateFlags::empty(),
-        set_layout_count: 0,
-        p_set_layouts: ptr::null(),
+        set_layout_count: 1,
+        p_set_layouts: &descriptor_set_layout,
         push_constant_range_count: 0,
         p_push_constant_ranges: ptr::null(),
         _marker: std::marker::PhantomData,
@@ -685,7 +884,6 @@ pub fn create_graphics_pipeline(
             .expect("Failed to create pipeline layout!")
     };
 
-    // Allocate VkPipelineRenderingCreateInfo on the heap to ensure stable memory
     let color_attachment_formats = [swapchain_format];
     let pipeline_rendering_create_info = Box::new(vk::PipelineRenderingCreateInfo {
         s_type: vk::StructureType::PIPELINE_RENDERING_CREATE_INFO,
@@ -731,53 +929,21 @@ pub fn create_graphics_pipeline(
             .expect("Failed to create Graphics Pipeline!")
     };
 
-    // Clean up shader modules
+    // Clean up shader modules and descriptor set layout
     unsafe {
         device.destroy_shader_module(vert_shader_module, None);
         device.destroy_shader_module(frag_shader_module, None);
-        // Free the boxed pipeline_rendering_create_info after use
         let _ = Box::from_raw(
             graphic_pipeline_create_infos[0].p_next as *mut vk::PipelineRenderingCreateInfo,
         );
-    }
+        // Note: descriptor_set_layout should be cleaned up when no longer needed, not here
+    };
 
-    (graphics_pipelines[0], pipeline_layout)
-}
-
-pub fn create_framebuffers(
-    device: &ash::Device,
-    render_pass: vk::RenderPass,
-    image_views: &Vec<vk::ImageView>,
-    swapchain_extent: vk::Extent2D,
-) -> Vec<vk::Framebuffer> {
-    let mut framebuffers = vec![];
-
-    for &image_view in image_views.iter() {
-        let attachments = [image_view];
-
-        let framebuffer_create_info = vk::FramebufferCreateInfo {
-            s_type: vk::StructureType::FRAMEBUFFER_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::FramebufferCreateFlags::empty(),
-            render_pass,
-            attachment_count: attachments.len() as u32,
-            p_attachments: attachments.as_ptr(),
-            width: swapchain_extent.width,
-            height: swapchain_extent.height,
-            layers: 1,
-            _marker: std::marker::PhantomData,
-        };
-
-        let framebuffer = unsafe {
-            device
-                .create_framebuffer(&framebuffer_create_info, None)
-                .expect("Failed to create Framebuffer!")
-        };
-
-        framebuffers.push(framebuffer);
-    }
-
-    framebuffers
+    (
+        graphics_pipelines[0],
+        pipeline_layout,
+        descriptor_set_layout,
+    )
 }
 
 pub fn create_command_pool(

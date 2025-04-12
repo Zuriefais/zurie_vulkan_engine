@@ -1,7 +1,6 @@
 use ash::vk;
 use glam::Mat4; // Changed from cgmath::Matrix4
 use memoffset::offset_of;
-use std::fmt;
 
 pub struct SurfaceStuff {
     pub surface_loader: ash::khr::surface::Instance,
@@ -16,6 +15,7 @@ pub struct SwapChainStuff {
     pub swapchain_images: Vec<vk::Image>,
     pub swapchain_format: vk::Format,
     pub swapchain_extent: vk::Extent2D,
+    pub queue_family_indices: Vec<u32>,
 }
 
 pub struct SwapChainSupportDetail {

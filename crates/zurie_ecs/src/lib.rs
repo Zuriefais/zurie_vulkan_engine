@@ -337,9 +337,12 @@ pub mod test {
             ComponentData::Raw(vec![10]),
             world.get_entity_data(entity).unwrap().data[0].1
         );
-        world.modify_entity(entity, EntityData {
-            data: vec![(my_component, ComponentData::Raw(vec![20]))],
-        });
+        world.modify_entity(
+            entity,
+            EntityData {
+                data: vec![(my_component, ComponentData::Raw(vec![20]))],
+            },
+        );
         assert_eq!(
             ComponentData::Raw(vec![20]),
             world.get_entity_data(entity).unwrap().data[0].1

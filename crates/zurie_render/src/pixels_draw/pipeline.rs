@@ -143,31 +143,35 @@ impl PixelsDrawPipeline {
             )
             .unwrap();
 
-            GraphicsPipeline::new(device.clone(), None, GraphicsPipelineCreateInfo {
-                stages: stages.into_iter().collect(),
-                vertex_input_state: Some(vertex_input_state),
-                input_assembly_state: Some(InputAssemblyState::default()),
-                viewport_state: Some(ViewportState::default()),
-                rasterization_state: Some(RasterizationState::default()),
-                multisample_state: Some(MultisampleState::default()),
-                color_blend_state: Some(ColorBlendState::with_attachment_states(
-                    subpass.num_color_attachments(),
-                    ColorBlendAttachmentState {
-                        blend: Some(AttachmentBlend {
-                            src_color_blend_factor: BlendFactor::SrcAlpha, // Source color multiplied by its alpha
-                            dst_color_blend_factor: BlendFactor::OneMinusSrcAlpha, // Destination color multiplied by (1 - source alpha)
-                            color_blend_op: BlendOp::Add, // Add the two results together
-                            src_alpha_blend_factor: BlendFactor::One, // Use the source alpha as-is
-                            dst_alpha_blend_factor: BlendFactor::Zero, // Ignore the destination alpha
-                            alpha_blend_op: BlendOp::Add, // Add the two results (effectively just keeping the source alpha)
-                        }),
-                        ..Default::default()
-                    },
-                )),
-                dynamic_state: [DynamicState::Viewport].into_iter().collect(),
-                subpass: Some(subpass.clone().into()),
-                ..GraphicsPipelineCreateInfo::layout(layout)
-            })
+            GraphicsPipeline::new(
+                device.clone(),
+                None,
+                GraphicsPipelineCreateInfo {
+                    stages: stages.into_iter().collect(),
+                    vertex_input_state: Some(vertex_input_state),
+                    input_assembly_state: Some(InputAssemblyState::default()),
+                    viewport_state: Some(ViewportState::default()),
+                    rasterization_state: Some(RasterizationState::default()),
+                    multisample_state: Some(MultisampleState::default()),
+                    color_blend_state: Some(ColorBlendState::with_attachment_states(
+                        subpass.num_color_attachments(),
+                        ColorBlendAttachmentState {
+                            blend: Some(AttachmentBlend {
+                                src_color_blend_factor: BlendFactor::SrcAlpha, // Source color multiplied by its alpha
+                                dst_color_blend_factor: BlendFactor::OneMinusSrcAlpha, // Destination color multiplied by (1 - source alpha)
+                                color_blend_op: BlendOp::Add, // Add the two results together
+                                src_alpha_blend_factor: BlendFactor::One, // Use the source alpha as-is
+                                dst_alpha_blend_factor: BlendFactor::Zero, // Ignore the destination alpha
+                                alpha_blend_op: BlendOp::Add, // Add the two results (effectively just keeping the source alpha)
+                            }),
+                            ..Default::default()
+                        },
+                    )),
+                    dynamic_state: [DynamicState::Viewport].into_iter().collect(),
+                    subpass: Some(subpass.clone().into()),
+                    ..GraphicsPipelineCreateInfo::layout(layout)
+                },
+            )
             .unwrap()
         };
         let gfx_queue = app.gfx_queue();
@@ -191,13 +195,16 @@ impl PixelsDrawPipeline {
         camera: vs::Camera,
     ) -> Arc<PersistentDescriptorSet> {
         let layout = self.pipeline.layout().set_layouts().first().unwrap();
-        let sampler = Sampler::new(self.gfx_queue.device().clone(), SamplerCreateInfo {
-            mag_filter: Filter::Nearest,
-            min_filter: Filter::Nearest,
-            address_mode: [SamplerAddressMode::Repeat; 3],
-            mipmap_mode: SamplerMipmapMode::Nearest,
-            ..Default::default()
-        })
+        let sampler = Sampler::new(
+            self.gfx_queue.device().clone(),
+            SamplerCreateInfo {
+                mag_filter: Filter::Nearest,
+                min_filter: Filter::Nearest,
+                address_mode: [SamplerAddressMode::Repeat; 3],
+                mipmap_mode: SamplerMipmapMode::Nearest,
+                ..Default::default()
+            },
+        )
         .unwrap();
 
         let camera_buffer = Buffer::from_data(
