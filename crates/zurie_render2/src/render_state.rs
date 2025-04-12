@@ -64,7 +64,6 @@ impl RenderBackend for RenderState {
         let (debug_utils_loader, debug_merssager) =
             setup_debug_utils(VALIDATION.is_enable, &entry, &instance);
         let physical_device = pick_physical_device(&instance, &surface_stuff)?;
-
         let (device, family_indices) =
             create_logical_device(&instance, physical_device, &surface_stuff);
         let graphics_queue =
@@ -121,37 +120,6 @@ impl RenderBackend for RenderState {
             family_indices.graphics_family.unwrap(),
             family_indices.present_family.unwrap(),
         ];
-
-        let (graphics_pipeline, pipeline_layout, descriptor_set_layout) =
-            create_graphics_pipeline(&device, swapchain_stuff.swapchain_format);
-        let command_pool = create_command_pool(&device, &family_indices);
-        let descriptor_pool = create_descriptor_pool(&device, 2);
-        let command_buffers =
-            create_command_buffers_dynamic(&device, command_pool, &swapchain_imageviews);
-        let sync_objects = RenderState::create_sync_objects(&device);
-
-        let egui_winit = State::new(
-            config.egui_context.clone(),
-            ViewportId::ROOT,
-            &window,
-            None,
-            None,
-            None,
-        );
-        let egui_renderer = Renderer::with_default_allocator(
-            &instance,
-            physical_device,
-            device.clone(),
-            egui_ash_renderer::DynamicRendering {
-                color_attachment_format: swapchain_stuff.swapchain_format,
-                depth_attachment_format: None,
-            },
-            Options {
-                srgb_framebuffer: true,
-                ..Default::default()
-            },
-        )
-        .unwrap();
 
         let quad_buffer =
             create_quad_buffer(&instance, &device, physical_device, &queue_family_vec);
@@ -961,7 +929,6 @@ fn create_texture_image(
         .iter()
         .enumerate()
         .find(|(i, mem_type)| {
-            let type_filter = mem_requirements.memory_type_bits & (1 << i);
             mem_type
                 .property_flags
                 .contains(vk::MemoryPropertyFlags::DEVICE_LOCAL)
@@ -969,14 +936,13 @@ fn create_texture_image(
         .map(|(i, _)| i as u32)
         .expect("No suitable memory type for texture image");
 
-    let memory_info = vk::MemoryAllocateInfo {
-        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-        p_next: ptr::null(),
-        allocation_size: mem_requirements.size,
-        memory_type_index,
-        ..Default::default()
-    };
-    let memory = unsafe { device.allocate_memory(&memory_info, None).unwrap() };
+    let memory = crate::utils::allocate_buffer_memory(
+        instance,
+        device,
+        physical_device,
+        &mem_requirements,
+        vk::MemoryPropertyFlags::DEVICE_LOCAL,
+    );
     unsafe { device.bind_image_memory(image, memory, 0).unwrap() };
 
     // Transfer pixel data to image

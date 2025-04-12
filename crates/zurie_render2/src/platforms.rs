@@ -1,7 +1,8 @@
 use ash::vk;
 use log::info;
 use std::sync::Arc;
-use winit::raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+
+use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::Window;
 // Fix the extension imports with proper lowercase paths and aliases
 #[cfg(target_os = "windows")]
@@ -78,11 +79,13 @@ pub unsafe fn create_surface(
     use std::ptr;
     use winit::raw_window_handle::{RawDisplayHandle, RawWindowHandle};
     let display_handle = window
-        .raw_display_handle()
-        .expect("Failed to get display handle");
+        .display_handle()
+        .expect("Failed to get display handle")
+        .as_raw();
     let window_handle = window
-        .raw_window_handle()
-        .expect("Failed to get window handle");
+        .window_handle()
+        .expect("Failed to get window handle")
+        .as_raw();
 
     match (display_handle, window_handle) {
         // X11 Surface Creation

@@ -31,6 +31,7 @@ pub fn allocate_buffer_memory(
     device: &ash::Device,
     physical_device: vk::PhysicalDevice,
     mem_requirements: &vk::MemoryRequirements,
+    required_properties: vk::MemoryPropertyFlags,
 ) -> vk::DeviceMemory {
     let mem_properties = unsafe { instance.get_physical_device_memory_properties(physical_device) };
 
@@ -40,15 +41,7 @@ pub fn allocate_buffer_memory(
         .enumerate()
         .find(|(i, mem_type)| {
             let type_filter = mem_requirements.memory_type_bits & (1 << i);
-            // First try for optimal properties
-            let optimal_properties =
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
-            // Fallback to just DEVICE_LOCAL if optimal isn't available
-            type_filter != 0
-                && (mem_type.property_flags.contains(optimal_properties)
-                    || mem_type
-                        .property_flags
-                        .contains(vk::MemoryPropertyFlags::DEVICE_LOCAL))
+            type_filter != 0 && mem_type.property_flags.contains(required_properties)
         })
         .map(|(i, _)| i as u32)
         .expect("Failed to find suitable memory type");

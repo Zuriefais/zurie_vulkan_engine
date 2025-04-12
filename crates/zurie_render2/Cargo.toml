@@ -13,24 +13,24 @@ gpu-allocator = { version = "0.27.0", default-features = false, features = [
     "vulkan",
 ] }
 
-glam = {version = "0.30", features = ["bytemuck"]}
+glam = {version = "0.30.1", features = ["bytemuck"]}
 
 anyhow = { workspace = true }
 log = { workspace = true }
 
 winit = { version = "0.30.9", features = ["rwh_06"] }
 
-egui = { workspace = true }
-egui-winit = "0.29.1"
+egui = "0.31.1"
+egui-winit = "0.31.1"
 egui-ash-renderer = {version = "0.8.0", features = ["dynamic-rendering"]}
 gruvbox_egui = { path = "../gruvbox_egui" }
 
 num = "0.4.3"
 memoffset = "0.9.1"
 pollster = "0.4.0"
-env_logger = "0.11.6"
+env_logger = "0.11.8"
 
-naga = { version = "24.0.0", features = ["wgsl-in", "spv-out"] }
+naga = { version = "25.0.1", features = ["wgsl-in", "spv-out"] }
 
 zurie_render_glue = { path = "../zurie_render_glue" }
 zurie_types = { path = "../zurie_types" }
@@ -39,7 +39,7 @@ bytemuck = {version = "1.22.0", features = ["derive"]}
 
 
 [target.'cfg(windows)'.dependencies.windows]
-version = "0.60"
+version = "0.61.1"
 features = [
     "Data_Xml_Dom",
     "Win32_Security",
