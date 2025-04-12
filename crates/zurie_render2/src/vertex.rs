@@ -15,16 +15,16 @@ pub struct InstanceData {
 pub const QUAD: [TriangleVertex; 4] = [
     TriangleVertex {
         vert_position: Vec2::new(-0.5, -0.5),
-    },
+    }, // Bottom-left
     TriangleVertex {
         vert_position: Vec2::new(0.5, -0.5),
-    },
-    TriangleVertex {
-        vert_position: Vec2::new(0.5, 0.5),
-    },
+    }, // Bottom-right
     TriangleVertex {
         vert_position: Vec2::new(-0.5, 0.5),
-    },
+    }, // Top-left
+    TriangleVertex {
+        vert_position: Vec2::new(0.5, 0.5),
+    }, // Top-right
 ];
 
 pub const TRIANGLE: [TriangleVertex; 3] = [

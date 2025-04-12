@@ -8,6 +8,7 @@ use crate::vertex::InstanceData;
 use crate::vertex::create_quad_buffer;
 use anyhow::Ok;
 use ash::vk;
+use ash::vk::Handle;
 use egui::{ClippedPrimitive, Context, TextureId, ViewportId};
 use egui_ash_renderer::{Options, Renderer};
 use egui_winit::State;
@@ -226,7 +227,7 @@ impl RenderBackend for RenderState {
         let instance_data = vec![InstanceData {
             position: Vec2::new(0.0, 0.0),
             scale: Vec2::new(1.0, 1.0),
-            color: Vec4::new(1.0, 1.0, 0.0, 1.0), // Red color
+            color: Vec4::new(1.0, 1.0, 0.0, 1.0),
         }];
 
         let (instance_buffer, instance_buffer_memory) = crate::vertex::create_instance_buffer(
@@ -408,7 +409,7 @@ impl RenderBackend for RenderState {
     }
 
     fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()> {
-        self.egui_winit.on_window_event(&self.window, &event);
+        let _ = self.egui_winit.on_window_event(&self.window, &event);
         Ok(())
     }
 
@@ -449,6 +450,54 @@ impl RenderBackend for RenderState {
                 &swapchain_imageviews,
             );
 
+            // Update the projection matrix
+            let aspect_ratio = size.0 as f32 / size.1 as f32;
+            let camera = Camera {
+                proj_mat: Mat4::orthographic_rh(
+                    -aspect_ratio, // Left
+                    aspect_ratio,  // Right
+                    -1.0,          // Bottom
+                    1.0,           // Top
+                    -1.0,          // Near
+                    1.0,           // Far
+                ),
+                cam_pos: Vec2::ZERO,
+            };
+
+            // Use queue family indices from queue_family
+            let queue_family_vec = if queue_family.graphics_family == queue_family.present_family {
+                vec![queue_family.graphics_family.unwrap()]
+            } else {
+                vec![
+                    queue_family.graphics_family.unwrap(),
+                    queue_family.present_family.unwrap(),
+                ]
+            };
+
+            self.camera_buffer = create_camera_buffer(
+                &self.instance,
+                &self.device,
+                self.physical_device,
+                &queue_family_vec,
+                camera,
+            );
+
+            // Reset the descriptor pool to free old descriptor sets
+            self.device.reset_descriptor_pool(
+                self.descriptor_pool,
+                vk::DescriptorPoolResetFlags::empty(),
+            )?;
+
+            // Update descriptor sets
+            self.descriptor_sets = create_descriptor_sets(
+                &self.device,
+                self.descriptor_pool,
+                self.descriptor_set_layout,
+                self.camera_buffer,
+                self.texture_view,
+                self.sampler,
+            );
+
             self.swapchain_loader = swapchain_stuff.swapchain_loader;
             self.swapchain = swapchain_stuff.swapchain;
             self.swapchain_format = swapchain_stuff.swapchain_format;
@@ -456,6 +505,7 @@ impl RenderBackend for RenderState {
             self.swapchain_extent = swapchain_stuff.swapchain_extent;
             self.swapchain_imageviews = swapchain_imageviews;
             self.command_buffers = command_buffers;
+            self.queue_family_indices = swapchain_stuff.queue_family_indices;
         }
         Ok(())
     }
@@ -685,13 +735,29 @@ impl RenderState {
 
     fn cleanup_swapchain(&mut self) {
         unsafe {
-            self.device
-                .free_command_buffers(self.command_pool, &self.command_buffers);
-            for &image_view in self.swapchain_imageviews.iter() {
-                self.device.destroy_image_view(image_view, None);
+            // Free command buffers
+            if !self.command_buffers.is_empty() {
+                self.device
+                    .free_command_buffers(self.command_pool, &self.command_buffers);
+                self.command_buffers.clear();
             }
-            self.swapchain_loader
-                .destroy_swapchain(self.swapchain, None);
+
+            // Destroy image views
+            if !self.swapchain_imageviews.is_empty() {
+                for &image_view in self.swapchain_imageviews.iter() {
+                    if !image_view.is_null() {
+                        self.device.destroy_image_view(image_view, None);
+                    }
+                }
+                self.swapchain_imageviews.clear();
+            }
+
+            // Destroy swapchain
+            if !self.swapchain.is_null() {
+                self.swapchain_loader
+                    .destroy_swapchain(self.swapchain, None);
+                self.swapchain = vk::SwapchainKHR::null();
+            }
         }
     }
 
