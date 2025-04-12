@@ -1,5 +1,6 @@
 pub use glam;
 use glam::Vec2;
+use glam::Vec4;
 use num_enum::TryFromPrimitive;
 pub mod camera;
 pub use serde;
@@ -70,20 +71,32 @@ impl Default for ComponentData {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Object {
     pub position: Vec2,
-    pub scale: [f32; 2],
-    pub color: [f32; 4],
+    pub scale: Vec2,
+    pub color: Vec4,
     pub sprite: u64,
-    pub z_index: f32,
+    pub z_index: i32,
 }
 
 impl Default for Object {
     fn default() -> Self {
         Self {
             position: Vec2::ZERO.into(),
-            scale: [1.0, 1.0],
-            color: [1.0, 1.0, 1.0, 1.0],
+            scale: Vec2 { x: 1.0, y: 1.0 },
+            color: Vec4::new(1.0, 1.0, 1.0, 1.0),
             sprite: 0,
-            z_index: 1.0,
+            z_index: 1,
+        }
+    }
+}
+
+impl Object {
+    pub fn new(position: Vec2, scale: Vec2, color: Vec4, sprite: u64, z_index: i32) -> Self {
+        Self {
+            position,
+            scale,
+            color,
+            sprite,
+            z_index,
         }
     }
 }

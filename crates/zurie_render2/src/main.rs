@@ -1,6 +1,7 @@
 use log::info;
 use winit::event_loop::EventLoop;
-use zurie_render2::render_state::App;
+use zurie_render2::app::App;
+
 fn main() {
     env_logger::init();
     info!("Starting application");

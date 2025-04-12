@@ -3,9 +3,8 @@ use crate::camera::create_camera_buffer;
 use crate::constants::*;
 use crate::debug::setup_debug_utils;
 use crate::structures::*;
-use crate::utils::vulkan_init::*;
-
 use crate::utils::swapchain::*;
+use crate::utils::vulkan_init::*;
 use crate::vertex::InstanceData;
 use crate::vertex::create_quad_buffer;
 use anyhow::Ok;
@@ -18,20 +17,9 @@ use glam::Mat4;
 use glam::Vec2;
 use glam::Vec4;
 use log::info;
-
 use std::ptr;
 use std::sync::Arc;
-use winit::application::ApplicationHandler;
-use winit::event::KeyEvent;
-
-use winit::event::{ElementState, WindowEvent};
-
-use winit::event_loop::ActiveEventLoop;
-
-use winit::keyboard::{KeyCode, PhysicalKey};
-
 use winit::window::Window;
-
 use zurie_render_glue::FrameContext;
 use zurie_render_glue::RenderBackend;
 use zurie_render_glue::RenderConfig;
@@ -191,11 +179,23 @@ impl RenderBackend for RenderState {
             sampler,
         );
 
-        let instance_data = vec![InstanceData {
-            position: Vec2::new(0.0, 0.0),
-            scale: Vec2::new(1.0, 1.0),
-            color: Vec4::new(1.0, 1.0, 0.0, 1.0),
-        }];
+        let instance_data = vec![
+            InstanceData {
+                position: Vec2::new(0.0, 0.0),        // First quad at origin
+                scale: Vec2::new(0.5, 0.5),           // Smaller size
+                color: Vec4::new(1.0, 0.0, 0.0, 1.0), // Red
+            },
+            InstanceData {
+                position: Vec2::new(0.5, 0.5),        // Second quad offset
+                scale: Vec2::new(0.3, 0.3),           // Even smaller
+                color: Vec4::new(0.0, 1.0, 0.0, 1.0), // Green
+            },
+            InstanceData {
+                position: Vec2::new(-0.5, -0.5),      // Third quad offset
+                scale: Vec2::new(0.4, 0.4),           // Medium size
+                color: Vec4::new(0.0, 0.0, 1.0, 1.0), // Blue
+            },
+        ];
 
         let (instance_buffer, instance_buffer_memory) = crate::vertex::create_instance_buffer(
             &instance,
@@ -249,6 +249,7 @@ impl RenderBackend for RenderState {
             descriptor_sets,
             instance_buffer,
             instance_buffer_memory,
+            queue_family_vec,
         })
     }
 
@@ -256,6 +257,33 @@ impl RenderBackend for RenderState {
     where
         I: Iterator<Item = Object>,
     {
+        let mut sorted_objects: Vec<Object> = objects.collect();
+        sorted_objects.sort_by_key(|obj| obj.z_index);
+        let instance_data: Vec<InstanceData> = sorted_objects
+            .iter()
+            .map(|obj| InstanceData {
+                position: obj.position,
+                scale: obj.scale,
+                color: obj.color,
+            })
+            .collect();
+
+        if !instance_data.is_empty() {
+            unsafe {
+                self.device.destroy_buffer(self.instance_buffer, None);
+                self.device.free_memory(self.instance_buffer_memory, None);
+            }
+            let (instance_buffer, instance_buffer_memory) = crate::vertex::create_instance_buffer(
+                &self.instance,
+                &self.device,
+                self.physical_device,
+                &self.queue_family_vec,
+                &instance_data,
+            );
+            self.instance_buffer = instance_buffer;
+            self.instance_buffer_memory = instance_buffer_memory;
+        }
+
         let wait_fences = [self.in_flight_fences[self.current_frame]];
 
         unsafe {
@@ -322,7 +350,8 @@ impl RenderBackend for RenderState {
                 image_index as usize,
                 &clipped_primitives,
                 pixels_per_point,
-                self.quad_buffer, // Use stored buffer
+                instance_data.len() as u32,
+                context,
             );
 
             let wait_semaphores = [self.image_available_semaphores[self.current_frame]];
@@ -478,7 +507,7 @@ impl RenderBackend for RenderState {
     }
 }
 
-struct RenderState {
+pub struct RenderState {
     window: Arc<Window>,
     entry: ash::Entry,
     instance: ash::Instance,
@@ -507,7 +536,7 @@ struct RenderState {
     current_frame: usize,
     descriptor_pool: vk::DescriptorPool,
     descriptor_set_layout: vk::DescriptorSetLayout,
-    egui_ctx: Context,
+    pub egui_ctx: Context,
     egui_winit: State,
     egui_renderer: Renderer,
     textures_to_free: Option<Vec<TextureId>>,
@@ -522,6 +551,7 @@ struct RenderState {
     descriptor_sets: Vec<vk::DescriptorSet>,
     instance_buffer: vk::Buffer,
     instance_buffer_memory: vk::DeviceMemory,
+    queue_family_vec: Vec<u32>,
 }
 
 impl RenderState {
@@ -530,7 +560,8 @@ impl RenderState {
         image_index: usize,
         clipped_primitives: &[ClippedPrimitive],
         pixels_per_point: f32,
-        quad_buffer: vk::Buffer,
+        obj_count: u32,
+        context: FrameContext,
     ) {
         let command_buffer = self.command_buffers[image_index];
         let dynamic_rendering =
@@ -580,40 +611,29 @@ impl RenderState {
                 &[barrier],
             );
 
-            let color_attachment = vk::RenderingAttachmentInfoKHR {
-                s_type: vk::StructureType::RENDERING_ATTACHMENT_INFO_KHR,
-                p_next: ptr::null(),
-                image_view: self.swapchain_imageviews[image_index],
-                image_layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-                resolve_mode: vk::ResolveModeFlags::NONE,
-                resolve_image_view: vk::ImageView::null(),
-                resolve_image_layout: vk::ImageLayout::UNDEFINED,
-                load_op: vk::AttachmentLoadOp::CLEAR,
-                store_op: vk::AttachmentStoreOp::STORE,
-                clear_value: vk::ClearValue {
+            let color_attachment = vk::RenderingAttachmentInfoKHR::default()
+                .image_view(self.swapchain_imageviews[image_index])
+                .image_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+                .resolve_mode(vk::ResolveModeFlags::NONE)
+                .resolve_image_view(vk::ImageView::null())
+                .resolve_image_layout(vk::ImageLayout::UNDEFINED)
+                .load_op(vk::AttachmentLoadOp::CLEAR)
+                .store_op(vk::AttachmentStoreOp::STORE)
+                .clear_value(vk::ClearValue {
                     color: vk::ClearColorValue {
-                        float32: [0.0, 0.0, 0.0, 1.0],
+                        float32: context.background_color,
                     },
-                },
-                _marker: std::marker::PhantomData,
-            };
+                });
 
-            let rendering_info = vk::RenderingInfoKHR {
-                s_type: vk::StructureType::RENDERING_INFO_KHR,
-                p_next: ptr::null(),
-                flags: vk::RenderingFlagsKHR::empty(),
-                render_area: vk::Rect2D {
+            let rendering_info = vk::RenderingInfoKHR::default()
+                .flags(vk::RenderingFlagsKHR::empty())
+                .render_area(vk::Rect2D {
                     offset: vk::Offset2D { x: 0, y: 0 },
                     extent: self.swapchain_extent,
-                },
-                layer_count: 1,
-                view_mask: 0,
-                color_attachment_count: 1,
-                p_color_attachments: &color_attachment,
-                p_depth_attachment: ptr::null(),
-                p_stencil_attachment: ptr::null(),
-                _marker: std::marker::PhantomData,
-            };
+                })
+                .layer_count(1)
+                .view_mask(0)
+                .color_attachments(std::slice::from_ref(&color_attachment));
 
             dynamic_rendering.cmd_begin_rendering(command_buffer, &rendering_info);
 
@@ -652,7 +672,7 @@ impl RenderState {
             };
             self.device.cmd_set_scissor(command_buffer, 0, &[scissor]);
 
-            self.device.cmd_draw(command_buffer, 4, 1, 0, 0);
+            self.device.cmd_draw(command_buffer, 4, obj_count, 0, 0);
             self.egui_renderer
                 .cmd_draw(
                     command_buffer,
@@ -922,19 +942,6 @@ fn create_texture_image(
     let image = unsafe { device.create_image(&image_info, None).unwrap() };
     let mem_requirements = unsafe { device.get_image_memory_requirements(image) };
 
-    // Allocate texture image memory (device-local)
-    let memory_type_index = memory_properties
-        .memory_types
-        .iter()
-        .enumerate()
-        .find(|(i, mem_type)| {
-            mem_type
-                .property_flags
-                .contains(vk::MemoryPropertyFlags::DEVICE_LOCAL)
-        })
-        .map(|(i, _)| i as u32)
-        .expect("No suitable memory type for texture image");
-
     let memory = allocate_buffer_memory(
         instance,
         device,
@@ -1044,23 +1051,14 @@ fn begin_single_time_commands(
     device: &ash::Device,
     command_pool: vk::CommandPool,
 ) -> vk::CommandBuffer {
-    let alloc_info = vk::CommandBufferAllocateInfo {
-        s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-        p_next: std::ptr::null(),
-        level: vk::CommandBufferLevel::PRIMARY,
-        command_pool,
-        command_buffer_count: 1,
-        _marker: std::marker::PhantomData,
-    };
+    let alloc_info = vk::CommandBufferAllocateInfo::default()
+        .command_pool(command_pool)
+        .command_buffer_count(1)
+        .level(vk::CommandBufferLevel::PRIMARY);
 
     let command_buffer = unsafe { device.allocate_command_buffers(&alloc_info).unwrap()[0] };
-    let begin_info = vk::CommandBufferBeginInfo {
-        s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-        p_next: std::ptr::null(),
-        flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-        p_inheritance_info: std::ptr::null(),
-        _marker: std::marker::PhantomData,
-    };
+    let begin_info =
+        vk::CommandBufferBeginInfo::default().flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
     unsafe {
         device
@@ -1076,20 +1074,11 @@ fn end_single_time_commands(
     queue: vk::Queue,
     command_buffer: vk::CommandBuffer,
 ) {
-    unsafe { device.end_command_buffer(command_buffer).unwrap() };
-
-    let submit_info = vk::SubmitInfo {
-        s_type: vk::StructureType::SUBMIT_INFO,
-        p_next: std::ptr::null(),
-        wait_semaphore_count: 0,
-        p_wait_semaphores: std::ptr::null(),
-        p_wait_dst_stage_mask: std::ptr::null(),
-        command_buffer_count: 1,
-        p_command_buffers: &command_buffer,
-        signal_semaphore_count: 0,
-        p_signal_semaphores: std::ptr::null(),
-        _marker: std::marker::PhantomData,
-    };
+    {
+        unsafe { device.end_command_buffer(command_buffer).unwrap() };
+    }
+    let binding = [command_buffer];
+    let submit_info = vk::SubmitInfo::default().command_buffers(&binding);
 
     unsafe {
         device
@@ -1105,14 +1094,9 @@ fn create_command_buffers_dynamic(
     command_pool: vk::CommandPool,
     image_views: &[vk::ImageView],
 ) -> Vec<vk::CommandBuffer> {
-    let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-        s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-        p_next: ptr::null(),
-        command_pool,
-        level: vk::CommandBufferLevel::PRIMARY,
-        command_buffer_count: image_views.len() as u32,
-        _marker: std::marker::PhantomData,
-    };
+    let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::default()
+        .command_pool(command_pool)
+        .command_buffer_count(image_views.len() as u32);
 
     let command_buffers = unsafe {
         device
@@ -1121,76 +1105,4 @@ fn create_command_buffers_dynamic(
     };
 
     command_buffers
-}
-
-pub struct App {
-    window: Option<Arc<Window>>,
-    state: Option<RenderState>,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            window: Default::default(),
-            state: None,
-        }
-    }
-}
-
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        info!("Creating window");
-        if self.window.is_none() {
-            let window_attributes =
-                Window::default_attributes().with_title("Vulcan engine by Zuriefais");
-            let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
-            self.window = Some(window.clone());
-            let egui_context = Context::default();
-            egui_context.set_style(gruvbox_egui::gruvbox_dark_theme());
-            let state = RenderState::init(RenderConfig {
-                window: window.clone(),
-                event_loop,
-                egui_context,
-            })
-            .unwrap();
-            self.state = Some(state);
-        }
-    }
-
-    fn window_event(
-        &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
-        _: winit::window::WindowId,
-        event: winit::event::WindowEvent,
-    ) {
-        let state = self.state.as_mut().unwrap();
-        state.handle_window_event(&event);
-        match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        state: ElementState::Pressed,
-                        physical_key: PhysicalKey::Code(KeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => event_loop.exit(),
-            WindowEvent::Resized(size) => {
-                state.resize_window((size.width, size.height));
-            }
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                // Update egui's scale factor immediately
-                state.egui_ctx.set_pixels_per_point(scale_factor as f32);
-                log::info!("Scale factor: {}", scale_factor);
-            }
-            WindowEvent::RedrawRequested => {
-                state
-                    .render(Default::default(), Vec::new().into_iter())
-                    .unwrap();
-                self.window.as_ref().unwrap().request_redraw();
-            }
-            _ => {}
-        }
-    }
 }
