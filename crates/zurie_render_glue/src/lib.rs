@@ -11,6 +11,7 @@ pub struct RenderConfig<'a> {
     pub egui_context: egui::Context,
 }
 
+#[derive(Clone, Copy)]
 pub struct FrameContext {
     pub background_color: [f32; 4],
     pub camera: Camera,
@@ -34,5 +35,9 @@ pub trait RenderBackend: Sized {
 
     fn handle_window_event(&mut self, event: &winit::event::WindowEvent) -> anyhow::Result<()>;
 
-    fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()>;
+    fn resize_window(
+        &mut self,
+        size: (u32, u32),
+        frame_context: FrameContext,
+    ) -> anyhow::Result<()>;
 }

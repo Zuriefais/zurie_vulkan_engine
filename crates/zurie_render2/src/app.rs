@@ -10,21 +10,26 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::Window,
 };
-use zurie_render_glue::{RenderBackend, RenderConfig};
-use zurie_types::Object;
+use zurie_render_glue::{FrameContext, RenderBackend, RenderConfig};
+use zurie_types::{Object, camera::Camera};
 
 use crate::render_state::RenderState;
 
 pub struct App {
     window: Option<Arc<Window>>,
     state: Option<RenderState>,
+    frame_context: FrameContext,
 }
 
 impl Default for App {
     fn default() -> Self {
+        let mut frame_context: FrameContext = Default::default();
+        frame_context.camera =
+            Camera::create_camera_from_screen_size(800.0, 800.0, 0.1, 100.0, 1.0, Vec2::ZERO);
         Self {
             window: Default::default(),
             state: None,
+            frame_context,
         }
     }
 }
@@ -69,7 +74,10 @@ impl ApplicationHandler for App {
                 ..
             } => event_loop.exit(),
             WindowEvent::Resized(size) => {
-                let _ = state.resize_window((size.width, size.height));
+                self.frame_context
+                    .camera
+                    .update_matrix_from_screen_size(size.width as f32, size.height as f32);
+                let _ = state.resize_window((size.width, size.height), self.frame_context);
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Update egui's scale factor immediately
@@ -101,7 +109,7 @@ impl ApplicationHandler for App {
                     ),
                 ];
                 state
-                    .render(Default::default(), objects.into_iter())
+                    .render(self.frame_context, objects.into_iter())
                     .unwrap();
                 self.window.as_ref().unwrap().request_redraw();
             }

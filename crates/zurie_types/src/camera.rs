@@ -1,23 +1,33 @@
 use super::glam::{Mat4, Vec2};
 use super::serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
 pub struct Camera {
     pub right: f32,
-
     pub left: f32,
-
     pub top: f32,
-
     pub bottom: f32,
-
     pub near: f32,
-
     pub far: f32,
-
     pub zoom_factor: f32,
-
     pub position: Vec2,
+    pub aspect_ratio: f32,
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            right: 1.0,
+            left: 1.0,
+            top: 1.0,
+            bottom: 1.0,
+            near: -1.0,
+            far: 1.0,
+            zoom_factor: 1.0,
+            position: Vec2::ZERO,
+            aspect_ratio: 1.0,
+        }
+    }
 }
 
 impl Camera {
@@ -44,27 +54,18 @@ impl Camera {
             far,
             zoom_factor,
             position: position.into(),
+            aspect_ratio: 1.0,
         }
     }
 
     pub fn create_matrix(&self) -> Mat4 {
-        let mut zoom_factor = self.zoom_factor;
-        if zoom_factor == 0.0 {
-            zoom_factor = 1.0;
-        }
-
-        let adjusted_left = self.left + (self.left * zoom_factor);
-        let adjusted_right = self.right + (self.right * zoom_factor);
-        let adjusted_bottom = self.bottom + (self.bottom * zoom_factor);
-        let adjusted_top = self.top + (self.top * zoom_factor);
-
         Mat4::orthographic_rh(
-            adjusted_left,
-            adjusted_right,
-            adjusted_bottom,
-            adjusted_top,
-            self.near,
-            self.far,
+            -self.aspect_ratio, // Left
+            self.aspect_ratio,  // Right
+            -1.0,               // Bottom
+            1.0,                // Top
+            -1.0,               // Near
+            1.0,                // Far
         )
     }
 
@@ -77,24 +78,25 @@ impl Camera {
         position: Vec2,
     ) -> Camera {
         let aspect = width / height;
-        let left = -aspect / 2.0;
-        let right = aspect / 2.0;
-        let bottom = -0.5;
-        let top = 0.5;
+        let left = -aspect;
+        let right = aspect;
+        let bottom = -1.0;
+        let top = 1.0;
         Camera::new(right, left, top, bottom, near, far, zoom_factor, position)
     }
 
     pub fn update_matrix_from_screen_size(&mut self, width: f32, height: f32) {
         let aspect = width / height;
-        let left = -aspect / 2.0;
-        let right = aspect / 2.0;
-        let bottom = -0.5;
-        let top = 0.5;
+        let left = -aspect;
+        let right = aspect;
+        let bottom = -1.0;
+        let top = 1.0;
 
         self.right = right;
         self.left = left;
         self.bottom = bottom;
         self.top = top;
+        self.aspect_ratio = aspect;
         //self.update_matrix();
     }
 

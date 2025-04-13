@@ -409,7 +409,7 @@ impl RenderBackend for RenderState {
         Ok(())
     }
 
-    fn resize_window(&mut self, size: (u32, u32)) -> anyhow::Result<()> {
+    fn resize_window(&mut self, size: (u32, u32), context: FrameContext) -> anyhow::Result<()> {
         unsafe {
             self.device
                 .device_wait_idle()
@@ -449,14 +449,7 @@ impl RenderBackend for RenderState {
             // Update the projection matrix
             let aspect_ratio = size.0 as f32 / size.1 as f32;
             let camera = Camera {
-                proj_mat: Mat4::orthographic_rh(
-                    -aspect_ratio, // Left
-                    aspect_ratio,  // Right
-                    -1.0,          // Bottom
-                    1.0,           // Top
-                    -1.0,          // Near
-                    1.0,           // Far
-                ),
+                proj_mat: context.camera.get_matrix(),
                 cam_pos: Vec2::ZERO,
             };
 
