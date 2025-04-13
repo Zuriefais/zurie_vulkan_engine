@@ -24,8 +24,8 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         let mut frame_context: FrameContext = Default::default();
-        frame_context.camera =
-            Camera::create_camera_from_screen_size(800.0, 800.0, 0.1, 100.0, 1.0, Vec2::ZERO);
+        frame_context.camera = Camera::default();
+        frame_context.camera.position = Vec2::new(-1.0, 1.0);
         Self {
             window: Default::default(),
             state: None,
@@ -76,7 +76,7 @@ impl ApplicationHandler for App {
             WindowEvent::Resized(size) => {
                 self.frame_context
                     .camera
-                    .update_matrix_from_screen_size(size.width as f32, size.height as f32);
+                    .update_from_screen_size(size.width as f32, size.height as f32);
                 let _ = state.resize_window((size.width, size.height), self.frame_context);
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {

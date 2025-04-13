@@ -7,7 +7,6 @@ use glam::{Mat4, Vec2};
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 pub struct Camera {
     pub proj_mat: Mat4,
-    pub cam_pos: Vec2,
 }
 
 pub fn create_uniform_buffer(

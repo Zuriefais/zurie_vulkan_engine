@@ -121,7 +121,6 @@ impl RenderBackend for RenderState {
             proj_mat: Mat4::orthographic_rh(
                 -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, // Left, right, bottom, top, near, far
             ),
-            cam_pos: Vec2::ZERO,
         };
         let camera_buffer = create_camera_buffer(
             &instance,
@@ -446,11 +445,8 @@ impl RenderBackend for RenderState {
                 &swapchain_imageviews,
             );
 
-            // Update the projection matrix
-            let aspect_ratio = size.0 as f32 / size.1 as f32;
             let camera = Camera {
                 proj_mat: context.camera.get_matrix(),
-                cam_pos: Vec2::ZERO,
             };
 
             // Use queue family indices from queue_family

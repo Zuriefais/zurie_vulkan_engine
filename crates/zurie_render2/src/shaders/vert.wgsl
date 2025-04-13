@@ -1,6 +1,5 @@
 struct Camera {
     proj_mat: mat4x4<f32>,
-    cam_pos: vec2<f32>,
 }
 
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -25,7 +24,7 @@ struct VertexOutput {
 fn main(in: VertexInput, inst: InstanceInput) -> VertexOutput {
     var out: VertexOutput;
     let scaled_pos = in.vert_position * inst.scale;
-    let world_pos = scaled_pos + inst.position - camera.cam_pos;
+    let world_pos = scaled_pos + inst.position;
     out.position = camera.proj_mat * vec4<f32>(world_pos, 0.0, 1.0);
     out.frag_color = inst.color;
     out.frag_tex_coord = vec2<f32>(in.vert_position.x + 0.5, in.vert_position.y + 0.5);
