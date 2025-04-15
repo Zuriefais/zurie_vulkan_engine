@@ -81,7 +81,7 @@ fn allocate_buffer_memory(
     unsafe { device.allocate_memory(&alloc_info, None) }.expect("Failed to allocate buffer memory")
 }
 
-fn upload_camera_data(device: &ash::Device, buffer_memory: vk::DeviceMemory, camera: Camera) {
+pub fn upload_camera_data(device: &ash::Device, buffer_memory: vk::DeviceMemory, camera: Camera) {
     let data_ptr = unsafe {
         device
             .map_memory(

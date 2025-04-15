@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use egui::Context;
+use egui::{Context, ViewportId};
+use egui_winit::State;
 use glam::{Vec2, Vec4};
 use log::info;
 use winit::{
@@ -13,12 +14,14 @@ use winit::{
 use zurie_render_glue::{FrameContext, RenderBackend, RenderConfig};
 use zurie_types::{Object, camera::Camera};
 
-use crate::render_state::RenderState;
+use crate::render::renderer::Renderer;
 
 pub struct App {
     window: Option<Arc<Window>>,
-    state: Option<RenderState>,
+    state: Option<Renderer>,
     frame_context: FrameContext,
+    egui_winit: Option<State>,
+    egui_context: Option<Context>,
 }
 
 impl Default for App {
@@ -26,10 +29,13 @@ impl Default for App {
         let mut frame_context: FrameContext = Default::default();
         frame_context.camera = Camera::default();
         frame_context.camera.position = Vec2::new(-1.0, 1.0);
+
         Self {
             window: Default::default(),
             state: None,
             frame_context,
+            egui_winit: None,
+            egui_context: None,
         }
     }
 }
@@ -44,13 +50,23 @@ impl ApplicationHandler for App {
             self.window = Some(window.clone());
             let egui_context = Context::default();
             egui_context.set_style(gruvbox_egui::gruvbox_dark_theme());
-            let state = RenderState::init(RenderConfig {
+            let state = Renderer::init(RenderConfig {
                 window: window.clone(),
                 event_loop,
-                egui_context,
+                egui_context: egui_context.clone(),
             })
             .unwrap();
+            let egui_winit = Some(State::new(
+                egui_context.clone(),
+                ViewportId::ROOT,
+                &window,
+                None,
+                None,
+                None,
+            ));
             self.state = Some(state);
+            self.egui_winit = egui_winit;
+            self.egui_context = Some(egui_context)
         }
     }
 
@@ -62,6 +78,10 @@ impl ApplicationHandler for App {
     ) {
         let state = self.state.as_mut().unwrap();
         let _ = state.handle_window_event(&event);
+        self.egui_winit
+            .as_mut()
+            .unwrap()
+            .on_window_event(&self.window.as_ref().unwrap(), &event);
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -77,14 +97,30 @@ impl ApplicationHandler for App {
                 self.frame_context
                     .camera
                     .update_from_screen_size(size.width as f32, size.height as f32);
-                let _ = state.resize_window((size.width, size.height), self.frame_context);
-            }
-            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                // Update egui's scale factor immediately
-                state.egui_ctx.set_pixels_per_point(scale_factor as f32);
-                log::info!("Scale factor: {}", scale_factor);
+                let _ = state.resize_window((size.width, size.height), &self.frame_context);
             }
             WindowEvent::RedrawRequested => {
+                let scale_factor = self.window.as_ref().unwrap().scale_factor() as f32;
+                self.egui_context
+                    .as_mut()
+                    .unwrap()
+                    .set_pixels_per_point(scale_factor);
+                let raw_input = self
+                    .egui_winit
+                    .as_mut()
+                    .unwrap()
+                    .take_egui_input(&self.window.as_ref().unwrap());
+                let egui_stuff = self.egui_context.as_mut().unwrap().run(raw_input, |ctx| {
+                    egui::Window::new("Zurie Engine UI").show(ctx, |ui| {
+                        ui.label("Vulkan rendering with egui!");
+                    });
+                });
+
+                self.egui_winit.as_mut().unwrap().handle_platform_output(
+                    &self.window.as_ref().unwrap(),
+                    egui_stuff.platform_output.clone(),
+                );
+                self.frame_context.egui_stuff = egui_stuff;
                 let objects = vec![
                     Object::new(
                         Vec2::new(1.0, 0.0),
@@ -109,7 +145,7 @@ impl ApplicationHandler for App {
                     ),
                 ];
                 state
-                    .render(self.frame_context, objects.into_iter())
+                    .render(&self.frame_context, objects.into_iter())
                     .unwrap();
                 self.window.as_ref().unwrap().request_redraw();
             }

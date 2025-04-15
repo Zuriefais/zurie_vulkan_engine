@@ -5,7 +5,7 @@ pub struct TriangleVertex {
 }
 
 /// The vertex type that describes the unique data per instance.
-#[derive(Pod, Zeroable, Clone, Copy)]
+#[derive(Pod, Zeroable, Clone, Copy, Default)]
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec2,
@@ -141,7 +141,7 @@ pub fn create_quad_buffer(
     device: &ash::Device,
     physical_device: vk::PhysicalDevice,
     queue_family_indices: &Vec<u32>,
-) -> vk::Buffer {
+) -> (vk::Buffer, vk::DeviceMemory) {
     let (quad_buffer, device_memory) =
         create_vertex_buffer(instance, device, physical_device, queue_family_indices);
     let data_ptr = unsafe {
@@ -159,7 +159,7 @@ pub fn create_quad_buffer(
         std::ptr::copy_nonoverlapping(vertex_bytes.as_ptr(), data_ptr, vertex_bytes.len());
         device.unmap_memory(device_memory);
     }
-    quad_buffer
+    (quad_buffer, device_memory)
 }
 
 pub fn create_instance_buffer(

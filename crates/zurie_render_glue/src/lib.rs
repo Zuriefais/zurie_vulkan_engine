@@ -11,10 +11,11 @@ pub struct RenderConfig<'a> {
     pub egui_context: egui::Context,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct FrameContext {
     pub background_color: [f32; 4],
     pub camera: Camera,
+    pub egui_stuff: egui::FullOutput,
 }
 
 impl Default for FrameContext {
@@ -22,6 +23,7 @@ impl Default for FrameContext {
         Self {
             background_color: [131.0 / 255.0, 165.0 / 255.0, 152.0 / 255.0, 1.0],
             camera: Camera::default(),
+            egui_stuff: Default::default(),
         }
     }
 }
@@ -29,7 +31,7 @@ impl Default for FrameContext {
 pub trait RenderBackend: Sized {
     fn init(config: RenderConfig) -> Result<Self, anyhow::Error>;
 
-    fn render<I>(&mut self, frame_context: FrameContext, objects: I) -> anyhow::Result<()>
+    fn render<I>(&mut self, frame_context: &FrameContext, objects: I) -> anyhow::Result<()>
     where
         I: Iterator<Item = Object>;
 
@@ -38,6 +40,6 @@ pub trait RenderBackend: Sized {
     fn resize_window(
         &mut self,
         size: (u32, u32),
-        frame_context: FrameContext,
+        frame_context: &FrameContext,
     ) -> anyhow::Result<()>;
 }

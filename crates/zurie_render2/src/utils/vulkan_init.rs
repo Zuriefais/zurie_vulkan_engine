@@ -24,6 +24,98 @@ use std::sync::Arc;
 
 use super::shader::create_shader_module;
 
+pub fn begin_single_time_commands(
+    device: &ash::Device,
+    command_pool: vk::CommandPool,
+) -> vk::CommandBuffer {
+    let alloc_info = vk::CommandBufferAllocateInfo {
+        s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+        p_next: ptr::null(),
+        level: vk::CommandBufferLevel::PRIMARY,
+        command_pool,
+        command_buffer_count: 1,
+        _marker: std::marker::PhantomData,
+    };
+
+    let command_buffer = unsafe {
+        device
+            .allocate_command_buffers(&alloc_info)
+            .expect("Failed to allocate command buffer")
+    }[0];
+
+    let begin_info = vk::CommandBufferBeginInfo {
+        s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
+        p_next: ptr::null(),
+        flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+        p_inheritance_info: ptr::null(),
+        _marker: std::marker::PhantomData,
+    };
+
+    unsafe {
+        device
+            .begin_command_buffer(command_buffer, &begin_info)
+            .expect("Failed to begin command buffer");
+    }
+
+    command_buffer
+}
+
+pub fn end_single_time_commands(
+    device: &ash::Device,
+    command_pool: vk::CommandPool,
+    queue: vk::Queue,
+    command_buffer: vk::CommandBuffer,
+) {
+    unsafe {
+        device
+            .end_command_buffer(command_buffer)
+            .expect("Failed to end command buffer");
+
+        let submit_info = vk::SubmitInfo {
+            s_type: vk::StructureType::SUBMIT_INFO,
+            p_next: ptr::null(),
+            wait_semaphore_count: 0,
+            p_wait_semaphores: ptr::null(),
+            p_wait_dst_stage_mask: ptr::null(),
+            command_buffer_count: 1,
+            p_command_buffers: &command_buffer,
+            signal_semaphore_count: 0,
+            p_signal_semaphores: ptr::null(),
+            _marker: std::marker::PhantomData,
+        };
+
+        device
+            .queue_submit(queue, &[submit_info], vk::Fence::null())
+            .expect("Failed to submit command buffer");
+
+        device
+            .queue_wait_idle(queue)
+            .expect("Failed to wait for queue idle");
+
+        device.free_command_buffers(command_pool, &[command_buffer]);
+    }
+}
+
+pub fn create_command_buffers_dynamic(
+    device: &ash::Device,
+    command_pool: vk::CommandPool,
+    image_views: &[vk::ImageView],
+) -> Vec<vk::CommandBuffer> {
+    let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
+        s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
+        p_next: ptr::null(),
+        command_buffer_count: image_views.len() as u32,
+        command_pool,
+        level: vk::CommandBufferLevel::PRIMARY,
+        _marker: std::marker::PhantomData,
+    };
+
+    unsafe {
+        device
+            .allocate_command_buffers(&command_buffer_allocate_info)
+            .expect("Failed to allocate Command Buffers!")
+    }
+}
 pub fn create_graphics_pipeline(
     device: &ash::Device,
     swapchain_format: vk::Format,
@@ -774,33 +866,31 @@ fn create_descriptor_set_layout(device: &Device) -> vk::DescriptorSetLayout {
     }
 }
 
-pub fn create_descriptor_pool(device: &Device, max_sets: u32) -> vk::DescriptorPool {
-    // Define the types and counts of descriptors we need
+pub fn create_descriptor_pool(
+    device: &Device,
+    max_sets: u32,
+) -> anyhow::Result<vk::DescriptorPool> {
     let pool_sizes = [
-        // For the uniform buffer (Camera)
         vk::DescriptorPoolSize::default()
             .ty(vk::DescriptorType::UNIFORM_BUFFER)
-            .descriptor_count(1), // One uniform buffer per set
-        // For the sampler
+            .descriptor_count(max_sets),
         vk::DescriptorPoolSize::default()
             .ty(vk::DescriptorType::SAMPLER)
-            .descriptor_count(1), // One sampler per set
-        // For the texture (sampled image)
+            .descriptor_count(max_sets),
         vk::DescriptorPoolSize::default()
             .ty(vk::DescriptorType::SAMPLED_IMAGE)
-            .descriptor_count(1), // One texture per set
+            .descriptor_count(max_sets),
     ];
 
-    // Create info for the descriptor pool
     let pool_info = vk::DescriptorPoolCreateInfo::default()
         .pool_sizes(&pool_sizes)
-        .max_sets(max_sets) // Maximum number of descriptor sets that can be allocated
-        .flags(vk::DescriptorPoolCreateFlags::empty()); // Add FREE_DESCRIPTOR_SET if you need to free individual sets
+        .max_sets(max_sets)
+        .flags(vk::DescriptorPoolCreateFlags::FREE_DESCRIPTOR_SET);
 
     unsafe {
         device
             .create_descriptor_pool(&pool_info, None)
-            .expect("Failed to create descriptor pool")
+            .map_err(|e| anyhow!("Failed to create descriptor pool: {}", e))
     }
 }
 

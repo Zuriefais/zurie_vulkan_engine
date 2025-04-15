@@ -4,6 +4,7 @@ use zurie_render2::app::App;
 
 fn main() {
     env_logger::init();
+    color_backtrace::install();
     info!("Starting application");
     let event_loop = EventLoop::new().expect("Failed to create event loop");
     let mut app = App::default();
