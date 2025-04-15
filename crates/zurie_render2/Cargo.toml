@@ -37,6 +37,9 @@ zurie_types = { path = "../zurie_types" }
 bytemuck = {version = "1.22.0", features = ["derive"]}
 color-backtrace = "0.7.0"
 
+slotmap = {workspace = true}
+crossbeam-channel = "0.5.15"
+asefile = "0.3.8"
 
 
 [target.'cfg(windows)'.dependencies.windows]

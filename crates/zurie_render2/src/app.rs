@@ -78,7 +78,8 @@ impl ApplicationHandler for App {
     ) {
         let state = self.state.as_mut().unwrap();
         let _ = state.handle_window_event(&event);
-        self.egui_winit
+        let _ = self
+            .egui_winit
             .as_mut()
             .unwrap()
             .on_window_event(&self.window.as_ref().unwrap(), &event);
@@ -126,21 +127,21 @@ impl ApplicationHandler for App {
                         Vec2::new(1.0, 0.0),
                         Vec2::new(1.0, 1.0),
                         Vec4::new(1.0, 0.0, 0.0, 1.0),
-                        0,
+                        Default::default(),
                         0,
                     ),
                     Object::new(
                         Vec2::new(0.0, 1.0),
                         Vec2::new(2.0, 2.0),
                         Vec4::new(0.0, 1.0, 0.0, 1.0),
-                        0,
+                        Default::default(),
                         1,
                     ),
                     Object::new(
                         Vec2::new(0.0, 0.0),
                         Vec2::new(1.0, 1.0),
                         Vec4::new(0.0, 0.0, 1.0, 1.0),
-                        0,
+                        Default::default(),
                         0,
                     ),
                 ];

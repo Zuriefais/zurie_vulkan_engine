@@ -3,10 +3,10 @@ use crate::render::backend::Backend;
 use crate::resources::resource_manager::ResourceManager;
 use crate::utils::swapchain::create_image_view;
 use crate::utils::vulkan_init::*;
-use crate::vertex::{InstanceData, create_instance_buffer, create_quad_buffer};
+use crate::vertex::{InstanceData, create_instance_buffer};
 use ash::vk;
 use std::ptr;
-use std::sync::Arc;
+
 use zurie_render_glue::FrameContext;
 
 pub struct ObjPass {
@@ -49,7 +49,7 @@ impl ObjPass {
             &backend.queue_family_indices,
             camera,
         );
-        let (camera_buffer_temp, camera_buffer_memory) = crate::camera::create_uniform_buffer(
+        let (_, camera_buffer_memory) = crate::camera::create_uniform_buffer(
             &backend.instance,
             &backend.device,
             backend.physical_device,

@@ -1,9 +1,10 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
-use zurie_types::Object;
 use zurie_types::camera::Camera;
+use zurie_types::{Object, SpriteHandle};
 
 pub struct RenderConfig<'a> {
     pub window: Arc<Window>,
@@ -42,4 +43,15 @@ pub trait RenderBackend: Sized {
         size: (u32, u32),
         frame_context: &FrameContext,
     ) -> anyhow::Result<()>;
+
+    fn get_sprite_manager(&self) -> Box<dyn SpriteManager>;
+}
+
+pub enum LoadSpriteInfo {
+    Path(Box<Path>),
+    Buffer(Vec<u8>),
+}
+
+pub trait SpriteManager {
+    fn load_sprite(&self, info: LoadSpriteInfo) -> SpriteHandle;
 }

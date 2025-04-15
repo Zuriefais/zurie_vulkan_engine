@@ -5,6 +5,7 @@ pub mod debug;
 pub mod platforms;
 pub mod render;
 pub mod resources;
+pub mod sprite_manager;
 pub mod structures;
 pub mod tools;
 pub mod utils;

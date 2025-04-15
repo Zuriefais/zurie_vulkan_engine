@@ -73,7 +73,7 @@ pub struct Object {
     pub position: Vec2,
     pub scale: Vec2,
     pub color: Vec4,
-    pub sprite: u64,
+    pub sprite: SpriteHandle,
     pub z_index: i32,
 }
 
@@ -83,14 +83,20 @@ impl Default for Object {
             position: Vec2::ZERO.into(),
             scale: Vec2 { x: 1.0, y: 1.0 },
             color: Vec4::new(1.0, 1.0, 1.0, 1.0),
-            sprite: 0,
+            sprite: SpriteHandle::default(),
             z_index: 1,
         }
     }
 }
 
 impl Object {
-    pub fn new(position: Vec2, scale: Vec2, color: Vec4, sprite: u64, z_index: i32) -> Self {
+    pub fn new(
+        position: Vec2,
+        scale: Vec2,
+        color: Vec4,
+        sprite: SpriteHandle,
+        z_index: i32,
+    ) -> Self {
         Self {
             position,
             scale,

@@ -1,8 +1,7 @@
 use crate::resources::resource_manager::ResourceManager;
+use crate::sprite_manager;
 use crate::vertex::{InstanceData, create_instance_buffer};
 use ash::vk;
-use std::sync::Arc;
-use winit::window::Window;
 use zurie_render_glue::FrameContext;
 
 use super::{
@@ -12,6 +11,7 @@ use super::{
 
 pub struct Renderer {
     pub backend: Backend,
+    pub sprite_manager_backend: sprite_manager::SpriteManagerBackend,
     pub resource_manager: ResourceManager,
     pub obj_pass: ObjPass,
     pub egui_pass: EGUIPass,
@@ -23,15 +23,17 @@ impl zurie_render_glue::RenderBackend for Renderer {
         let backend = Backend::new(config.window.clone())?;
         let resource_manager = ResourceManager::new(&backend)?;
         let mut obj_pass = ObjPass::new(&backend, &resource_manager)?;
-        let mut egui_pass = EGUIPass::new(&backend, config.egui_context, &config.window)?;
+        let mut egui_pass = EGUIPass::new(&backend, config.egui_context)?;
         obj_pass.init(&backend, backend.swapchain_extent())?;
         egui_pass.init(&backend, backend.swapchain_extent())?;
+        let sprite_manager_backend = sprite_manager::SpriteManagerBackend::new(&backend)?;
         Ok(Self {
             backend,
             resource_manager,
             obj_pass,
             egui_pass,
             current_frame: 0,
+            sprite_manager_backend,
         })
     }
 
@@ -46,14 +48,18 @@ impl zurie_render_glue::RenderBackend for Renderer {
                 .wait_for_fences(&wait_fences, true, u64::MAX)?;
             let (image_index, _) = self.backend.acquire_next_image(self.current_frame)?;
 
+            let mut objects = objects.collect::<Vec<_>>();
+            objects.sort_by_key(|data| data.z_index);
             // Update instance buffer
             let instance_data: Vec<InstanceData> = objects
+                .iter()
                 .map(|obj| InstanceData {
                     position: obj.position,
                     scale: obj.scale,
                     color: obj.color,
                 })
-                .collect();
+                .collect::<Vec<InstanceData>>();
+
             if !instance_data.is_empty() {
                 self.backend
                     .device()
@@ -95,7 +101,6 @@ impl zurie_render_glue::RenderBackend for Renderer {
             )?;
             self.egui_pass.record(
                 command_buffer,
-                image_index as usize,
                 &self.backend,
                 &self.resource_manager,
                 &frame_context,
@@ -125,5 +130,10 @@ impl zurie_render_glue::RenderBackend for Renderer {
         self.egui_pass.resize(&self.backend, new_extent)?;
         self.obj_pass.resize(&self.backend, new_extent)?;
         Ok(())
+    }
+
+    fn get_sprite_manager(&self) -> Box<dyn zurie_render_glue::SpriteManager> {
+        let sprite_manager = Box::new(self.sprite_manager_backend.get_manager());
+        sprite_manager
     }
 }

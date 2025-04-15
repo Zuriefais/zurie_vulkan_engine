@@ -1,23 +1,20 @@
 use super::super::backend::Backend;
-use super::obj_pass::ObjPass;
+
 use crate::resources::resource_manager::ResourceManager;
 use ash::vk;
-use egui::{Context, ViewportId};
+use egui::Context;
 use egui_ash_renderer::Renderer;
-use egui_winit::State;
-use std::sync::Arc;
-use winit::window::Window;
+
 use zurie_render_glue::FrameContext;
 
 pub struct EGUIPass {
     egui_ctx: Context,
     egui_renderer: Renderer,
     textures_to_free: Option<Vec<egui::TextureId>>,
-    window: Arc<Window>,
 }
 
 impl EGUIPass {
-    pub fn new(backend: &Backend, egui_ctx: Context, window: &Arc<Window>) -> anyhow::Result<Self> {
+    pub fn new(backend: &Backend, egui_ctx: Context) -> anyhow::Result<Self> {
         let egui_renderer = Renderer::with_default_allocator(
             &backend.instance,
             backend.physical_device,
@@ -34,10 +31,8 @@ impl EGUIPass {
 
         Ok(Self {
             egui_ctx,
-
             egui_renderer,
             textures_to_free: None,
-            window: window.clone(),
         })
     }
 
@@ -52,7 +47,6 @@ impl EGUIPass {
     pub fn record(
         &mut self,
         command_buffer: vk::CommandBuffer,
-        image_index: usize,
         backend: &Backend,
         _resources: &ResourceManager,
         frame_context: &FrameContext,
